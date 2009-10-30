@@ -3,6 +3,7 @@
   ret
 :two
   push nil
+  push nil
   new
   dup
   push #one
