@@ -11,6 +11,10 @@
 // - write a loop test
 //
 // - test the symbol table first, it doesn't work
+//--------
+// Test 6 fails because the function returns a string and no method is invoked on 
+// the string so the code throws an exception, ignoring the final value in an expression
+// should be easier
 
 #include <sys/types.h>
 #include <string.h>
@@ -65,6 +69,7 @@ Object* new_array();
 Object* new_symbol_table();
 ArrayBuffer* allocate_array(Fixnum length);
 Object* sym(char const *str, int length = -1);
+Object* sym(Object *str);
 Object* new_instr_table();
 
 Object* Array   = new_object();
@@ -73,8 +78,9 @@ Object* Integer = new_object();
 Object* Block   = new_object();
 
 Object* SymbolTable = new_symbol_table();
-// the value of slot 1 is the count of symbols in the table
-// otherwise it just stores strings
+  // the value of slot 1 is the count of symbols in the table
+  // otherwise it just stores strings
+Object* SetterTable = new_object();
 
 Object* Instr   = new_instr_table();
 // do not init until after symbol table because this uses the symbol table
@@ -297,15 +303,40 @@ void grow_object_table(Object *obj)
     obj->table  = new_obj.table;
 }
 
+int is_setter_string(Object *str) {
+  return str->buffer && str->buffer->length > 2 && 
+    ( str->buffer->data[str->buffer->length - 1] == ':' );
+}
+
+int is_setter(Object *sym) {
+  get_slot(SetterTable, sym) != 0;
+}
+
+Object* create_slot_from_setter(Object *str) {
+  Object *slot_string = new_string(str->buffer->data, str->buffer->length - 1);
+  return sym(slot_string);
+}
+
+Object* setter_slot(Object *setter_sym) {
+  return get_slot(SetterTable, setter_sym);
+}
+
 Object* sym(char const *str, int length) {
-    Object *key   = new_string(str, length);
+  Object *key   = new_string(str, length);
+  return sym(key);
+}
+
+Object* sym(Object *key) {
     Object *value = get_slot(SymbolTable, key);
     if ( value == 0 ) {
         Fixnum index = 
             sym_fixnum(get_slot(SymbolTable, sym_object(1)))+1;
-        value = sym_object(index);
-        set_slot(SymbolTable, sym_object(1), value);
-        set_slot(SymbolTable, key, value);
+	value = sym_object(index);
+	if ( is_setter_string(key) ) {
+	  set_slot(SetterTable, value, create_slot_from_setter(key));
+	}
+	set_slot(SymbolTable, sym_object(1), value);
+	set_slot(SymbolTable, key, value);
     }
     return value;
 }
@@ -559,48 +590,82 @@ Object* new_exception(char const* str) {
     return 0;
 };
 
-Object* object_send(Object *object, Object *frame, Object *stack) {
+Object* setter_send(Object *target, Object *slot, Object *frame, Object *stack) {
+  if ( stack_length(stack) == 0 ) {
+    return new_exception_frame(frame, new_exception("Missing argument"));
+  }
+  else {
+    Object *value = pop(stack);
+    set_slot(frame, sym("assignment"), sym("true"));
+    set_slot(target, setter_slot(slot), value);
+    push(stack, value);
+  }
+  return frame;
+} 
+
+Object* object_send(Object *target, Object *frame, Object *stack) {
     if ( stack_length(stack) == 0 ) {
-        return new_exception_frame(frame, new_exception("Missing argument"));
+      push(stack, target);
+      return frame;
     }
-    Object *slot_name = pop(stack);
-    Object *slot_value = object_resolve(object, slot_name);
-    if ( is_closure(slot_value) ) {
-        set_slot(slot_value, SYM_SELF, object);
+    Object *slot_name  = pop(stack);
+    Object *slot_value = object_resolve(target, slot_name);
+    if ( slot_value == 0 && is_setter(slot_name) ) {
+      return setter_send(target, slot_name, frame, stack);
     }
-    push(stack, slot_value);
-    return frame;
+    else {
+      if ( is_closure(slot_value) ) {
+	set_slot(slot_value, SYM_SELF, target);
+      }
+      push(stack, slot_value);
+      return frame;
+    }
 }
 
 Object* closure_send(Object *closure, Object *frame, Object *stack) {
-    Object *closure_frame = new_frame(frame, closure); 
-    Object *arg_slot      = get_slot(closure, SYM_ARG);
-    if ( arg_slot != 0 ) {
-        if ( stack_length(stack) == 0 ) {
-            return new_exception_frame(frame, new_exception("Missing argument"));
-        }
-        else {
-            Object *arg_value = pop(stack);
-            arg_value = frame_resolve(frame, arg_value);
-            set_slot(get_slot(closure_frame, SYM_LOCAL), arg_slot, arg_value);
-            return closure_frame;
-        }
+  Object *closure_frame = new_frame(frame, closure); 
+  Object *arg_slot      = get_slot(closure, SYM_ARG);
+  if ( arg_slot != 0 ) {
+    if ( stack_length(stack) == 0 ) {
+      return new_exception_frame(frame, new_exception("Missing argument"));
     }
+    else {
+      Object *arg_value = pop(stack);
+      arg_value = frame_resolve(frame, arg_value);
+      set_slot(get_slot(closure_frame, SYM_LOCAL), arg_slot, arg_value);
+      return closure_frame;
+    }
+  }
+  else {
+    return closure_frame;
+  }
 }
 
 Object* send(Object *frame, Object *stack) 
 {
+    set_slot(frame, sym("assignment"), sym("false"));
     Object *target   = pop(stack);
     if ( is_sym(target) ) {
-        target = frame_resolve(frame, target);
+      Object *slot = target;
+      target = frame_resolve(frame, slot);
+      if ( target == 0 && is_setter(slot) ) {
+	return setter_send(get_slot(frame, sym("local")), slot, frame, stack);
+      }
+      else {
+	push(stack, target);
+	return frame;
+      }
     }
     if ( is_closure(target) ) {
-        return closure_send(target, frame, stack);
+      return closure_send(target, frame, stack);
+    }
+    else if ( target != 0 ) {
+      return object_send(target, frame, stack);
     }
     else {
-        return object_send(target, frame, stack);
+      return frame;
     }
-};
+}
 
 Object *get_instr(Object *code, Fixnum pc)
 {
@@ -645,23 +710,29 @@ void interpret(Object *frame) {
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_SEND:
-                new_frame = send(frame, stack);
-                if ( 
-                    frame == new_frame      && 
-                    stack_length(stack) < 2 && 
-                    ! is_closure(peek(stack)) 
-                ) {
-                    set_slot(frame, SYM_PC, object(++pc));
-                }
-                frame = new_frame;
-                break;
+	      new_frame = send(frame, stack);
+              if ( 
+                  frame == new_frame      && 
+                  stack_length(stack) < 2 && 
+                  (! is_closure(peek(stack)) || 
+		     get_slot(frame, sym("assignment")) == sym("true")) 
+              ) {
+                  set_slot(frame, SYM_PC, object(++pc));
+              }
+	      else if ( frame != new_frame ) {
+		frame = new_frame;
+                stack = get_slot(frame, SYM_STACK);
+                code  = get_code(frame);
+                pc    = fixnum(get_slot(frame, SYM_PC));
+	      }
+              break;
             case INST_RET:
                 top   = pop(stack);
                 frame = get_slot(frame, SYM_PARENT_FRAME);
                 stack = get_slot(frame, SYM_STACK);
-                push(stack, top);
                 code  = get_code(frame);
                 pc    = fixnum(get_slot(frame, SYM_PC));
+                push(stack, top);
                 break;
             case INST_TERM:
                 terminate = true;
@@ -887,6 +958,53 @@ Object* load(FILE *input)
     return block;
 };
 
+void dump_stack(Object *object, int indent = 0);
+
+void dump(Object *object, int indent = 0) {
+  char indent_string[indent+1];
+  indent_string[indent]=0;
+  memset(indent_string, ' ', indent);
+  if ( object == 0 ) {
+    printf("%s0\n", indent_string);
+    return;
+  }
+  else if ( is_object(object) ) {
+    printf("%sproto: %p\n", indent_string, object->proto);
+    printf("%sbuffer: %p\n", indent_string, object->buffer);
+    for(Fixnum i=0;i<object->length;++i) {
+      ObjectPair *pair = object->table + i;
+      if ( pair->key != 0 ) {
+	if ( is_sym(pair->key) ) {
+	  printf("%s%d:\n", indent_string, sym_fixnum(pair->key));
+	  dump(pair->value, indent+1);
+	}
+	else {
+	  printf("%snot a sym\n", indent_string);
+	}
+      }
+    }
+    if ( array_parent(object) != 0 ) {
+      printf("%sarray: \n", indent_string);
+      dump_stack(object, indent);
+    }
+  }
+  else if ( is_fixnum(object) ) {
+    printf("%sfixnum: %d\n", indent_string, fixnum(object));
+  }
+  else if ( is_sym(object) ) {
+    printf("%ssym: %d\n", indent_string, sym_fixnum(object));
+  }
+}
+
+void dump_stack(Object *object, int indent) {
+  char indent_string[indent+1];
+  indent_string[indent]=0;
+  memset(indent_string, ' ', indent);
+  for(Fixnum i=0; i<stack_length(object); ++i) {
+    printf("%s%d:", indent_string, i);
+    dump(get_at(array_parent(object), i), indent+1);
+  }
+}
 
 int main(int argc, char **argv) {
     if ( argc < 2 ) {
@@ -897,7 +1015,10 @@ int main(int argc, char **argv) {
     else {
         FILE *input = fopen(argv[1], "r");
         Object *block = load(input);
-        interpret(new_frame(0, block));
+	Object *frame = new_frame(0, block);
+        interpret(frame);
+	dump(frame, 0);
+	dump_stack(get_slot(frame, sym("stack")));
     }
 };
 
