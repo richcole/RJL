@@ -66,20 +66,20 @@ Object* new_object(Object *proto = 0);
 Object* new_string(char const *str, int length = -1);
 Object* new_block();
 Object* new_array();
-Object* new_symbol_table();
 ArrayBuffer* allocate_array(Fixnum length);
 Object* sym(char const *str, int length = -1);
 Object* sym(Object *str);
+Object* new_symbol(Object *str);
+Object* new_symbol(char const *str, int length = -1);
 Object* new_instr_table();
 
 Object* Array   = new_object();
 Object* String  = new_object();
+Object* Symbol  = new_object();
 Object* Integer = new_object();
 Object* Block   = new_object();
 
-Object* SymbolTable = new_symbol_table();
-  // the value of slot 1 is the count of symbols in the table
-  // otherwise it just stores strings
+Object* SymbolTable = new_object();
 Object* SetterTable = new_object();
 
 Object* Instr   = new_instr_table();
@@ -98,15 +98,20 @@ Object* SYM_PARENT  = sym("parent");
 Object* SYM_ARG     = sym("arg");
 
 Object* SYM_LEXICAL_FRAME = sym("lexical_frame");
-Object* SYM_PARENT_FRAME = sym("parent_frame");
-Object* SYM_LOCAL = sym("local");
+Object* SYM_PARENT_FRAME  = sym("parent_frame");
+Object* SYM_LOCAL         = sym("local");
+
+Object* SYM_ASSIGNMENT = sym("assignment");
+Object* SYM_TRUE       = sym("true");
+Object* SYM_FALSE      = sym("false");
+
+Object* SYM_TYPE       = sym("type");
+Object* SYM_VALUE      = sym("type");
+Object* SYM_OPEN       = sym("open");
+Object* SYM_READ_LINE  = sym("readline");
 
 bool is_fixnum(Object *obj) {
     return ((Fixnum)obj & 0x1) == 0x1;
-}
-
-bool is_sym(Object *obj) {
-    return ((Fixnum)obj & 0x2) == 0x2;
 }
 
 bool is_object(Object *obj) {
@@ -127,26 +132,16 @@ Object *object(Fixnum fixnum) {
     return (Object *)(((Fixnum)fixnum << 2) | sign_bit | 0x1);
 }
 
-Object *sym_object(Fixnum fixnum) {
-    Fixnum sign_bit = (Fixnum)fixnum & (0x1L << ((sizeof(Fixnum) * 8) - 1));
-    return (Object *)(((Fixnum)fixnum << 2) | sign_bit | 0x2);
-}
-
-Fixnum sym_fixnum(Object *obj) {
-    Fixnum sign_bit = (Fixnum)obj & (0x1L << ((sizeof(Fixnum) * 8) - 1));
-    return ((Fixnum)obj >> 2) | sign_bit;
-}
-
 bool fixnum_equals(Object *s, Object *t) {
     return is_fixnum(s) && is_fixnum(t) && s == t;
 }
 
-bool sym_fixnum_equals(Object *s, Object *t) {
-    return is_sym(s) && is_sym(t) && s == t;
-}
-
 bool is_string(Object *s) {
     return is_object(s) && s->proto == String;
+}
+
+bool is_sym(Object *s) {
+    return is_object(s) && s->proto == Symbol;
 }
 
 bool has_buffer(Object *s) {
@@ -217,12 +212,12 @@ void set_slot(Object *obj, Object *key, Object *value) {
         }
     }
     if ( is_sym(key) ) {
-        index = sym_fixnum(key);
-        candidate = obj->table[index % obj->length].key;
-        while( candidate != 0 && ! sym_fixnum_equals(candidate, key) ) {
-            index += 1;
-            candidate = obj->table[index % obj->length].key;
-        }
+      index = (Fixnum)key;
+      candidate = obj->table[index % obj->length].key;
+      while( candidate != 0 && candidate != key ) {
+	index += 1;
+	candidate = obj->table[index % obj->length].key;
+      }
     }
     else if ( is_string(key) ) {
         index = string_hash(key);
@@ -261,9 +256,9 @@ Object* get_slot(Object *obj, Object *key)
         }
     }
     if ( is_sym(key) ) {
-        index = sym_fixnum(key);
+      index = (Fixnum)key;
         candidate = obj->table[index % obj->length].key;
-        while( candidate != 0 && ! sym_fixnum_equals(candidate, key) ) {
+        while( candidate != 0 && candidate != key ) {
             index += 1;
             candidate = obj->table[index % obj->length].key;
         }
@@ -329,37 +324,28 @@ Object* sym(char const *str, int length) {
 Object* sym(Object *key) {
     Object *value = get_slot(SymbolTable, key);
     if ( value == 0 ) {
-        Fixnum index = 
-            sym_fixnum(get_slot(SymbolTable, sym_object(1)))+1;
-	value = sym_object(index);
-	if ( is_setter_string(key) ) {
-	  set_slot(SetterTable, value, create_slot_from_setter(key));
-	}
-	set_slot(SymbolTable, sym_object(1), value);
-	set_slot(SymbolTable, key, value);
+      value = new_symbol(key);
+      set_slot(SymbolTable, key, value);
+      if ( is_setter_string(key) ) {
+	set_slot(SetterTable, key, create_slot_from_setter(key));
+      }
     }
     return value;
 }
 
-Object* new_symbol_table() {
-    Object *obj = new_object();
-    set_slot(obj, sym_object(1), sym_object(2));
-    return obj;
-}
-
 Object *new_instr_table() {
     Object *instr_table = new_object();
-    set_slot(instr_table, sym("pop"),    sym_object(INST_POP));
-    set_slot(instr_table, sym("send"),   sym_object(INST_SEND));
-    set_slot(instr_table, sym("call"),   sym_object(INST_CALL));
-    set_slot(instr_table, sym("push"),   sym_object(INST_PUSH));
-    set_slot(instr_table, sym("jmp"),    sym_object(INST_JMP));
-    set_slot(instr_table, sym("ret"),    sym_object(INST_RET));
-    set_slot(instr_table, sym("term"),   sym_object(INST_TERM));
-    set_slot(instr_table, sym("dup"),    sym_object(INST_DUP));
-    set_slot(instr_table, sym("assign"), sym_object(INST_ASSIGN));
-    set_slot(instr_table, sym("raise"),  sym_object(INST_RAISE));
-    set_slot(instr_table, sym("new"),    sym_object(INST_NEW));
+    set_slot(instr_table, sym("pop"),    object(INST_POP));
+    set_slot(instr_table, sym("send"),   object(INST_SEND));
+    set_slot(instr_table, sym("call"),   object(INST_CALL));
+    set_slot(instr_table, sym("push"),   object(INST_PUSH));
+    set_slot(instr_table, sym("jmp"),    object(INST_JMP));
+    set_slot(instr_table, sym("ret"),    object(INST_RET));
+    set_slot(instr_table, sym("term"),   object(INST_TERM));
+    set_slot(instr_table, sym("dup"),    object(INST_DUP));
+    set_slot(instr_table, sym("assign"), object(INST_ASSIGN));
+    set_slot(instr_table, sym("raise"),  object(INST_RAISE));
+    set_slot(instr_table, sym("new"),    object(INST_NEW));
     return instr_table;
 };
 
@@ -379,6 +365,25 @@ Object* new_string(char const *str, int length) {
     }
     obj->buffer = new_buffer(length, str);
     return obj;
+}
+
+Object* new_symbol(char const *str, int length) {
+    Object *obj = new_object(Symbol);
+    if ( length == -1 ) {
+        length = strlen(str);
+    }
+    obj->buffer = new_buffer(length, str);
+    return obj;
+}
+
+Object* new_symbol(Object *key) {
+  if ( is_string(key) ) {
+    Object *obj = new_object(Symbol);
+    obj->buffer = new_buffer(key->buffer->length, key->buffer->data);
+  }
+  else {
+    abort();
+  }
 }
 
 Object* new_array() {
@@ -585,6 +590,11 @@ Object* new_exception_frame(Object *frame, Object *exception) {
     return 0;
 };
 
+Object* new_exception_frame(Object *frame, char const* str) {
+    // FIXME
+    return 0;
+};
+
 Object* new_exception(char const* str) {
     // FIXME
     return 0;
@@ -596,7 +606,7 @@ Object* setter_send(Object *target, Object *slot, Object *frame, Object *stack) 
   }
   else {
     Object *value = pop(stack);
-    set_slot(frame, sym("assignment"), sym("true"));
+    set_slot(frame, SYM_ASSIGNMENT, SYM_TRUE);
     set_slot(target, setter_slot(slot), value);
     push(stack, value);
   }
@@ -643,13 +653,13 @@ Object* closure_send(Object *closure, Object *frame, Object *stack) {
 
 Object* send(Object *frame, Object *stack) 
 {
-    set_slot(frame, sym("assignment"), sym("false"));
+    set_slot(frame, SYM_ASSIGNMENT, SYM_FALSE);
     Object *target   = pop(stack);
     if ( is_sym(target) ) {
       Object *slot = target;
       target = frame_resolve(frame, slot);
       if ( target == 0 && is_setter(slot) ) {
-	return setter_send(get_slot(frame, sym("local")), slot, frame, stack);
+	return setter_send(get_slot(frame, SYM_LOCAL), slot, frame, stack);
       }
       else {
 	push(stack, target);
@@ -687,7 +697,7 @@ void interpret(Object *frame) {
   
     while ( ! terminate ) {
         Object *instr  = get_instr(code, pc);
-        switch(sym_fixnum(instr)) {
+        switch(fixnum(instr)) {
             case INST_POP:
                 top = pop(stack);
                 set_slot(frame, SYM_PC, object(++pc));
@@ -715,7 +725,7 @@ void interpret(Object *frame) {
                   frame == new_frame      && 
                   stack_length(stack) < 2 && 
                   (! is_closure(peek(stack)) || 
-		     get_slot(frame, sym("assignment")) == sym("true")) 
+		     get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE) 
               ) {
                   set_slot(frame, SYM_PC, object(++pc));
               }
@@ -761,13 +771,13 @@ void test_push_pop() {
     Object *ret  = 0;
     Object *block = new_block();
     Object *frame = new_frame(ret, block);
-    push(block, sym_object(INST_PUSH));
+    push(block, object(INST_PUSH));
     push(block, object(1));
-    push(block, sym_object(INST_PUSH));
+    push(block, object(INST_PUSH));
     push(block, object(2));
-    push(block, sym_object(INST_POP));
-    push(block, sym_object(INST_POP));
-    push(block, sym_object(INST_TERM));
+    push(block, object(INST_POP));
+    push(block, object(INST_POP));
+    push(block, object(INST_TERM));
     interpret(frame);
     assert_true(array_length(get_slot(frame, SYM_STACK)) == 0, "Assert stack empty");
 };
@@ -781,12 +791,12 @@ void test_send() {
     Object *one   = sym("one");
     set_slot(obj, one, object(1));
 
-    push(block, sym_object(INST_PUSH));
+    push(block, object(INST_PUSH));
     push(block, one);
-    push(block, sym_object(INST_PUSH));
+    push(block, object(INST_PUSH));
     push(block, obj);
-    push(block, sym_object(INST_SEND));
-    push(block, sym_object(INST_TERM));
+    push(block, object(INST_SEND));
+    push(block, object(INST_TERM));
     interpret(frame);
     assert_true(array_length(get_slot(frame, SYM_STACK)) == 1, "One return value");
     assert_true(peek(get_slot(frame, SYM_STACK)) == object(1), "Stack contains result");
@@ -906,7 +916,6 @@ Object* load(FILE *input)
     Object *labels    = new_array();
     Object *instr     = 0;
 
-
     // - implement a mechanism to represent blocks and symbols
     while ( fgets(line, sizeof(line), input) ) {
         offset = 0;
@@ -960,6 +969,13 @@ Object* load(FILE *input)
 
 void dump_stack(Object *object, int indent = 0);
 
+void dump_buffer(Object *object) {
+  Fixnum i;
+  for(i=0;i<object->buffer->length;++i) {
+    putchar(object->buffer->data[i]);
+  }
+}
+
 void dump(Object *object, int indent = 0) {
   char indent_string[indent+1];
   indent_string[indent]=0;
@@ -975,7 +991,9 @@ void dump(Object *object, int indent = 0) {
       ObjectPair *pair = object->table + i;
       if ( pair->key != 0 ) {
 	if ( is_sym(pair->key) ) {
-	  printf("%s%d:\n", indent_string, sym_fixnum(pair->key));
+	  printf("%s:", indent_string);
+	  dump_buffer(pair->key);
+	  printf("\n");
 	  dump(pair->value, indent+1);
 	}
 	else {
@@ -992,7 +1010,14 @@ void dump(Object *object, int indent = 0) {
     printf("%sfixnum: %d\n", indent_string, fixnum(object));
   }
   else if ( is_sym(object) ) {
-    printf("%ssym: %d\n", indent_string, sym_fixnum(object));
+    printf("%ssym:", indent_string);
+    dump_buffer(object);
+    printf("\n");
+  }
+  else if ( is_string(object) ) {
+    printf("%sstring:", indent_string);
+    dump_buffer(object);
+    printf("\n");
   }
 }
 
@@ -1006,23 +1031,226 @@ void dump_stack(Object *object, int indent) {
   }
 }
 
+// ----------------------------------------------------------------------
+// Parser
+// ----------------------------------------------------------------------
+
+Object* TOK_EOL = sym("TOK_EOL");
+Object* TOK_IDENT = sym("TOK_IDENT");
+Object* TOK_OPEN_MAP = sym("TOK_OPEN_MAP");
+Object* TOK_OPEN_ARRAY = sym("TOK_OPEN_ARRAY");
+Object* TOK_OPEN_GROUP = sym("TOK_OPEN_GROUP");
+Object* TOK_OPEN_BLOCK = sym("TOK_OPEN_BLOCK");
+Object* TOK_CLOSE_MAP = sym("TOK_CLOSE_MAP");
+Object* TOK_CLOSE_ARRAY = sym("TOK_CLOSE_ARRAY");
+Object* TOK_CLOSE_GROUP = sym("TOK_CLOSE_GROUP");
+Object* TOK_CLOSE_BLOCK = sym("TOK_CLOSE_BLOCK");
+Object* TOK_STRING = sym("TOK_STRING");
+Object* TOK_UNTERM_STRING = sym("TOK_UNTERM_STRING");
+Object* TOK_INT = sym("TOK_INT");
+Object* TOK_FLOAT = sym("TOK_FLOAT");
+Object* TOK_PIPE = sym("TOK_PIPE");
+Object* TOK_EQUALS = sym("TOK_EQUALS");
+
+bool is_space(char c) {
+  return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+}
+
+bool is_digit(char c) {
+  return c >= '0' && c <= '9';
+}
+
+bool is_ident_start(char c) {
+  return ! is_space(c);
+}
+
+bool is_ident_continue(char c) {
+  return ! is_space(c) && c != '[' && c != ']' && c != '{' && c != '}' && c != '|' && c != '(' && c != ')';
+};
+
+Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
+  Fixnum i = offset;
+
+  // skip any white space
+  while ( is_space(line[i]) ) ++i; 
+
+  if ( i >= line_len || line[i] == 0 ) {
+    set_slot(tok, SYM_TYPE, TOK_EOL);
+    return i+1;
+  }
+
+  switch(line[i]) {
+  case 0:
+    set_slot(tok, SYM_TYPE, TOK_EOL);
+    return i+1;
+  case '{':
+    set_slot(tok, SYM_TYPE, TOK_OPEN_BLOCK);
+    return i+1;
+  case '}':
+    set_slot(tok, SYM_TYPE, TOK_CLOSE_BLOCK);
+    return i+1;
+  case '(':
+    set_slot(tok, SYM_TYPE, TOK_OPEN_GROUP);
+    return i+1;
+  case ')':
+    set_slot(tok, SYM_TYPE, TOK_CLOSE_GROUP);
+    return i+1;
+  case '[':
+    if ( i+1 < line_len && line[i+1] == '|' ) {
+      set_slot(tok, SYM_TYPE, TOK_OPEN_ARRAY);
+    }
+    else {
+      set_slot(tok, SYM_TYPE, TOK_OPEN_MAP);
+    }
+    return i+1;
+  case '|':
+    if ( i+1 < line_len && line[i+1] == ']' ) {
+      set_slot(tok, SYM_TYPE, TOK_CLOSE_ARRAY);
+    }
+    else {
+      set_slot(tok, SYM_TYPE, TOK_PIPE);
+    }
+    return i+1;
+  case ']':
+    set_slot(tok, SYM_TYPE, TOK_OPEN_MAP);
+    return i+1;
+  case '=':
+    if ( i+1 >= line_len || isspace(line[i+1]) ) {
+      set_slot(tok, SYM_TYPE, TOK_EQUALS);
+      return i+1;
+    }
+  }
+
+  Fixnum start_index = i;
+
+  if ( is_digit(line[i]) || ( line[i] == '-' && i+1 < line_len && is_digit(line[i+1]) ) ) {
+    set_slot(tok, SYM_TYPE, TOK_INT);
+    while( i < line_len && is_digit(line[i]) ) ++i;
+    if ( i+1 < line_len && line[i+1] == '.' ) {
+      set_slot(tok, SYM_TYPE, TOK_FLOAT);
+      ++i;
+      while( i < line_len && is_digit(line[i]) ) ++i;
+      if ( i < line_len && line[i] == 'e' ) {
+	++i;
+	if ( i < line_len && line[i] == '-' || is_digit(line[i]) ) {
+	  ++i;
+	  while ( i < line_len && is_digit(line[i]) ) ++i;
+	}
+      }
+    }
+  }
+  else if ( line[i] == '"' ) {
+    set_slot(tok, SYM_TYPE, TOK_STRING);
+    ++i;
+    while ( i < line_len && line[i] != '"' ) {
+      if ( line[i] == '\\' ) ++i;
+      ++i;
+    }
+    if ( i >= line_len ) {
+      set_slot(tok, SYM_TYPE, TOK_UNTERM_STRING);
+    }
+    else {
+      ++i;
+    }
+  }
+  else if ( is_ident_start(line[i]) ) {
+    set_slot(tok, SYM_TYPE, TOK_IDENT);
+    while( is_ident_continue(line[i]) ) ++i;
+  }
+
+  set_slot(tok, SYM_VALUE, new_string(line + start_index, i - start_index));
+  return i;
+}
+
+int print_tokens(FILE *input) {
+  Fixnum offset;
+  char   line[4096];
+  while ( fgets(line, sizeof(line), input) ) {
+    offset = 0;
+    while ( offset < sizeof(line) && line[offset] != 0 ) {
+      Object *tok = new_object();
+      offset = read_tok(line, sizeof(line), offset, tok);
+      printf("token: ");
+      dump_buffer(get_slot(tok, SYM_TYPE));
+      printf("\n");
+    }
+  }
+}
+
+Object *File = new_object();
+Object *Function = new_object();
+
+typedef Object* (*native_function_ptr)(Object *frame);
+
+Object *new_function(native_function_ptr f) {
+  Object *obj = new_object(Function);
+  obj->buffer = new_buffer(sizeof(f), (char *)&f);
+};
+
+Object* file_open(Object *frame) {
+  Object *stack = get_slot(frame, SYM_STACK);
+  Object *arg = pop(stack);
+  if ( ! is_string(arg) ) {
+    return new_exception_frame(frame, "Type error: expected a string argument");
+  }
+  if ( arg->buffer->length >= 4096 ) {
+    return new_exception_frame(frame, "Argument error: expected string less than 4096 characters");
+  }
+  else {
+    char fname[4096];
+    memcpy(fname, arg->buffer->data, arg->buffer->length);
+    fname[arg->buffer->length] = 0;
+    FILE *file = fopen(fname, "r");
+    Object *result = new_object(File);
+    result->buffer = new_buffer(sizeof(file), (char *)&file);
+    push(stack, result);
+  }
+}
+
+Object *file_read_line(Object *frame) {
+  Object *self = get_slot(frame, SYM_SELF);
+  if ( ! is_object(self) && self->proto == File ) {
+    return new_exception_frame(frame, "Expected a file object as self");
+  }
+  else {
+    char line[4096];
+    if ( fgets(line, sizeof(line), *(FILE**)self->buffer->data) ) {
+      Object *stack = get_slot(frame, SYM_STACK);
+      push(stack, new_string(line));
+    }
+    else {
+      push(get_slot(frame, SYM_STACK), 0);
+    }
+    return frame;
+  }
+}
+
+// ----------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------
+
 int main(int argc, char **argv) {
+  set_slot(File, SYM_OPEN, new_function(&file_open));
+  set_slot(File, SYM_READ_LINE, new_function(&file_read_line));
+
     if ( argc < 2 ) {
         test_array();
         test_push_pop();
         test_send();
     }
-    else {
+    else if ( argc < 3 ) {
         FILE *input = fopen(argv[1], "r");
         Object *block = load(input);
 	Object *frame = new_frame(0, block);
         interpret(frame);
 	dump(frame, 0);
-	dump_stack(get_slot(frame, sym("stack")));
+	dump_stack(get_slot(frame, SYM_STACK));
     }
-};
-
-
+    else {
+      FILE *input = fopen(argv[2], "r");
+      print_tokens(input);
+    }
+}
 
 
 
