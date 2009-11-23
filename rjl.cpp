@@ -367,6 +367,17 @@ Object* new_string(char const *str, int length) {
     return obj;
 }
 
+Object *string_to_buffer(Object *s, char *buf, int buf_len) {
+  if ( s->buffer->length + 1 <= buf_len ) {
+    memcpy(buf, s->buffer->data, s->buffer->length);
+    buf[s->buffer->length] = 0;
+  }
+  else {
+    memcpy(buf, s->buffer->data, buf_len - 1);
+    buf[buf_len-1] = 0;
+  }
+}
+
 Object* new_symbol(char const *str, int length) {
     Object *obj = new_object(Symbol);
     if ( length == -1 ) {
@@ -1051,6 +1062,7 @@ Object* TOK_INT = sym("TOK_INT");
 Object* TOK_FLOAT = sym("TOK_FLOAT");
 Object* TOK_PIPE = sym("TOK_PIPE");
 Object* TOK_EQUALS = sym("TOK_EQUALS");
+Object* TOK_SEMI = sym("TOK_SEMI");
 
 bool is_space(char c) {
   return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
@@ -1114,6 +1126,8 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
   case ']':
     set_slot(tok, SYM_TYPE, TOK_OPEN_MAP);
     return i+1;
+  case ';':
+    set_slot(tok, SYM_TYPE, TOK_SEMI); 
   case '=':
     if ( i+1 >= line_len || isspace(line[i+1]) ) {
       set_slot(tok, SYM_TYPE, TOK_EQUALS);
@@ -1162,7 +1176,17 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
   return i;
 }
 
-int print_tokens(FILE *input) {
+int print_tokens(Object *tokens) {
+  for(Fixnum i=0;i<array_length(tokens);++i) {
+    Object *tok = get_at(tokens, i);
+    printf("token: ");
+    dump_buffer(get_slot(tok, SYM_TYPE));
+    printf("\n");
+  }
+}
+
+Object *token_stack(FILE *input) {
+  Object *tokens = new_array();
   Fixnum offset;
   char   line[4096];
   while ( fgets(line, sizeof(line), input) ) {
@@ -1170,12 +1194,162 @@ int print_tokens(FILE *input) {
     while ( offset < sizeof(line) && line[offset] != 0 ) {
       Object *tok = new_object();
       offset = read_tok(line, sizeof(line), offset, tok);
-      printf("token: ");
-      dump_buffer(get_slot(tok, SYM_TYPE));
-      printf("\n");
+      push(tokens, tok);
     }
   }
+  return tokens;
 }
+
+Object *ParseError = new_object();
+
+void parse_error(Object *parse_cxt, char const* str) {
+  Object *parse_errors = get_slot(parse_cxt, sym("errors"));
+  Object *error        = new_object();
+  set_slot(error, sym("message"), new_string(str));
+  push(parse_errors, error);
+};
+
+Object *new_parse_cxt(Object *tokens) {
+  Object *parse_cxt = new_object();
+  set_slot(parse_cxt, sym("pos"),    object(0));
+  set_slot(parse_cxt, sym("tokens"), tokens);
+  set_slot(parse_cxt, sym("errors"), new_array());
+};
+
+int have(Object *parse_cxt, Object *type) {
+  Fixnum pos = fixnum(get_slot(parse_cxt, sym("pos")));
+  Object *tokens = get_slot(parse_cxt, sym("tokens"));
+  if ( pos < array_length(tokens) ) {
+    Object *tok = get_at(tokens, pos);
+    if ( get_slot(tok, sym("type")) == type ) {
+      return 1;
+    }
+  }
+  return 0;
+};
+
+int have_next(Object *parse_cxt, Object *type) {
+  Fixnum pos = fixnum(get_slot(parse_cxt, sym("pos")))+1;
+  Object *tokens = get_slot(parse_cxt, sym("tokens"));
+  if ( pos < array_length(tokens) ) {
+    Object *tok = get_at(tokens, pos);
+    if ( get_slot(tok, sym("type")) == type ) {
+      return 1;
+    }
+  }
+  return 0;
+};
+
+int have_set(Object *parse_cxt, Object* type_set) {
+  Fixnum i;
+  for(i=0;i<array_length(type_set);++i) {
+    if ( have(parse_cxt, get_at(type_set, i)) ) {
+      return 1;
+    }
+  }
+  return 0;
+};
+
+int mustbe(Object *parse_cxt, Object *type) {
+  Fixnum pos = fixnum(get_slot(parse_cxt, sym("pos")));
+  Object *tokens = get_slot(parse_cxt, sym("tokens"));
+  if ( pos >= array_length(tokens) ) {
+    parse_error(parse_cxt, "Ran into the end of input stream");
+    return 0;
+  }
+
+  Object *tok = get_at(tokens, pos);
+  if ( get_slot(tok, SYM_TYPE) != type ) {
+    parse_error(parse_cxt, "Unexpected token");
+    return 0;
+  }
+
+  set_slot(parse_cxt, sym("pos"), object(pos+1));
+  return 1;
+};
+
+Object *advance(Object *parse_cxt) {
+  Fixnum pos = fixnum(get_slot(parse_cxt, sym("pos")));
+  Object *obj = get_at(get_slot(parse_cxt, sym("tokens")), pos);
+  set_slot(parse_cxt, sym("pos"), object(pos+1));
+  return obj;
+};
+
+Object* new_parse_node(Object *type) {
+  Object *node = new_array();
+  set_slot(node, sym("type"), type);
+};
+
+Object* parse_stmt_list(Object *parse_cxt);
+
+Object* parse_block(Object *parse_cxt) {
+  mustbe(parse_cxt, TOK_OPEN_BLOCK);
+  Object *block_node = new_parse_node(sym("block"));
+  if ( have(parse_cxt, TOK_IDENT) && have_next(parse_cxt, TOK_PIPE) ) {
+    set_slot(block_node, sym("arg"), advance(parse_cxt));
+    advance(parse_cxt);
+  }
+  set_slot(block_node, sym("stmt_list"), parse_stmt_list(parse_cxt));
+  mustbe(parse_cxt, TOK_CLOSE_BLOCK);
+  return block_node;
+};
+
+Object* parse_stmt(Object* parse_cxt);
+
+Object* parse_stmt_list(Object *parse_cxt) {
+  Object *stmt_list = new_parse_node(sym("stmt_list"));
+  Fixnum have_sep = 0;
+  while ( have_set(parse_cxt, get_slot(parse_cxt, sym("stmt_begin_set"))) ) {
+    push(stmt_list, parse_stmt(parse_cxt));
+    if ( have(parse_cxt, TOK_SEMI) ) {
+      advance(parse_cxt);
+    }
+  };
+  return stmt_list;
+}
+
+Object* parse_expr(Object *parse_cxt);
+
+Object* parse_stmt(Object* parse_cxt) {
+  Object *expr_list = new_parse_node(sym("expr_list"));
+  Object *expr_or_assign_begin_set = get_slot(parse_cxt, sym("expr_or_assign_begin_set"));
+  while (have_set(parse_cxt, expr_or_assign_begin_set)) {
+    if ( have(parse_cxt, TOK_EQUALS) ) {
+      if ( array_length(expr_list) == 0 ) {
+	parse_error(parse_cxt, "Expected expr before assignment");
+      }
+      else {
+	Object *assgn = new_parse_node(sym("assign"));
+	Object *lhs = pop(expr_list);
+	Object *rhs = parse_expr(parse_cxt);
+	set_slot(assgn, sym("lhs"), lhs);
+	set_slot(assgn, sym("rhs"), rhs);
+	push(expr_list, assgn);
+      }
+    } 
+    else if (have_set(parse_cxt, get_slot(parse_cxt, sym("expr_begin_set")))) {
+      push(expr_list, parse_expr(parse_cxt));
+    }
+    else {
+      parse_error(parse_cxt, "Expected an expression");
+    }
+  }
+  return expr_list;
+}
+
+Object* parse_expr(Object *parse_cxt) {
+  if ( have(parse_cxt, TOK_OPEN_BLOCK) ) {
+    return parse_block(parse_cxt);
+  }
+  else if ( have(parse_cxt, TOK_IDENT) ) {
+    return advance(parse_cxt);
+  }
+}
+    
+
+// ----------------------------------------------------------------------
+// Native function interface
+// ----------------------------------------------------------------------
 
 Object *File = new_object();
 Object *Function = new_object();
@@ -1233,23 +1407,40 @@ int main(int argc, char **argv) {
   set_slot(File, SYM_OPEN, new_function(&file_open));
   set_slot(File, SYM_READ_LINE, new_function(&file_read_line));
 
-    if ( argc < 2 ) {
-        test_array();
-        test_push_pop();
-        test_send();
+
+  Fixnum i, j, k;
+  Object *options = new_object();
+  Object *value   = 0;
+
+  for(i=1;i<argc; ++i) {
+    if ( argv[i][0] == '-' ) {
+      for(j=0;argv[i][j]=='-';++j);
+      for(k=j;argv[i][k]!=0&&argv[i][k]!='=';++k);
+      Object *key   = new_string(argv[i] + j, k-j);
+      Object *value = new_string(argv[i] + k + 1);
+      set_slot(options, sym(key), value);
     }
-    else if ( argc < 3 ) {
-        FILE *input = fopen(argv[1], "r");
-        Object *block = load(input);
-	Object *frame = new_frame(0, block);
-        interpret(frame);
-	dump(frame, 0);
-	dump_stack(get_slot(frame, SYM_STACK));
-    }
-    else {
-      FILE *input = fopen(argv[2], "r");
-      print_tokens(input);
-    }
+  }
+
+  if ( (value = get_slot(options, sym("test"))) != 0 ) {
+    test_array();
+    test_push_pop();
+    test_send();
+  }
+  else if ( (value = get_slot(options, sym("interpret"))) != 0 ) {
+    FILE *input = fopen(argv[1], "r");
+    Object *block = load(input);
+    Object *frame = new_frame(0, block);
+    interpret(frame);
+    dump(frame, 0);
+    dump_stack(get_slot(frame, SYM_STACK));
+  }
+  else if ( (value = get_slot(options, sym("lex"))) != 0 ) {
+    char buf[4096];
+    string_to_buffer(value, buf, sizeof(buf));
+    FILE *input = fopen(buf, "r");
+    print_tokens(token_stack(input));
+  }
 }
 
 
