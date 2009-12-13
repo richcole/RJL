@@ -3,7 +3,7 @@
   ret
 :two
   push :one
-  push #one:
+  push #one=
   send
   pop
   push #one

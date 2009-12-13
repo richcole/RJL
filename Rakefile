@@ -11,27 +11,21 @@ file rjl => [build, "rjl.cpp"] do
   sh "g++ -Wall -ggdb -o #{rjl} rjl.cpp"
 end
 
-interp_tests.sort.each do |test_input|
+def call_rjl(rjl, test_input, type)
   test_output = File.join("build", File.basename(test_input) + ".out")
-  test_outputs << test_output
   file test_output => [test_input, rjl] do
-    sh "#{rjl} --interpret=\"#{test_input}\" > #{test_output}"
+    sh "#{rjl} --#{type}=\"#{test_input}\" > #{test_output}"
   end
+  return test_output
 end
 
-rjl_tests.sort.each do |test_input|
-  test_output = File.join("build", File.basename(test_input) + ".lex.out")
-  test_outputs << test_output
-  file test_output => [test_input, rjl] do
-    sh "#{rjl} --lex=\"#{test_input}\" > #{test_output}"
-  end
+interp_tests.sort.each do |test_input|
+  test_outputs << call_rjl(rjl, test_input, 'interp')
 end
 
-rjl_tests.sort.each do |test_input|
-  test_output = File.join("build", File.basename(test_input) + ".parse.out")
-  test_outputs << test_output
-  file test_output => [test_input, rjl] do
-    sh "#{rjl} --parse=\"#{test_input}\" > #{test_output}"
+for test_type in %w(lex parse code_gen run) do
+  rjl_tests.sort.each do |test_input|
+    test_outputs << call_rjl(rjl, test_input, test_type)
   end
 end
 
