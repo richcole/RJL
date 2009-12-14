@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <math.h>
 
 typedef ssize_t Fixnum;
 
@@ -85,10 +86,13 @@ Object* String  = new_object();
 Object* Symbol  = new_object();
 Object* Integer = new_object();
 Object* Block   = new_object();
+Object* Double  = new_object();
 
 Object* SymbolTable = new_object();
 Object* SetterTable = new_object();
 Object* ExisterTable = new_object();
+
+Object* SendMarker  = new_object();
 
 Object* Instr   = new_instr_table();
 // do not init until after symbol table because this uses the symbol table
@@ -117,6 +121,13 @@ Object* SYM_TYPE       = sym("type");
 Object* SYM_VALUE      = sym("value");
 Object* SYM_OPEN       = sym("open");
 Object* SYM_READ_LINE  = sym("readline");
+
+Object* SYM_LE         = sym("<");
+Object* SYM_GT         = sym(">");
+Object* SYM_LEQ        = sym("<=");
+Object* SYM_GEQ        = sym(">=");
+Object* SYM_PLUS       = sym("+");
+Object* SYM_MINUS      = sym("-");
 
 bool is_fixnum(Object *obj) {
     return ((Fixnum)obj & 0x1) == 0x1;
@@ -334,7 +345,7 @@ Object *string_append(Object *s, char const* str, int str_len = -1) {
 }
 
 int is_setter_string(Object *str) {
-  return str->buffer && str->buffer->length > 2 && 
+  return str->buffer && str->buffer->length >= 1 && 
     ( str->buffer->data[str->buffer->length - 1] == '=' );
 }
 
@@ -439,6 +450,26 @@ Object* new_string(char const *str, Fixnum length) {
   }
   obj->buffer = new_buffer(length, str);
   return obj;
+}
+
+Object* new_double(double value) {
+  Object *obj = new_object(Double);
+  obj->buffer = new_buffer(sizeof(double), (char *)&value);
+  return obj;
+}
+
+Object* new_integer(int value) {
+  Object *obj = new_object(Double);
+  obj->buffer = new_buffer(sizeof(double), (char *)&value);
+  return obj;
+}
+
+Fixnum is_integer(Object *obj) {
+  return is_object(obj) && obj->proto == Integer;
+}
+
+Fixnum is_double(Object *obj) {
+  return is_object(obj) && obj->proto == Double;
 }
 
 Object* new_string_of_length(Fixnum length) {
@@ -697,6 +728,14 @@ Object* new_exception(char const* str) {
   return 0;
 };
 
+// ----------------------------------------------------------------------
+// Send
+//
+
+Object* object_send(Object *target, Object *frame, Object *stack);
+Object* setter_send(Object *target, Object *slot, Object *frame, Object *stack);
+Object* exister_send(Object *target, Object *slot, Object *frame, Object *stack);
+
 Object* setter_send(Object *target, Object *slot, Object *frame, Object *stack) {
   if ( stack_length(stack) == 0 ) {
     return new_exception_frame(frame, new_exception("Missing argument"));
@@ -720,26 +759,87 @@ Object* exister_send(Object *target, Object *slot, Object *frame, Object *stack)
   return frame;
 }
 
-Object* object_send(Object *target, Object *frame, Object *stack) {
-    if ( stack_length(stack) == 0 ) {
-      push(stack, target);
+Object* fixnum_send(Object *target, Object *frame, Object *stack) {
+  if ( array_length(stack) == 0 ) {
+    push(stack, target);
+    return frame;
+  }
+  else {
+    Object *slot_name = pop(stack);
+    if ( slot_name == SYM_LE && is_fixnum(peek(stack)) ) {
+      if ( fixnum(target) < fixnum(pop(stack)) ) {
+	push(stack, frame_resolve(frame, SYM_TRUE));
+      }
+      else {
+	push(stack, frame_resolve(frame, SYM_FALSE));
+      }
       return frame;
     }
-    Object *slot_name  = pop(stack);
-    Object *slot_value = object_resolve(target, slot_name);
-    if ( slot_value == 0 && is_setter(slot_name) ) {
-      return setter_send(target, slot_name, frame, stack);
+    if ( slot_name == SYM_LEQ && is_fixnum(peek(stack)) ) {
+      if ( fixnum(target) <= fixnum(pop(stack)) ) {
+	push(stack, frame_resolve(frame, SYM_TRUE));
+      }
+      else {
+	push(stack, frame_resolve(frame, SYM_FALSE));
+      }
+      return frame;
     }
-    if ( slot_value == 0 && is_exister(slot_name) ) {
-      return exister_send(target, slot_name, frame, stack);
+    if ( slot_name == SYM_GT && is_fixnum(peek(stack)) ) {
+      if ( fixnum(target) > fixnum(pop(stack)) ) {
+	push(stack, frame_resolve(frame, SYM_TRUE));
+      }
+      else {
+	push(stack, frame_resolve(frame, SYM_FALSE));
+      }
+      return frame;
+    }
+    if ( slot_name == SYM_GEQ && is_fixnum(peek(stack)) ) {
+      if ( fixnum(target) >= fixnum(pop(stack)) ) {
+	push(stack, frame_resolve(frame, SYM_TRUE));
+      }
+      else {
+	push(stack, frame_resolve(frame, SYM_FALSE));
+      }
+      return frame;
+    }
+    else if ( slot_name == SYM_PLUS && is_fixnum(peek(stack)) ) {
+      push(stack, object(fixnum(target) + fixnum(pop(stack))));
+      return frame;
+    }
+    else if ( slot_name == SYM_MINUS && is_fixnum(peek(stack)) ) {
+      push(stack, object(fixnum(target) - fixnum(pop(stack))));
+      return frame;
     }
     else {
-      if ( is_closure(slot_value) ) {
-        set_slot(slot_value, SYM_SELF, target);
-      }
-      push(stack, slot_value);
-      return frame;
+      Object *slot = pop(stack);
+      push(stack, target);
+      push(stack, slot);
+      target = frame_resolve(frame, sym("Integer"));
+      return object_send(target, frame, stack);
     }
+  }
+}
+
+Object* object_send(Object *target, Object *frame, Object *stack) {
+  if ( stack_length(stack) == 0 ) {
+    push(stack, target);
+    return frame;
+  }
+  Object *slot_name  = pop(stack);
+  Object *slot_value = object_resolve(target, slot_name);
+  if ( slot_value == 0 && is_setter(slot_name) ) {
+    return setter_send(target, slot_name, frame, stack);
+  }
+  if ( slot_value == 0 && is_exister(slot_name) ) {
+    return exister_send(target, slot_name, frame, stack);
+  }
+  else {
+    if ( is_closure(slot_value) ) {
+      set_slot(slot_value, SYM_SELF, target);
+    }
+    push(stack, slot_value);
+    return frame;
+  }
 }
 
 Object* function_send(Object *target, Object *frame, Object *stack) {
@@ -791,8 +891,10 @@ Object* send(Object *frame, Object *stack)
         return frame;
       }
     }
-
-    if ( is_closure(target) ) {
+    if ( is_fixnum(target) ) {
+      return fixnum_send(target, frame, stack);
+    }
+    else if ( is_closure(target) ) {
       return closure_send(target, frame, stack);
     }
     else if ( is_function(target) ) {
@@ -1134,35 +1236,45 @@ void dump_buffer(Object *object, int indent, int newline, Object *visited) {
         printf("%s %03d: 0\n", indent_string, i);
       }
     }
-    printf("%s]\n", indent_string);
+    printf("%s]", indent_string);
   }
-  else {
-    if ( object->buffer ) {
-      for(i=0;i<object->buffer->length;++i) {
-	if ( object->buffer->data[i] == '\n' ) {
-	  putchar('\\');
-	  putchar('n');
-	}
-	else if ( object->buffer->data[i] == '\t' ) {
-	  putchar('\\');
-	  putchar('t');
-	}
-	else if ( object->buffer->data[i] == '\r' ) {
-	  putchar('\\');
-	  putchar('r');
-	}
-	else if ( object->buffer->data[i] == '\f' ) {
-	  putchar('\\');
-	  putchar('f');
-	}
-	else {
-	  putchar(object->buffer->data[i]);
-	}
+  else if ( is_fixnum(object) ) {
+    printf("%d", fixnum(object));
+  }
+  else if ( is_integer(object) ) {
+    dump_object(object, 0, 0);
+  }
+  else if ( is_double(object) ) {
+    dump_object(object, 0, 0);
+  }
+  else if ( object->buffer ) {
+    for(i=0;i<object->buffer->length;++i) {
+      if ( object->buffer->data[i] == '\n' ) {
+	putchar('\\');
+	putchar('n');
+      }
+      else if ( object->buffer->data[i] == '\t' ) {
+	putchar('\\');
+	putchar('t');
+      }
+      else if ( object->buffer->data[i] == '\r' ) {
+	putchar('\\');
+	putchar('r');
+      }
+      else if ( object->buffer->data[i] == '\f' ) {
+	putchar('\\');
+	putchar('f');
+      }
+      else {
+	putchar(object->buffer->data[i]);
       }
     }
-    if ( newline ) {
-      printf("\n");
-    }
+  }
+  else {
+    printf("undefined");
+  }
+  if ( newline ) {
+    printf("\n");
   }
 }
 
@@ -1188,6 +1300,12 @@ void dump_object(Object *obj, int indent, Object *visited) {
     printf("\""); 
     dump_buffer(obj, 0, 0, visited); 
     printf("\"\n");
+  }
+  else if ( is_double(obj) ) {
+    printf("%lf\n", *(double *)obj->buffer->data);
+  }
+  else if ( is_integer(obj) ) {
+    printf("%d\n", *(int *)obj->buffer->data);
   }
   else if ( is_object(obj) ) {
     if ( get_slot(visited, obj) != 0 ) {
@@ -1365,24 +1483,59 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
   }
 
   Fixnum start_index = i;
+  Fixnum int_value   = 0;
+  Fixnum int_sign    = 1;
+  double float_sign = 1.0;
+  double float_value = 0.0;
+  double float_mult  = 1.0;
+  double float_mant  = 0.0;
+  double float_mant_sign = 1.0;
 
   if ( is_digit(line[i]) || 
        ( line[i] == '-' && i+1 < line_len && is_digit(line[i+1]) ) 
   ) {
     set_slot(tok, SYM_TYPE, TOK_INT);
-    while( i < line_len && is_digit(line[i]) ) ++i;
+    if ( line[i] == '-' ) {
+      ++i;
+      int_sign = -1;
+      float_sign = -1.0;
+    }
+    while( i < line_len && is_digit(line[i]) ) {
+      int_value *= 10;
+      int_value += line[i] - '0';
+      float_value *= 10;
+      float_value += line[i] - '0';
+      ++i;
+    }
     if ( i+1 < line_len && line[i+1] == '.' ) {
       set_slot(tok, SYM_TYPE, TOK_FLOAT);
       ++i;
-      while( i < line_len && is_digit(line[i]) ) ++i;
+      while( i < line_len && is_digit(line[i]) ) {
+	float_mult *= 0.1; 
+	float_value += ( (line[i] - '0') * float_mult) ;
+	++i;
+      }
       if ( i < line_len && line[i] == 'e' ) {
         ++i;
         if ( i < line_len && ((line[i] == '-') || is_digit(line[i])) ) {
+	  if ( line[i] == '-' ) {
+	    float_mant_sign = -1.0;
+	  }
           ++i;
-          while ( i < line_len && is_digit(line[i]) ) ++i;
+          while ( i < line_len && is_digit(line[i]) ) {
+	    float_mant *= 10;
+	    float_mant += line[i] - '0';
+	    ++i;
+	  }
         }
       }
+      double value = float_sign * float_value * pow(10, float_mant * float_mant_sign);
+      set_slot(tok, SYM_VALUE, new_double(value));
     }
+    else {
+      set_slot(tok, SYM_VALUE, object(int_value * int_sign));
+    }
+    return i;
   }
   else if ( line[i] == '"' ) {
     set_slot(tok, SYM_TYPE, TOK_STRING);
@@ -1403,16 +1556,17 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
     while( is_ident_continue(line[i]) ) ++i;
   }
 
-  if ( strncmp("if", line + start_index, i - start_index) == 0 ) {
+  Fixnum tok_len = i - start_index;
+  if ( tok_len == 2 && strncmp("if", line + start_index, tok_len) == 0 ) {
     set_slot(tok, SYM_TYPE, TOK_IF);
   }
-  if ( strncmp("else", line + start_index, i - start_index) == 0 ) {
+  if ( tok_len == 4 && strncmp("else", line + start_index, tok_len) == 0 ) {
     set_slot(tok, SYM_TYPE, TOK_ELSE);
   }
-  if ( strncmp("elsif", line + start_index, i - start_index) == 0 ) {
+  if ( tok_len == 5 && strncmp("elsif", line + start_index, tok_len) == 0 ) {
     set_slot(tok, SYM_TYPE, TOK_ELSIF);
   }
-  if ( strncmp("while", line + start_index, i - start_index) == 0 ) {
+  if ( tok_len == 5 && strncmp("while", line + start_index, tok_len) == 0 ) {
     set_slot(tok, SYM_TYPE, TOK_WHILE);
   }
 
@@ -1421,7 +1575,7 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
     value = parse_string(line + start_index + 1, i - (start_index + 2));
   }
   else {
-   value = new_string(line + start_index, i - start_index);
+   value = new_string(line + start_index, tok_len);
   }
   set_slot(tok, SYM_VALUE, value);
 
@@ -1482,6 +1636,7 @@ Object *new_parse_cxt(Object *tokens) {
   push(begin_set, TOK_OPEN_BLOCK);
   push(begin_set, TOK_IDENT);
   push(begin_set, TOK_ASSIGN);
+  push(begin_set, TOK_INT);
   set_slot(parse_cxt, sym("expr_or_assign_begin_set"), begin_set);
 
   begin_set = new_array();
@@ -1491,6 +1646,7 @@ Object *new_parse_cxt(Object *tokens) {
   push(begin_set, TOK_OPEN_MAP);
   push(begin_set, TOK_OPEN_BLOCK);
   push(begin_set, TOK_IDENT);
+  push(begin_set, TOK_INT);
 
   begin_set = new_array();
   set_slot(parse_cxt, sym("expr_begin_set"), begin_set);
@@ -1736,6 +1892,9 @@ Object *parse_expr(Object *parse_cxt, Object *expr) {
     else if ( have(parse_cxt, TOK_STRING) ) {
       push(expr, advance(parse_cxt));
     }
+    else if ( have(parse_cxt, TOK_INT) ) {
+      push(expr, advance(parse_cxt));
+    }
     else {
       break;
     }
@@ -1750,7 +1909,7 @@ Object *code_gen_error(Object *cxt, char const* reason);
 Object *new_code_gen_cxt();
 Fixnum is_type(Object *cand, Object *type);
 Object *code_gen_program(Object *cxt, Object *program);
-Object *code_gen_block(Object *cxt, Object *block_node, Object *block);
+Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum include_ret);
 Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list);
 Object *code_gen_expr(Object *cxt, Object *block, Object *expr);
 Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr);
@@ -1787,7 +1946,7 @@ Fixnum is_type(Object *cand, Object *type) {
 Object *code_gen_program(Object *cxt, Object *program) {
   Object *block_node = get_slot(program, sym("block"));
   if ( is_type(block_node, sym("block")) ) {
-    return code_gen_block(cxt, block_node, 0);
+    return code_gen_block(cxt, block_node, 0, 1);
   }
   else {
     return 0;
@@ -1809,7 +1968,7 @@ Object *code_gen_arg_list(Object *cxt, Object *block, Object *arg_list)
   return block;
 }
 
-Object *code_gen_block(Object *cxt, Object *block_node, Object *block) {
+Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum include_ret) {
   if ( block == 0 ) {
     block = new_block();
     Object *arg_list = get_slot(block_node, sym("arg_list"));
@@ -1817,11 +1976,12 @@ Object *code_gen_block(Object *cxt, Object *block_node, Object *block) {
   }
   Object *stmt_list_node = get_slot(block_node, sym("stmt_list"));
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
-    return code_gen_stmt_list(cxt, block, stmt_list_node);
+    code_gen_stmt_list(cxt, block, stmt_list_node);
   }
-  else {
-    return 0;
+  if ( include_ret ) {
+    push(block, object(INST_RET));
   }
+  return block;
 }
 
 Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list) {
@@ -1837,9 +1997,16 @@ Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list) {
       code_gen_while_expr(cxt, block, expr);
     }
   }
-  push(block, object(INST_RET));
   return block;
 }
+
+void code_gen_truthiness(Object *cxt, Object *block)
+{
+  // test for truthiness
+  push(block, object(INST_PUSH));
+  push(block, sym("is_true"));
+  push(block, object(INST_SEND));
+};
 
 Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   Object *cond       = get_slot(if_expr, sym("cond"));
@@ -1850,6 +2017,7 @@ Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   Fixnum if_jmp_index;
 
   code_gen_expr(cxt, block, cond);
+  code_gen_truthiness(cxt, block);
 
   // jump to else block if zero
   push(block, object(INST_JMPZ));
@@ -1857,7 +2025,7 @@ Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   push(block, 0);   // place holder
 
   // otherwise perform the if block
-  code_gen_block(cxt, if_block, block);
+  code_gen_block(cxt, if_block, block, 0);
 
   // skip the else block
   if ( else_block ) {
@@ -1867,7 +2035,7 @@ Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   
     set_at(block, if_jmp_index, object(array_length(block)));
 
-    code_gen_block(cxt, else_block, block);
+    code_gen_block(cxt, else_block, block, 0);
 
     set_at(block, else_jmp_index, object(array_length(block)));
   }
@@ -1888,6 +2056,7 @@ Object *code_gen_while_expr(Object *cxt, Object *block, Object *while_expr) {
   while_cond_index = array_length(block);
 
   code_gen_expr(cxt, block, cond);
+  code_gen_truthiness(cxt, block);
 
   // jump to tail if zero
   push(block, object(INST_JMPZ));
@@ -1895,7 +2064,7 @@ Object *code_gen_while_expr(Object *cxt, Object *block, Object *while_expr) {
   push(block, 0);   // place holder
 
   // otherwise perform the while block
-  code_gen_block(cxt, while_block, block);
+  code_gen_block(cxt, while_block, block, 0);
 
   push(block, object(INST_JMP));
   push(block, object(while_cond_index));
@@ -1916,6 +2085,9 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
       push(stack, sym(get_slot(elem, sym("value"))));
     }
     else if ( is_type(elem, TOK_STRING) ) {
+      push(stack, get_slot(elem, sym("value")));
+    }
+    else if ( is_type(elem, TOK_INT) ) {
       push(stack, get_slot(elem, sym("value")));
     }
     else if ( is_type(elem, sym("group_expr")) ) {
@@ -1949,7 +2121,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
 	}
 	--j;
       }
-      push(stack, object(INST_SEND));
+      push(stack, SendMarker);
     }
   }
   for(i=array_length(stack)-1;i>=0;--i) {
@@ -1959,7 +2131,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
 	push(block, get_at(elem, j));
       }
     }
-    else if ( elem == object(INST_SEND) ) {
+    else if ( elem == SendMarker ) {
       push(block, object(INST_SEND));
     }
     else {
@@ -2048,11 +2220,26 @@ Object *native_not(Object *frame) {
   if ( is_sym(arg) ) {
     arg = frame_resolve(frame, arg);
   }
-  if ( arg == 0 || arg == frame_resolve(frame, sym("false")) ) {
-    push(stack, frame_resolve(frame, sym("true")));
+  if ( arg == 0 || arg == frame_resolve(frame, SYM_FALSE) ) {
+    push(stack, frame_resolve(frame, SYM_TRUE));
   }
   else {
     push(stack, 0);
+  }
+  return frame;
+}
+
+Object *native_is_true(Object *frame) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( arg == 0 || arg == frame_resolve(frame, SYM_FALSE) ) {
+    push(stack, 0);
+  }
+  else {
+    push(stack, frame_resolve(frame, SYM_TRUE));
   }
   return frame;
 }
@@ -2075,8 +2262,9 @@ Object* run_program(Object *block) {
 
   set_slot(block, SYM_LEXICAL_FRAME, parent_frame);
   set_slot(parent_local, sym("not"), new_function(&native_not));
-  set_slot(parent_local, sym("true"), new_object());
-  set_slot(parent_local, sym("false"), new_object());
+  set_slot(parent_local, sym("is_true"), new_function(&native_is_true));
+  set_slot(parent_local, SYM_TRUE,  new_object());
+  set_slot(parent_local, SYM_FALSE, new_object());
 
   push(parent_stack, sys);
   push(parent_stack, block);
