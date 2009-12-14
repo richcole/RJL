@@ -852,6 +852,9 @@ void interpret(Object *frame) {
                 if ( top == 0 ) {
                     pc = fixnum(jmp_pos);
                 }
+		else {
+		  ++pc;
+		}
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_JMPNZ:
@@ -862,6 +865,9 @@ void interpret(Object *frame) {
                 if ( top != 0 ) {
                     pc = fixnum(jmp_pos);
                 }
+		else {
+		  ++pc;
+		}
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_SEND:
@@ -1748,6 +1754,7 @@ Object *code_gen_block(Object *cxt, Object *block_node, Object *block);
 Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list);
 Object *code_gen_expr(Object *cxt, Object *block, Object *expr);
 Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr);
+Object *code_gen_while_expr(Object *cxt, Object *block, Object *if_expr);
 
 Object *new_code_gen_cxt() {
   Object *code_gen_cxt = new_object();
@@ -1826,6 +1833,9 @@ Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list) {
     else if ( is_type(expr, sym("if_expr")) ) {
       code_gen_if_expr(cxt, block, expr);
     }
+    else if ( is_type(expr, sym("while_expr")) ) {
+      code_gen_while_expr(cxt, block, expr);
+    }
   }
   push(block, object(INST_RET));
   return block;
@@ -1864,6 +1874,34 @@ Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   else {
     set_at(block, if_jmp_index, object(array_length(block)));
   }
+
+  return block;
+}
+
+Object *code_gen_while_expr(Object *cxt, Object *block, Object *while_expr) {
+  Object *cond        = get_slot(while_expr, sym("cond"));
+  Object *while_block = get_slot(while_expr, sym("block"));
+  
+  Fixnum while_jmp_index;
+  Fixnum while_cond_index;
+
+  while_cond_index = array_length(block);
+
+  code_gen_expr(cxt, block, cond);
+
+  // jump to tail if zero
+  push(block, object(INST_JMPZ));
+  while_jmp_index = array_length(block);
+  push(block, 0);   // place holder
+
+  // otherwise perform the while block
+  code_gen_block(cxt, while_block, block);
+
+  push(block, object(INST_JMP));
+  push(block, object(while_cond_index));
+
+  // set the break condition index
+  set_at(block, while_jmp_index, object(array_length(block)));
 
   return block;
 }
@@ -1911,6 +1949,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
 	}
 	--j;
       }
+      push(stack, object(INST_SEND));
     }
   }
   for(i=array_length(stack)-1;i>=0;--i) {
@@ -1919,6 +1958,9 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
       for(j=0;j<array_length(elem);++j) {
 	push(block, get_at(elem, j));
       }
+    }
+    else if ( elem == object(INST_SEND) ) {
+      push(block, object(INST_SEND));
     }
     else {
       push(block, object(INST_PUSH));
@@ -2000,6 +2042,21 @@ Object *native_sys_print(Object *frame) {
   }
 }
 
+Object *native_not(Object *frame) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( arg == 0 || arg == frame_resolve(frame, sym("false")) ) {
+    push(stack, frame_resolve(frame, sym("true")));
+  }
+  else {
+    push(stack, 0);
+  }
+  return frame;
+}
+
 // ----------------------------------------------------------------------
 // Sys
 
@@ -2014,6 +2071,12 @@ Object* run_program(Object *block) {
   Object *parent_frame = new_frame(0, parent_block);
   Object *parent_stack = get_slot(parent_frame, SYM_STACK);
   Object *sys = new_sys();
+  Object *parent_local = get_slot(parent_frame, SYM_LOCAL);
+
+  set_slot(block, SYM_LEXICAL_FRAME, parent_frame);
+  set_slot(parent_local, sym("not"), new_function(&native_not));
+  set_slot(parent_local, sym("true"), new_object());
+  set_slot(parent_local, sym("false"), new_object());
 
   push(parent_stack, sys);
   push(parent_stack, block);

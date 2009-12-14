@@ -19,6 +19,16 @@ def call_rjl(rjl, test_input, type)
   return test_output
 end
 
+def compare_rjl(rjl, test_input, type)
+  test_output = File.join("build", File.basename(test_input) + "." + type + ".out")
+  expected_output = File.join("expected", File.basename(test_input) + "." + type + ".out")
+  diff_output = File.join("build", File.basename(test_input) + "." + type + ".out.diff")
+  file diff_output => [test_output, expected_output, rjl] do
+    sh "diff #{test_output} #{expected_output} > #{diff_output}"
+  end
+  return diff_output
+end
+
 interp_tests.sort.each do |test_input|
   test_outputs << call_rjl(rjl, test_input, 'interp')
 end
@@ -26,6 +36,12 @@ end
 for test_type in %w(lex parse code_gen run) do
   rjl_tests.sort.each do |test_input|
     test_outputs << call_rjl(rjl, test_input, test_type)
+  end
+end
+
+for test_type in %w(run) do
+  rjl_tests.sort.each do |test_input|
+    test_outputs << compare_rjl(rjl, test_input, test_type)
   end
 end
 
