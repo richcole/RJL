@@ -12,7 +12,7 @@ file rjl => [build, "rjl.cpp"] do
 end
 
 def call_rjl(rjl, test_input, type)
-  test_output = File.join("build", File.basename(test_input) + ".out")
+  test_output = File.join("build", File.basename(test_input) + "." + type + ".out")
   file test_output => [test_input, rjl] do
     sh "#{rjl} --#{type}=\"#{test_input}\" > #{test_output}"
   end

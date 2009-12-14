@@ -1,1 +1,1 @@
-{ sys | sys print "Hello World" }
+{ sys | sys print "Hello World\n" }
