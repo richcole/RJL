@@ -1,5 +1,222 @@
-=== Working with Git
+=== On the Smalltalk Dream
 
-To import a bundle
+Highly dynamic languages do not have static types and this makes it
+difficult to program against their libraries for two reasons:
 
-  
+1. refactoring support is quite limited because it isn't clear who
+calls which functions
+
+2. method name completion is quite limited because it isn't clear
+while a bit of code is being authored what the types are
+
+I think that without these two properties programming becomes
+significantly more difficult. One can work around these deficiencies
+by
+
+1. programming on live objects, that is author the program while it is
+running
+
+2. writing lots of examples and documentation for libraries
+
+If I think about a number of significant java libraries such as
+jodatime and httpclient, these libraries are quite difficult to use
+without having at least an introductory manual explaining the basic
+types and what their methods are.
+
+If I think about using rails then similarly it is quite difficult to
+use without having a book with several examples introducing the major
+objects and the ways in which they are intended to interact.
+
+A quite useful but rarely implemented object is a simulator object. A
+simulator simulates access to an object including allowing one to
+generate the know failure conditions of the object. It makes sense for
+the simulator object to be crafted by the crafter or the original
+object, but it is rarely done and so users of the original object are
+forced to construct mock objects to test their code.
+
+=== On the Naming of Things
+
+One needs to be able to name libraries and software versions. One also
+needs to be able to describe the types of objects and these type
+definitions must also have versions as they can change over time.
+
+Names are used to specify dependencies. But specifying dependencies
+also includes notions of types and versions. Lets consider an example,
+say we have 
+
+  libwidget-java version 1.0.3.1 build 10123
+
+and we would like to say that this library requires a package that
+conforms to a type defined as
+
+  liblogging-api-java version >1.0 
+
+This extends notions that exist in Debian because it admits build
+numbers. To supply satisfy the dependency we need to know which
+packages are available, which of them provide liblogging-api-java ...,
+and we need a mechanism to choose one of them.
+
+A related concern is that often one has a bunch of modules and one
+want to be able to wire them up in some configuration. Once the
+configuration is defined it can be checked to see if the module
+requires are satisfied by it.
+
+In a world where modules are objects and thus have state, knowing
+whether or not two modules share access to a third is important.
+
+=== Executing in a Lexical Scope
+
+Often it is useful to be able to execute some code within a lexical
+scope. This allows one to define a context in which operators are
+defined.
+
+For example one might provide access to some variables in a lexical
+scope, e.g.
+
+  std = [ stdio = sys io ; net = sys net ; types = sys types ] ;
+
+Then one can execute a block within the lexical scope of that object,
+so for example:
+
+  using std { std |
+    stdio print "Hello World" 
+  }
+
+The block is executed in the lexical scope of the object passed in
+rather than in the lexical scope in which it was defined.
+
+=== Dependencies
+
+There will need to be some way for a module to declare dependence on
+another module. One mechanism is to have a module return an object.
+
+  [
+    depends = { sys |
+      using (sys depends) [| depends |
+        "std.stdio"; 
+        "std.net"; 
+        "std.ui" > "0.1.0";
+      |]
+    }
+  ]
+
+Such an expression is rather verbose, can we factor this out as a
+function?
+
+  sys define_dependencies = { block | using (sys depends) block }
+
+then
+
+  depends = { sys | 
+    sys define_dependencies [| depends |
+      "std.stdio"; 
+      "std.net"; 
+      "std.ui" > "0.1.0";
+    |]
+  }
+
+This is marginally simpler. It has hidden the fact that the block will
+be executed in a dynamic lexical scope.
+
+Note here that we assume that within different lexical scope objects
+such as String may have different definitions.
+
+Lets try to describe the type of such objects. First lets define the
+notion of a module:
+
+  sys define_types { type |
+    type module = [
+      type module_dependency = object;
+      type module = [
+        depends = array module_dependency;
+      ]
+    ]
+  }
+
+Here we say that a module_dependency is an object. We would like types
+to be extensible. So rather than use = we should use += and also
+closures so that module definitions can be recursively evaluated.
+
+  sys define_types { type |
+    type module_dependency += { object };
+    type depends += {[ depends = array module_dependency; ]}; 
+  }
+
+Array and maps are executed when they're defined a opposed to blocks
+which are executed when references.
+
+We also need that a += b is an alias for a = a + b and that nil + x =
+x.
+
+=== Typing 
+
+It makes sense to have typing in a programming language. Probably the
+typing should be optional. So far I only really can imagine typing
+objects, one wonders if one can have some more expansive notion of
+typing.
+
+Typing is about specifying interfaces. One should be able to say
+whether a given object conforms to a type or not.
+
+Lets begin by trying to define the notion of a sequence:
+
+  { type |
+    type sequence = [ a |
+      each = function ( 'f : function a ) -> { sequence a }
+        description ( 
+          "Applies the function 'f to each element of the " +
+          "sequence discarding the result and returning the " +
+          "sequence"
+        )
+      ;
+    ];
+    type array = [ a |
+      at  = function integer -> a ;
+      set = function [| integer; a |] -> a ;
+    ];
+  }
+
+We would execute such a type definition block within a lexical scope
+which defines type.
+
+In dynamic languages these types may or may not apply to any given
+array or set. One should note that array is a parametric type taking a
+single argument in the above.
+
+Types are defined by executing the program. Type definitions are
+themselves programs and are executed to produce type definitions.
+
+Type expressions can be attached to any variable so for example via
+the colon, so for example:
+
+  { sys : 
+      [ 
+        stdio += [ print += function string -> object ] 
+      ]
+    |
+    sys stdio print "Hello World";
+  }
+
+The types here must also be passed into the fragment being executed
+probably from the lexical scope.
+
+The programming environment then needs access to the lexical scope in
+order to exploit the type information to perform type analysis on the
+program.
+
+Another way that the one can write the program is to write it as it is
+being run. This encourages test driven development in that before one
+can write an object one must have to hand the arguments that will be
+passed into the object.
+
+So far fragments have been defined with reference to a sys object. One
+can however assume that the sys object is also in the lexical scope.
+
+ { sys |
+   using sys { sys |
+     ...
+   }
+ }
+
+Then one has access to the lexical closure in which a program is being
+run.
