@@ -1,0 +1,28 @@
+[ 
+  types = {
+    type tr = function [| string ; string ; string |] returns string
+  };
+  tests = {
+    eval { tr "ab" "bc" "abc" } expect "bcc" ;
+    eval { tr "ab" "b" "abc"  } throws ArgumentError ;
+  };
+  depends = [ 
+    name = "org.richcole.examples.tr";
+    depends = [| "std.string" ; "std.function" ; "std.map" |]
+  ];
+  body = { cxt |
+    cxt tr = { from_set : string ; to_set : string ; str : string |
+      if (from_set length) != (to_set_length) {
+        throw ArgumentError "Expected from_set and to_set to have the same length"
+      }
+      return str map { x | 
+        if ( index = from_set index x ) {
+          return to_set at index;
+        }
+        else {
+          return x;
+        }
+      }
+    }
+  };
+]
