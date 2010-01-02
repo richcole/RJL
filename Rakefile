@@ -2,8 +2,8 @@
 
 build = "build" 
 rjl   = File.join("build/rjl")
-interp_tests = Dir.glob("test_*.i").to_a
-rjl_tests    = Dir.glob("test_*.r").to_a
+interp_tests = Dir.glob("tests/test_*.i").to_a
+rjl_tests    = Dir.glob("tests/test_*.r").to_a
 test_outputs = []
 directory build
 
@@ -43,6 +43,10 @@ for test_type in %w(run) do
   rjl_tests.sort.each do |test_input|
     test_outputs << compare_rjl(rjl, test_input, test_type)
   end
+end
+
+task :clean do
+  sh "rm -rf build"
 end
 
 task :test => test_outputs

@@ -69,7 +69,7 @@ typedef Object* (*native_function_ptr)(Object *frame);
 #define INST_NEW      0x13
 
 Object* new_object(Object *proto = 0);
-Object* new_string(char const *str, int length = -1);
+Object* new_string(char const *str, Fixnum length = -1);
 Object* new_string_of_length(Fixnum length);
 Object* new_block();
 Object* new_array();
@@ -1229,17 +1229,17 @@ void dump_buffer(Object *object, int indent, int newline, Object *visited) {
     for(i=0;i<array_length(object);++i) {
       Object *child_object = get_at(object, i);
       if ( child_object ) {
-        printf("%s %03d: ", indent_string, i);
+        printf("%s %03ld: ", indent_string, (long int)i);
         dump_object(child_object, indent + 1, visited);
       }
       else {
-        printf("%s %03d: 0\n", indent_string, i);
-      }
+        printf("%s %03ld: 0\n", indent_string, (long int)i);
+      } 
     }
     printf("%s]", indent_string);
   }
   else if ( is_fixnum(object) ) {
-    printf("%d", fixnum(object));
+    printf("%ld", (long int)fixnum(object));
   }
   else if ( is_integer(object) ) {
     dump_object(object, 0, 0);
@@ -1290,7 +1290,7 @@ void dump_object(Object *obj, int indent, Object *visited) {
     return;
   }
   else if ( is_fixnum(obj) ) {
-    printf("%d\n", fixnum(obj));
+    printf("%ld\n", (long int)fixnum(obj));
   }
   else if ( is_sym(obj) ) {
     printf("#");
