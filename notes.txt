@@ -1,3 +1,10 @@
+=== Design Directions
+
+* How to specify names of modules
+* How to type modules
+* How to make use of type information within IDE's
+* What should a module really look like?
+
 === On the Smalltalk Dream
 
 Highly dynamic languages do not have static types and this makes it
@@ -150,6 +157,7 @@ x.
 
 === Typing 
 
+
 It makes sense to have typing in a programming language. Probably the
 typing should be optional. So far I only really can imagine typing
 objects, one wonders if one can have some more expansive notion of
@@ -220,3 +228,25 @@ can however assume that the sys object is also in the lexical scope.
 
 Then one has access to the lexical closure in which a program is being
 run.
+
+=== Describing Interfaces
+
+The approach to defining types is to construct them via a code sample
+that constructs the types as objects as described in [[Typing]]. One
+needs to be able to talk about types for interfaces when writing
+systems because this is the only mechanism that exists for information
+hiding.
+
+One might have a system that affords tools that make it easier to
+reason about the types that exist within a given programming system.
+
+One might also like to go beyond what can be described by types when
+talking about interfaces so for example give equations that are true
+of an interface.
+
+Why then use a formal language to describe interfaces. Because the
+type definitions can then be processed by IDE's to facilitate checking
+that programs conform to the type definition.
+
+
+
