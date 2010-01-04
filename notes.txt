@@ -1,3 +1,45 @@
+=== Support for Literate Programming
+
+The idea of literate programming is that a program is encased in a
+document which explains the program that is being outlined.
+
+A single program however might have quite a number of documents
+written about it which are intended for different audiences in
+different contexts.
+
+Lets consider however a syntax for literate programming that conforms
+to the wiki language that I've been playing with.
+
+* Any indented text is code
+* All other code is wiki code
+
+So for example the following is our canonical hello world example.
+
+  { sys |
+    sys print "Hello World\n"
+  }
+
+Under this style it is difficult to have the document nested inside
+the code, but rather the code is nested inside the document.
+
+Lets see how this can work for a function that we wish to document the
+parts of. The first part of the program declares a block taking a
+single argument, sys.
+
+  { sys |
+    
+Next we use the sys argument to print to standard output of the process.
+
+    sys print "Hello World\n" ;
+
+And finally we close the block. Blocks which do not contain a return
+code return nil.
+
+  }
+
+It can be difficult to following the general indentiation style when
+the code is part of the document. But perhaps editors which 
+
 === Design Directions
 
 * How to specify names of modules
