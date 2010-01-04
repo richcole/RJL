@@ -1,3 +1,56 @@
+=== Setters and Lexical Closure
+
+Consider the following 
+
+  { i = 0 ;
+    set_i = { i = 1 } ;
+    set_i ;
+  }
+
+Should this set i in the outer scope to be 1 or not? My first
+intuition is that it should set i in the outer scope to admit the
+following function.
+
+  { xs |
+    sum = 0;
+    xs each { x | sum += x };
+    return sum;
+  }
+
+And what goes for 1 level of nesting goes for all levels of
+nesting. Consider then also the following program:
+
+  { set_i = { i = 1 };
+    set_i;
+  }
+
+In the outer in this case the value of i should be nil because i was
+not initialzied in an enclosing scope when the closure was invoked.
+
+Similarly
+
+  { set_i = { i = 1 } ;
+    i = 0;
+    set_i;
+  }
+
+Should set the variable i in the outer scope because i has been
+defined by the time the closure is executed.
+
+I have the feeling that this complexity of behaviour may be a bane to
+the programmer who will have trouble keeping track of which variables
+are in use and which are not. One might consider something like the
+following for assignment:
+
+  { set_i = { parent i = 1 };
+    set_i ;
+  }
+
+Where parent simply points at the lexical closure. Here one must much
+more deliberately make assignments within the enclosing scope, but one
+must also count the levels as to assign two levels higher requires
+doing "parent parent i = 1".
+
 === Support for Literate Programming
 
 The idea of literate programming is that a program is encased in a
