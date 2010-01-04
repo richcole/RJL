@@ -263,7 +263,7 @@ void set_slot(Object *obj, Object *key, Object *value) {
       obj->table[index % obj->length].key = key;
       obj->occupied++;
       if ( obj->occupied * 4 > obj->length * 3 ) {
-	grow_object_table(obj);
+        grow_object_table(obj);
       }
     }
 }
@@ -285,8 +285,8 @@ Object* get_slot(Object *obj, Object *key)
       index = (Fixnum)key;
       candidate = obj->table[index % obj->length].key;
       while( candidate != 0 && candidate != key ) {
-	index += 1;
-	candidate = obj->table[index % obj->length].key;
+        index += 1;
+        candidate = obj->table[index % obj->length].key;
       }
     }
     else if ( is_string(key) ) {
@@ -301,8 +301,8 @@ Object* get_slot(Object *obj, Object *key)
       index = (Fixnum)key;
       candidate = obj->table[index % obj->length].key;
       while( candidate != 0 && candidate != key ) {
-	index += 1;
-	candidate = obj->table[index % obj->length].key;
+        index += 1;
+        candidate = obj->table[index % obj->length].key;
       }
     }
     if ( candidate != 0 ) {
@@ -768,37 +768,37 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
     Object *slot_name = pop(stack);
     if ( slot_name == SYM_LE && is_fixnum(peek(stack)) ) {
       if ( fixnum(target) < fixnum(pop(stack)) ) {
-	push(stack, frame_resolve(frame, SYM_TRUE));
+        push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
-	push(stack, frame_resolve(frame, SYM_FALSE));
+        push(stack, frame_resolve(frame, SYM_FALSE));
       }
       return frame;
     }
     if ( slot_name == SYM_LEQ && is_fixnum(peek(stack)) ) {
       if ( fixnum(target) <= fixnum(pop(stack)) ) {
-	push(stack, frame_resolve(frame, SYM_TRUE));
+        push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
-	push(stack, frame_resolve(frame, SYM_FALSE));
+        push(stack, frame_resolve(frame, SYM_FALSE));
       }
       return frame;
     }
     if ( slot_name == SYM_GT && is_fixnum(peek(stack)) ) {
       if ( fixnum(target) > fixnum(pop(stack)) ) {
-	push(stack, frame_resolve(frame, SYM_TRUE));
+        push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
-	push(stack, frame_resolve(frame, SYM_FALSE));
+        push(stack, frame_resolve(frame, SYM_FALSE));
       }
       return frame;
     }
     if ( slot_name == SYM_GEQ && is_fixnum(peek(stack)) ) {
       if ( fixnum(target) >= fixnum(pop(stack)) ) {
-	push(stack, frame_resolve(frame, SYM_TRUE));
+        push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
-	push(stack, frame_resolve(frame, SYM_FALSE));
+        push(stack, frame_resolve(frame, SYM_FALSE));
       }
       return frame;
     }
@@ -943,7 +943,7 @@ void interpret(Object *frame) {
             case INST_JMP:
                 // jump to a location
                 jmp_pos = get_at(code, ++pc);
-		pc = fixnum(jmp_pos);
+                pc = fixnum(jmp_pos);
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_JMPZ:
@@ -954,9 +954,9 @@ void interpret(Object *frame) {
                 if ( top == 0 ) {
                     pc = fixnum(jmp_pos);
                 }
-		else {
-		  ++pc;
-		}
+                else {
+                  ++pc;
+                }
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_JMPNZ:
@@ -967,9 +967,9 @@ void interpret(Object *frame) {
                 if ( top != 0 ) {
                     pc = fixnum(jmp_pos);
                 }
-		else {
-		  ++pc;
-		}
+                else {
+                  ++pc;
+                }
                 set_slot(frame, SYM_PC, object(pc));
                 break;
             case INST_SEND:
@@ -1250,23 +1250,23 @@ void dump_buffer(Object *object, int indent, int newline, Object *visited) {
   else if ( object->buffer ) {
     for(i=0;i<object->buffer->length;++i) {
       if ( object->buffer->data[i] == '\n' ) {
-	putchar('\\');
-	putchar('n');
+        putchar('\\');
+        putchar('n');
       }
       else if ( object->buffer->data[i] == '\t' ) {
-	putchar('\\');
-	putchar('t');
+        putchar('\\');
+        putchar('t');
       }
       else if ( object->buffer->data[i] == '\r' ) {
-	putchar('\\');
-	putchar('r');
+        putchar('\\');
+        putchar('r');
       }
       else if ( object->buffer->data[i] == '\f' ) {
-	putchar('\\');
-	putchar('f');
+        putchar('\\');
+        putchar('f');
       }
       else {
-	putchar(object->buffer->data[i]);
+        putchar(object->buffer->data[i]);
       }
     }
   }
@@ -1401,22 +1401,22 @@ Object *parse_string(char const* str, int str_len) {
         switch(str[i+1]) {
         case 'n':
           obj->buffer->data[j] = '\n';
-	  break;
+          break;
         case 'f':
           obj->buffer->data[j] = '\f';
-	  break;
+          break;
         case 'r':
           obj->buffer->data[j] = '\r';
-	  break;
+          break;
         case 't':
           obj->buffer->data[j] = '\t';
-	  break;
+          break;
         default:
           obj->buffer->data[j] = str[i+1]; 
-	  break;
-	}
+          break;
+        }
         ++i;
-	++j;
+        ++j;
       }
     }
     else {
@@ -1511,22 +1511,22 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
       set_slot(tok, SYM_TYPE, TOK_FLOAT);
       ++i;
       while( i < line_len && is_digit(line[i]) ) {
-	float_mult *= 0.1; 
-	float_value += ( (line[i] - '0') * float_mult) ;
-	++i;
+        float_mult *= 0.1; 
+        float_value += ( (line[i] - '0') * float_mult) ;
+        ++i;
       }
       if ( i < line_len && line[i] == 'e' ) {
         ++i;
         if ( i < line_len && ((line[i] == '-') || is_digit(line[i])) ) {
-	  if ( line[i] == '-' ) {
-	    float_mant_sign = -1.0;
-	  }
+          if ( line[i] == '-' ) {
+            float_mant_sign = -1.0;
+          }
           ++i;
           while ( i < line_len && is_digit(line[i]) ) {
-	    float_mant *= 10;
-	    float_mant += line[i] - '0';
-	    ++i;
-	  }
+            float_mant *= 10;
+            float_mant += line[i] - '0';
+            ++i;
+          }
         }
       }
       double value = float_sign * float_value * pow(10, float_mant * float_mant_sign);
@@ -2095,31 +2095,31 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     }
     else if ( is_type(elem, TOK_ASSIGN) ) {
       if ( num_assignments > 0 ) {
-	code_gen_error(cxt, expr, "Only a single assignment is permitted in an expr");
-	return block;
+       code_gen_error(cxt, expr, "Only a single assignment is permitted in an expr");
+       return block;
       }
       // make the previous ident a setter and those before it existers
       j = array_length(stack) - 1;
       num_assignments += 1;
       if ( j >= 0 ) {
-	if ( is_sym(get_at(stack, j)) ) {
-	  set_at(stack, j, setter_sym(get_at(stack, j)));
-	}
-	else {
-	  // insert code here to perform assignment where slot name is an expr
-	  abort();
-	}
-	j--;
+        if ( is_sym(get_at(stack, j)) ) {
+          set_at(stack, j, setter_sym(get_at(stack, j)));
+        }
+        else {
+          // insert code here to perform assignment where slot name is an expr
+          abort();
+        }
+        j--;
       }
       while ( j >= 0 ) {
-	if ( is_sym(get_at(stack, j)) ) {
-	  set_at(stack, j, exister_sym(get_at(stack, j)));
-	}
-	else {
-	  // insert code here to perform existence where slot name is an expr
-	  abort();
-	}
-	--j;
+        if ( is_sym(get_at(stack, j)) ) {
+          set_at(stack, j, exister_sym(get_at(stack, j)));
+        }
+        else {
+          // insert code here to perform existence where slot name is an expr
+          abort();
+        }
+        --j;
       }
       push(stack, SendMarker);
     }
@@ -2128,7 +2128,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     Object *elem = get_at(stack, i);
     if ( is_block(elem) ) {
       for(j=0;j<array_length(elem);++j) {
-	push(block, get_at(elem, j));
+        push(block, get_at(elem, j));
       }
     }
     else if ( elem == SendMarker ) {
