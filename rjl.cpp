@@ -67,6 +67,7 @@ typedef Object* (*native_function_ptr)(Object *frame);
 #define INST_ASSIGN   0x11
 #define INST_RAISE    0x12
 #define INST_NEW      0x13
+#define INST_BLOCK_LITERAL 0x14
 
 Object* new_object(Object *proto = 0);
 Object* new_string(char const *str, Fixnum length = -1);
@@ -93,6 +94,7 @@ Object* SetterTable = new_object();
 Object* ExisterTable = new_object();
 
 Object* SendMarker  = new_object();
+Object* BlockLiteralMarker  = new_object();
 
 Object* Instr   = new_instr_table();
 // do not init until after symbol table because this uses the symbol table
@@ -422,9 +424,10 @@ Object *new_instr_table() {
     set_slot(instr_table, sym("ret"),    object(INST_RET));
     set_slot(instr_table, sym("term"),   object(INST_TERM));
     set_slot(instr_table, sym("dup"),    object(INST_DUP));
-    set_slot(instr_table, sym("assign"), object(INST_ASSIGN));
-    set_slot(instr_table, sym("raise"),  object(INST_RAISE));
-    set_slot(instr_table, sym("new"),    object(INST_NEW));
+    set_slot(instr_table, sym("assign"),        object(INST_ASSIGN));
+    set_slot(instr_table, sym("raise"),         object(INST_RAISE));
+    set_slot(instr_table, sym("new"),           object(INST_NEW));
+    set_slot(instr_table, sym("block_literal"), object(INST_BLOCK_LITERAL));
     return instr_table;
 };
 
@@ -462,6 +465,10 @@ Object* new_integer(int value) {
   Object *obj = new_object(Double);
   obj->buffer = new_buffer(sizeof(double), (char *)&value);
   return obj;
+}
+
+Fixnum is_block_literal_marker(Object *obj) {
+  return is_object(obj) && obj->proto == BlockLiteralMarker;
 }
 
 Fixnum is_integer(Object *obj) {
@@ -874,140 +881,150 @@ Object* closure_send(Object *closure, Object *frame, Object *stack) {
 
 Object* send(Object *frame, Object *stack) 
 {
-    set_slot(frame, SYM_ASSIGNMENT, SYM_FALSE);
-    Object *target   = pop(stack);
-
-    if ( is_sym(target) ) {
-      Object *slot = target;
-      target = frame_resolve(frame, slot);
-      if ( target == 0 && is_setter(slot) ) {
-        return setter_send(get_slot(frame, SYM_LOCAL), slot, frame, stack);
-      }
-      if ( target == 0 && is_exister(slot) ) {
-        return exister_send(get_slot(frame, SYM_LOCAL), slot, frame, stack);
-      }
-      else {
-        push(stack, target);
-        return frame;
-      }
+  set_slot(frame, SYM_ASSIGNMENT, SYM_FALSE);
+  Object *target   = pop(stack);
+  
+  if ( is_sym(target) ) {
+    Object *slot = target;
+    target = frame_resolve(frame, slot);
+    if ( target == 0 && is_setter(slot) ) {
+      return setter_send(get_slot(frame, SYM_LOCAL), slot, frame, stack);
     }
-    if ( is_fixnum(target) ) {
-      return fixnum_send(target, frame, stack);
-    }
-    else if ( is_closure(target) ) {
-      return closure_send(target, frame, stack);
-    }
-    else if ( is_function(target) ) {
-      return function_send(target, frame, stack);
-    }
-    else if ( target != 0 ) {
-      return object_send(target, frame, stack);
+    if ( target == 0 && is_exister(slot) ) {
+      return exister_send(get_slot(frame, SYM_LOCAL), slot, frame, stack);
     }
     else {
+      push(stack, target);
       return frame;
     }
+  }
+  if ( is_fixnum(target) ) {
+    return fixnum_send(target, frame, stack);
+  }
+  else if ( is_closure(target) ) {
+    return closure_send(target, frame, stack);
+  }
+  else if ( is_function(target) ) {
+    return function_send(target, frame, stack);
+  }
+  else if ( target != 0 ) {
+    return object_send(target, frame, stack);
+  }
+  else {
+    return frame;
+  }
 }
 
 Object *get_instr(Object *code, Fixnum pc)
 {
-    return get_at(code, pc);
+  return get_at(code, pc);
 }
 
+Object* set_lexical_scope_for_block_literal(Object *frame, Object *stack) {
+  Object *block_literal = pop(stack);
+  Object *closure = new_closure(block_literal, 0, frame);
+  push(stack, closure);
+  return frame;
+};
+
 void interpret(Object *frame) {
-
-    Fixnum pc         = fixnum(get_slot(frame, SYM_PC));
-    Object *stack     = get_slot(frame, SYM_STACK);
-    Object *code      = get_code(frame);
-
-    Object *top       = 0;
-    Object *jmp_pos   = 0;
-    Object *proto     = 0;
-    Object *new_frame = 0;
-
-    bool   terminate = false;
   
-    while ( ! terminate ) {
-        Object *instr  = get_instr(code, pc);
-        switch(fixnum(instr)) {
-            case INST_POP:
-                top = pop(stack);
-                set_slot(frame, SYM_PC, object(++pc));
-                break;
-            case INST_PUSH:
-                // a push instruction must be followed by an object
-                // for string object we probably want to call dup on them
-                // but that is a matter for the thing generating the code
-                push(stack, get_at(code, ++pc));
-                set_slot(frame, SYM_PC, object(++pc));
-                break;
-            case INST_JMP:
-                // jump to a location
-                jmp_pos = get_at(code, ++pc);
-                pc = fixnum(jmp_pos);
-                set_slot(frame, SYM_PC, object(pc));
-                break;
-            case INST_JMPZ:
-                // jumps to the second position on the stack 
-                // if the top of the stack is nil
-                top = pop(stack);
-                jmp_pos = get_at(code, ++pc);
-                if ( top == 0 ) {
-                    pc = fixnum(jmp_pos);
-                }
-                else {
-                  ++pc;
-                }
-                set_slot(frame, SYM_PC, object(pc));
-                break;
-            case INST_JMPNZ:
-                // jumps to the second position on the stack 
-                // if the top of the stack is not nil
-                top = pop(stack);
-                jmp_pos = get_at(code, ++pc);
-                if ( top != 0 ) {
-                    pc = fixnum(jmp_pos);
-                }
-                else {
-                  ++pc;
-                }
-                set_slot(frame, SYM_PC, object(pc));
-                break;
-            case INST_SEND:
-              new_frame = send(frame, stack);
-              if ( 
-                  frame == new_frame      && 
-                  stack_length(stack) < 2 && 
-                  (! is_closure(peek(stack)) || 
-                     get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE) 
-              ) {
-                  set_slot(frame, SYM_PC, object(++pc));
-              }
-              else if ( frame != new_frame ) {
-                frame = new_frame;
-                stack = get_slot(frame, SYM_STACK);
-                code  = get_code(frame);
-                pc    = fixnum(get_slot(frame, SYM_PC));
-              }
-              break;
-            case INST_RET:
-                top   = pop(stack);
-                frame = get_slot(frame, SYM_PARENT_FRAME);
-                stack = get_slot(frame, SYM_STACK);
-                code  = get_code(frame);
-                pc    = fixnum(get_slot(frame, SYM_PC));
-                push(stack, top);
-                break;
-            case INST_TERM:
-                terminate = true;
-                break;
-            case INST_NEW:
-                proto = pop(stack);
-                push(stack, new_object(proto));
-                set_slot(frame, SYM_PC, object(++pc));
-                break;
-        }
+  Fixnum pc         = fixnum(get_slot(frame, SYM_PC));
+  Object *stack     = get_slot(frame, SYM_STACK);
+  Object *code      = get_code(frame);
+  
+  Object *top       = 0;
+  Object *jmp_pos   = 0;
+  Object *proto     = 0;
+  Object *new_frame = 0;
+  
+  bool   terminate = false;
+  
+  while ( ! terminate ) {
+    Object *instr  = get_instr(code, pc);
+    switch(fixnum(instr)) {
+        case INST_POP:
+          top = pop(stack);
+          set_slot(frame, SYM_PC, object(++pc));
+          break;
+        case INST_PUSH:
+          // a push instruction must be followed by an object
+          // for string object we probably want to call dup on them
+          // but that is a matter for the thing generating the code
+          push(stack, get_at(code, ++pc));
+          set_slot(frame, SYM_PC, object(++pc));
+          break;
+        case INST_JMP:
+          // jump to a location
+          jmp_pos = get_at(code, ++pc);
+          pc = fixnum(jmp_pos);
+          set_slot(frame, SYM_PC, object(pc));
+          break;
+        case INST_JMPZ:
+          // jumps to the second position on the stack 
+          // if the top of the stack is nil
+          top = pop(stack);
+          jmp_pos = get_at(code, ++pc);
+          if ( top == 0 ) {
+            pc = fixnum(jmp_pos);
+          }
+          else {
+            ++pc;
+          }
+          set_slot(frame, SYM_PC, object(pc));
+          break;
+        case INST_JMPNZ:
+          // jumps to the second position on the stack 
+          // if the top of the stack is not nil
+          top = pop(stack);
+          jmp_pos = get_at(code, ++pc);
+          if ( top != 0 ) {
+            pc = fixnum(jmp_pos);
+          }
+          else {
+            ++pc;
+          }
+          set_slot(frame, SYM_PC, object(pc));
+          break;
+        case INST_SEND:
+          new_frame = send(frame, stack);
+          if ( 
+            frame == new_frame      && 
+            stack_length(stack) < 2 && 
+            (! is_closure(peek(stack)) || 
+              get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE) 
+          ) {
+            set_slot(frame, SYM_PC, object(++pc));
+          }
+          else if ( frame != new_frame ) {
+            frame = new_frame;
+            stack = get_slot(frame, SYM_STACK);
+            code  = get_code(frame);
+            pc    = fixnum(get_slot(frame, SYM_PC));
+          }
+          break;
+        case INST_RET:
+          top   = pop(stack);
+          frame = get_slot(frame, SYM_PARENT_FRAME);
+          stack = get_slot(frame, SYM_STACK);
+          code  = get_code(frame);
+          pc    = fixnum(get_slot(frame, SYM_PC));
+          push(stack, top);
+          break;
+        case INST_TERM:
+          terminate = true;
+          break;
+        case INST_NEW:
+          proto = pop(stack);
+          push(stack, new_object(proto));
+          set_slot(frame, SYM_PC, object(++pc));
+          break;
+        case INST_BLOCK_LITERAL:
+          frame = set_lexical_scope_for_block_literal(frame, stack);
+          set_slot(frame, SYM_PC, object(++pc));
+          break;
     }
-  
+  }
 };
 
 void assert_true(bool value, char const* message) {
@@ -2093,6 +2110,16 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     else if ( is_type(elem, sym("group_expr")) ) {
       push(stack, code_gen_expr(cxt, new_block(), elem));
     }
+    else if ( is_type(elem, sym("block")) ) {
+      if ( peek(stack) == SendMarker ) { 
+        /* block literals should not have a send */
+        pop(stack);
+      }
+      Object *block = code_gen_block(cxt, elem, 0, 1);
+      Object *block_marker = new_object(BlockLiteralMarker);
+      set_slot(block_marker, SYM_BLOCK, block);
+      push(stack, block_marker);
+    }
     else if ( is_type(elem, TOK_ASSIGN) ) {
       if ( num_assignments > 0 ) {
        code_gen_error(cxt, expr, "Only a single assignment is permitted in an expr");
@@ -2133,6 +2160,11 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     }
     else if ( elem == SendMarker ) {
       push(block, object(INST_SEND));
+    }
+    else if ( is_block_literal_marker(elem) ) {
+      push(block, object(INST_PUSH));
+      push(block, get_slot(elem, SYM_BLOCK));
+      push(block, object(INST_BLOCK_LITERAL));
     }
     else {
       push(block, object(INST_PUSH));
