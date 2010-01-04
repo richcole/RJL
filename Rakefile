@@ -1,7 +1,8 @@
 #!/usr/bin/rake
 
 build = "build" 
-rjl   = File.join("build/rjl")
+debug_rjl      = File.join("build/debug/rjl")
+release_rjl    = File.join("build/release/rjl")
 interp_tests   = Dir.glob("tests/test_*.i").to_a
 rjl_tests      = Dir.glob("tests/test_*.r").to_a
 rjl_perf_tests = Dir.glob("perf_tests/test_*.r").to_a
@@ -9,9 +10,19 @@ test_outputs = []
 perf_test_outputs = []
 directory build
 
-file rjl => [build, "rjl.cpp"] do
-  sh "g++ -Wall -O3 -o #{rjl} rjl.cpp"
+def compile_rjl(target, options, build)
+  directory (target_dir = File.dirname(target))
+  file target => [build, "rjl.cpp", target_dir] do
+    sh "g++ #{options} -o #{target} rjl.cpp"
+  end
 end
+
+task :no_tabs do
+  sh "! grep -q '[[:cntrl:]]' rjl.cpp"
+end
+
+compile_rjl(release_rjl, "-O3 -Wall", build)
+compile_rjl(debug_rjl, "-ggdb -Wall", build)
 
 def call_rjl(rjl, test_input, type, prefix="")
   test_output = File.join("build", test_input + "." + type + ".out")
@@ -36,22 +47,22 @@ def compare_rjl(rjl, test_input, type)
 end
 
 interp_tests.sort.each do |test_input|
-  test_outputs << call_rjl(rjl, test_input, 'interp')
+  test_outputs << call_rjl(debug_rjl, test_input, 'interp')
 end
 
 for test_type in %w(lex parse code_gen run) do
   rjl_tests.sort.each do |test_input|
-    test_outputs << call_rjl(rjl, test_input, test_type)
+    test_outputs << call_rjl(debug_rjl, test_input, test_type)
   end
 end
 
 rjl_perf_tests.sort.each do |test_input|
-  perf_test_outputs << call_rjl(rjl, test_input, "run", "time")
+  perf_test_outputs << call_rjl(debug_rjl, test_input, "run", "time")
 end
 
 for test_type in %w(run) do
   rjl_tests.sort.each do |test_input|
-    test_outputs << compare_rjl(rjl, test_input, test_type)
+    test_outputs << compare_rjl(debug_rjl, test_input, test_type)
   end
 end
 
@@ -61,4 +72,4 @@ end
 
 task :test => test_outputs
 task :perf_test => perf_test_outputs
-task :default => :test
+task :default => [:no_tabs, :test]
