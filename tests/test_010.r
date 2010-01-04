@@ -1,4 +1,4 @@
 { sys |
-  print = { x | sys print x } ;
-  print "Hello World\n" ;
+  myprint = { x | sys print x } ;
+  myprint "Hello World\n" ;
 }
