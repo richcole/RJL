@@ -1,3 +1,157 @@
+=== Data Objects
+
+It seems that quite a lot of programming is concerned with data
+objects. Data objects are composed mostly of data and have few
+operations, except perhaps some usual suspects like clone, or
+serialize.
+
+How should once introduce such data objects? Thinking of C style
+structures one, but in RJL syntax one has
+
+  type Point = { Number | return struct [
+    x = Number ;
+    y = Number ;
+  ]};
+  type IntegerPoint = Point Integer ;
+
+This feels somewhat cumbersome in terms of syntax, particularly the
+return statement. Having implicit returns from blocks of the last
+statement evaluated means that the return statement is not required,
+but also that blocks not returning an object need explicit syntax
+
+  example = { 
+    1 .. 10 each { i | print ("Number " + i) }
+    nil
+  }
+
+Perhaps a special syntax can be introduced that allows one to indicate
+a block returns nil, e.g.
+
+  example = { 
+    1 .. 10 each { i | print ("Number " + i) <}
+  <}
+
+In this case the <} indicates the nil return from the block. The above
+example is also cumbersome in that "Point Integer" does not sound like
+english, rather the adjective go before the function as in an Integer
+Point rather than a Point Integer, one might also say "Point of
+Integers", but particularly the pluralization is difficult to achieve.
+
+=== Merging of Functions and Objects
+
+This entry is mostly a rumination rather than a conclusion. Two
+problems are discussed:
+
+1. objects look a lot like functions of a single argument
+2. getter functions in a good language should be indistinguishable
+in client code from direct access to the slot
+
+We note that Ruby has this second property while javascript does
+not. Ruby achieves it in a similar fashion to newspeak, that is slots
+are not accessible except within getters and so an object must have a
+getter to make a slot accessible. 
+
+An object can be regarded as a function that takes a symbol and
+returns a value which may possibly be a function.
+
+ type Object = function Symbol returns Object
+
+So what then is a function, well a function? Well a function takes
+zero or more objects passed to it and returns an object. It does this
+using the execution stack.
+
+There are however implicit evaluations in RJL which cause functions
+returned by objects to be evaluated. Evaluation continues in RJL until
+an object is returned that is not itself a function.
+
+Another rule is that assignment of function literals does not involve
+evaluation. So for example one can write:
+
+  a = { return { x : String | sys print x } } ;
+
+And then call
+
+  a "Hello World" ;
+
+This is evaluated by pushing "Hello World" onto the stack, then
+pushing a. a will then be resolved which will yield a function, since
+the top of the stack is a function it will be evaluated.  That
+function will return another function which in turn will be evaluated
+yielding a result.
+
+This property prevents higher order functions from being written
+because the function being returned will be evaluated. Consider
+
+  b = a ;
+
+We would like b to be assigned to the function returned from a, but
+the closure returned will be evaluated. The reason that functions
+returned as objects are evaluated is so that getters are
+indistinguishable in clients from values stored in slots.
+
+What if only a single evaluation is permitted of a function, that is
+whenever a function is returned it is evaluated, but if that function
+returns a function the result is not evaluated.
+
+So then one has something like:
+
+  b = a ;
+
+becomes
+
+  resolve 'a
+  if ((stack top) is-a function) {
+    eval [| (stack pop);  stack |]
+  }
+  perform_assignment 'b
+
+So that if a block returns a function then the function returned is
+not evaluated.
+
+Under this definition then is an object still like a function? Well no
+because the object returns a function, and that function would not be
+evaluated. Rather if an object is involved then there are up to two
+evaluations, the first returns the block to be executed and the second
+executes the block.
+
+Once can reduce the number of evaluations by using a ^ character. So
+for example:
+
+  print = sys ^print
+
+This will not evaluate the block returned by looking up print in the
+sys object.
+
+What about chains of objects?
+
+  a = b c d 
+
+What if b returns a function taking a single argument and when given c
+that again returns a function taking an argument d ? Then a kind of
+implicit triple evaluation is required. The problem comes when one
+considers blocks with no arguments, for these one cannot decide
+when to stop evaluation by checking for an empty stack. Here the rule
+is that an object lookup evaluates a method with zero arguments once
+and no more.
+
+Thus:
+
+  x = { return { x | sys print x } }
+  x "Hello World"
+
+Yields a lookup of x returning a function of zero arguments duely
+evaluated and returning a function of 1 argument which is evaluated by
+virtue of an argument on the stack.
+
+  x = { return { rand } }
+
+Yields a lookup of x returning a function of zero arguments duely
+evaluated and returning a function of 0 argument which is not
+evaluated by virtue of it being a function of 0 arguments.
+
+Thus this second example results in the assignment of a function to x
+rather than a variable.
+
 === Setters and Lexical Closure
 
 Consider the following 
@@ -251,7 +405,6 @@ We also need that a += b is an alias for a = a + b and that nil + x =
 x.
 
 === Typing 
-
 
 It makes sense to have typing in a programming language. Probably the
 typing should be optional. So far I only really can imagine typing
