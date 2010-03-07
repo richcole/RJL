@@ -1,3 +1,99 @@
+=== Methods and Arguments
+
+In Ruby all slots are accessed via methods from the outside. This is
+different to Java in which direct access to an objects fields from
+outside is allowed. It is important because a desirable refactoring is
+to replace a direct field access with a method that calculated the
+value of the field. 
+
+The syntax then for accessing a field cannot be different from that of
+calling a getter method. Similarly for setter methods. In Ruby this is
+provided by only having setter and getter methods, however once still
+gets into confusion with derived types. Should derived implementations
+be allowed to access fields in the parent?
+
+That question bring up the notion of facets as used in Eiffel in which
+an object identifies several different contracts that it has with
+different types of other objects. So it might have one contract with
+derived types and another contract with users of the object.
+
+Coming back to the notion of calling methods that may have zero or
+more arguments.
+
+  x y z
+
+The evaluation of this expression depends on the type returned when
+looking up x. If x returns a function taking two arguments then y and
+z will be consumed by that function. 
+
+The problem with this approach is that it doesn't let you easily
+return a function from a method because that function will be
+evaluated at the return site. If the function has a side effect then
+the number of evaluations of the function matter.
+
+If we introduce syntax to denote the evaluation of a function then we
+cannot admit direct access to object fields, rather we must force the
+return on a function which is evaluated.
+
+Lets consider an object having a method defined which returns a
+function.
+
+  ex = { x: 0 ; incr: { { self x = self x + 1 } } ;
+
+In this case the intention is to return a function. How then can one
+evaluate the function that was returned?
+
+  ex incr ;
+
+This will leave a function on the stack which is subsequently
+ignored. Once can evaluate it by sending the call method:
+
+  ex incr call ;
+
+Once needs to be aware that assignment to a field of a method will
+cause the method to be evaluated, but that returning a function from
+function will not cause the function to be evaluated.
+
+An aspect of this syntax not discussed yet is that it can be difficult
+to read if the quantities are not known. Perhaps this is already
+implicit in the examples so far, but consider again
+
+  x y z ;
+
+To interpret the meaning of this expression one must know what x, y
+and z are. One gets no syntactic help. The alternative is to admit
+brackets or named arguments so either:
+
+  x name: y address: z ;
+
+or 
+
+  x(y, z)
+
+The issue with named arguments is that one often wants to provide a
+somewhat random selection of them
+
+  Rect new { left = 10 ; width = 20 ; height = 100 } ;
+
+The builder pattern is one way around this in languages which don't
+support named arguments
+
+  Rect builder left 10 width 20 height 100 create ;
+
+It feels more natural to coflate objects and functions. So that
+
+  { left = 10 ; width = 20 ; height = 100 }
+
+Is a function that evaluates to an object with the slot assignments
+given. That means the functions returning an element must have an
+explcit return statement.
+
+  { left = 10 ; width = 20; height = 100 ; 
+    return (width * height - left) 
+  }
+
+
+
 === Data Objects
 
 It seems that quite a lot of programming is concerned with data
