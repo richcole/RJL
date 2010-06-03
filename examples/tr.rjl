@@ -1,4 +1,4 @@
-=== tr --- translate string
+= tr 
 
 This program is an example of literate programming in RJL. Any
 non-indented line is considered to be documentation and follows a
@@ -20,17 +20,28 @@ to the runtime.
 
 The next section defines the types of the module being returned.
 
-    types = { type |
-      type tr = function [| string ; string ; string |] returns string
+    types = { types, module |
+      a_string   = types a_string;
+      a_function = types a_function;
+      module has (
+        a_function named 'tr
+          with_input [|
+            a_string named "from_set" ; 
+            a_string named "to_set"   ; 
+            a_string named "input"    ;
+          |] 
+          returning string
+      );
     };
 
 This block will be executed both with an argument type which is used
 to define types and within a lexical scope which provides access to
 existing types.
 
-The lexical closure is expected to define values for function and
-string. 'returns' is a method call on the object returned by function
-which annotates the returned type object with a return type.
+[Note] Previously I had this function being executed within a lexical
+scope. That lexical scope gave definition to the free variables. I
+have echewed this notion however in favor of passing the variables
+in. [End]
 
 Next we define a couple of tests for the module.
 
@@ -42,15 +53,20 @@ Next we define a couple of tests for the module.
 Next we define the dependencies. This block is passed an object called
 'it' which is used to declare dependencies.
 
-    depends = { it |
-      it has_name "org.richcole.examples.tr";
-      it has_version "0.1";
-      it requires [| "std.string" ; "std.function" ; "std.map" ; "std.errors" |];
+    depends = { module |
+      a_module        = module a_module;
+      module name     = "org.richcole.examples.tr";
+      module version  = "0.1";
+      module requires [| 
+        a_module named "std.types"; 
+        a_module named "std.map"; 
+        a_module named "std.errors";
+      |];
     ];
 
 The module being defined is called "org.richcole.example.tr". This
-module requires three modules to run. These are std.string,
-std.function and std.map.
+module requires three modules to run. These are std.types,
+std.map and std.errors.
 
 Next comes the implementation for the module. In a more general
 setting one might have several implementations for a single type
@@ -60,31 +76,28 @@ definitions all defined in one place.
 We are not commenting at this stage on how a given runtime system will
 locate and install the dependencies neccessary to run a module.
 
-    module = [
-      tr = { 
+    implementation = [ module |
+      module ArgumentError = module std error ArgumentError ;
+      module tr = { 
         from_set : string ; 
-        to_set : string ; 
-        str : string 
+        to_set   : string ; 
+        input    : string ;
       |
-
-tr takes three arguments, from_set, to_set, and str. 
-
-        if (from_set length) != (to_set_length) {
-          throw ArgumentError "Expected from_set and to_set to have the same length"
+        if (from_set length) != (to_set length) {
+          throw module ArgumentError new 
+            "Expected from_set and to_set to have the same length";
         }
-        return str map { x | 
-          if ( index = from_set index x ) {
+        return input map { ch | 
+          index = from_set index ch ;
+          if ( index ) {
             return to_set at index;
           }
           else {
-            return x;
+            return ch;
           }
         }
       }
     ]
-
-The function first checks its arguments are the same length and if
-they are not throws ArgumentError which is defined in std.errors.
 
   ]
 

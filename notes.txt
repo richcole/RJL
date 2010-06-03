@@ -1,3 +1,28 @@
+=== Grouping Letters
+
+Somehow there are not enough grouping letters. Presently the syntax is
+like this:
+
+An array
+
+  [| a ; b |]
+
+A block
+
+  { a | sys print a }
+
+A map
+
+  [ "a" = "b" ]
+
+Evaluation grouping
+
+  ( a + b ) * c
+
+[Note] Arrays must be kept separate from grouping because otherwise
+one could not decide whether "(a)" is an array or just the element (a)
+grouped by itself. [End]
+
 === Methods and Arguments
 
 In Ruby all slots are accessed via methods from the outside. This is
@@ -91,8 +116,6 @@ explcit return statement.
   { left = 10 ; width = 20; height = 100 ; 
     return (width * height - left) 
   }
-
-
 
 === Data Objects
 
