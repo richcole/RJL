@@ -1,11 +1,3 @@
-=== On Types
-
-Types must be inline in the code. They must still be presented via the
-environment, but they should not be seperated from the code.
-
-The notion of interfaces remains important. Types are in a sense
-interfaces.
-
 === Grouping Letters
 
 Somehow there are not enough grouping letters. Presently the syntax is
@@ -13,7 +5,7 @@ like this:
 
 An array
 
-  [| a ; b |]
+  [ a ; b ]
 
 A block
 
@@ -21,7 +13,7 @@ A block
 
 A map
 
-  [ "a" = "b" ]
+  {| "a" = "b" |}
 
 Evaluation grouping
 
@@ -30,6 +22,112 @@ Evaluation grouping
 [Note] Arrays must be kept separate from grouping because otherwise
 one could not decide whether "(a)" is an array or just the element (a)
 grouped by itself. [End]
+
+=== Musing on the map function
+
+Lets consider the definition of a map function copied shamelessly from
+Ruby.
+
+ { sys |
+   sys Collection map = { fn | 
+     local result = sys Array new ;
+     self each { x | result push (fn x) } ;
+     return result ;
+   }
+ }
+
+Note that the implicit return of a block is self unless otherwise
+specified.
+
+Note the local variables are introduced by the word local.
+
+For the map function to work there needs to be (i) an array class
+supporting a push method, (ii) the sequence mixin requires an each
+method.
+
+Now lets look at how to mixin this class.
+
+  { sys |
+    sys Array mixin ( sys Sequence ) ;
+  }
+
+This adds a parent to the Array class object that is the Sequence
+class object.
+
+The Array class already has an each method. But what for a class that
+doesn't have the each method defined.
+
+  { sys |
+    sys MyObject mixin ( sys Sequence ) ;
+  }
+
+It would be nice for the IDE to tell us that MyObject needs to have an
+each method.
+
+Maybe this can be done in the following way, dynamically again.
+
+  { sys |
+    sys Sequence requires ( 
+      sys MethodSignature new_with {| name = "each"; arity = 1 |} 
+    ) ;
+  }
+
+Now the mixin function can look like this
+
+  { sys |
+    sys Object mixin = { module |
+      module requirements each { requirement |
+        requirement check self ;
+      }
+      parents push mixin ;
+    }
+  }
+ 
+One might then define the requires and requirement functions as
+
+  { sys |
+    sys Object requires = { requirement | 
+      self array_set :requirements requirement ;
+    }
+  }
+
+The array_set function is a convenience. It introduces an array if
+one did not exist before.
+
+  { sys |
+    sys Object array_set = { slot value |
+      local array = self send slot ;
+      if array == nil then
+        array = (self assign slot (sys Array new)) ;
+      end
+      array push value ;
+    }
+  }
+
+Lets look now at the MethodSignature
+
+  { sys |
+    sys MethodSignature = sys Class new_with {|
+      methods = {|
+        check = { target | 
+          local slot = self get slot ;
+          if slot == nil then
+            throw (sys MethodMissing new_with 
+              {| method = name; on = target; requirement: self |}) ;
+          elsif not (slot isBlock) then
+            throw (sys ExpectedBlock new_with
+              {| method = name; on = target; requirement: self |}) ;
+          elsif not (slot arrity == 1) then
+            throw (sys ExpectedBlockWithArity new_with
+              {| method = name; on = target; requirement: self |}) ;
+          end
+        }
+      } 
+    |}
+  }
+
+You see that there are two constructors in common use. New takes no
+arguments, but new_with takes a map as an argument.
 
 === Methods and Arguments
 
