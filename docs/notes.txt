@@ -1,3 +1,11 @@
+=== On Types
+
+Types must be inline in the code. They must still be presented via the
+environment, but they should not be seperated from the code.
+
+The notion of interfaces remains important. Types are in a sense
+interfaces.
+
 === Grouping Letters
 
 Somehow there are not enough grouping letters. Presently the syntax is
