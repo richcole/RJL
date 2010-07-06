@@ -23,6 +23,110 @@ Evaluation grouping
 one could not decide whether "(a)" is an array or just the element (a)
 grouped by itself. [End]
 
+=== Exceptions 
+
+The following is an example exception
+
+  { sys |
+    try {
+      throw (RuntimeException new_with_message "Test Exception")
+    }
+    catch { ex |
+      sys print (ex message)
+    }
+  }
+
+try, catch and throw are reserved words. try is followed by a block
+and so is catch. One can do exception hierarchies like this
+
+  { sys |
+    try { 
+      ...
+    }
+    catch { ex |
+      if ( ex implements RuntimeException ) {
+        sys print "A runtime exception was raised."
+      }
+      else if ( ex implements TimeoutException ) {
+        sys print "A timeout exception was raised."
+      }
+    }
+  }     
+
+=== Musing on file open
+
+In ruby one opens a file like this
+
+  { sys |
+    File = sys File ;
+    File read = File open 'read_only { file |
+      file read ;
+    } ;
+  }
+
+The open command take an optional block. In RJL there is no such thing
+as an optional argument, so an open command that does not take a block
+must be given a different name.
+
+  { sys |
+    sys File open = { mode block |
+      file = File open_without_block mode ;
+      result = nil ;
+      try {
+        result = block call file ;
+      }
+      catch { ex |
+        file close_ignore_exception ;
+        throw ex ;
+      }
+      file close ;
+      return result ;
+    }
+  }
+        
+
+=== Musing on Arrays
+
+Often one would like to be able abstract whether an argument is passed
+as an array or not. Consider the example of the file mode in the
+previous section. One might like to have
+
+  File open [ 'read ; 'write ; 'create ] { file |
+  }
+
+But one would like the shorthand
+
+  File open 'read { file |
+  }
+
+Rather than having to do
+
+  File open [ 'read ] { file |
+    ...
+  }
+
+For such a case one might have
+
+  File open = { mode block |
+    modes = Array wrap mode ;
+    ...
+  }
+
+where 
+
+  Array wrap = { x |
+    if ( x is_a Array ) {
+      return x ;
+    } 
+    else {
+      return [ x ] ;
+    }
+  }
+
+This way one for many functions allows either an array to be passed or
+a single item. Of course such a system breaks down with Arrays of
+arrays, so the base type needs to be something that isn't an array.
+
 === Musing on the map function
 
 Lets consider the definition of a map function copied shamelessly from
@@ -30,7 +134,7 @@ Ruby.
 
  { sys |
    sys Collection map = { fn | 
-     local result = sys Array new ;
+     result = sys Array new ;
      self each { x | result push (fn x) } ;
      return result ;
    }
@@ -38,8 +142,6 @@ Ruby.
 
 Note that the implicit return of a block is self unless otherwise
 specified.
-
-Note the local variables are introduced by the word local.
 
 For the map function to work there needs to be (i) an array class
 supporting a push method, (ii) the sequence mixin requires an each
@@ -96,7 +198,7 @@ one did not exist before.
 
   { sys |
     sys Object array_set = { slot value |
-      local array = self send slot ;
+      array = self send slot ;
       if array == nil then
         array = (self assign slot (sys Array new)) ;
       end
@@ -110,7 +212,7 @@ Lets look now at the MethodSignature
     sys MethodSignature = sys Class new_with {|
       methods = {|
         check = { target | 
-          local slot = self get slot ;
+          slot = self get slot ;
           if slot == nil then
             throw (sys MethodMissing new_with 
               {| method = name; on = target; requirement: self |}) ;
