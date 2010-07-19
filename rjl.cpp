@@ -45,12 +45,12 @@ typedef Object* (*native_function_ptr)(Object *frame, Object *self);
 #define INST_JMPNZ    0x7
 #define INST_RET      0x8
 #define INST_TERM     0x9
-#define INST_DUP      0x10
-#define INST_ASSIGN   0x11
-#define INST_RAISE    0x12
-#define INST_NEW      0x13
-#define INST_BLOCK_LITERAL 0x14
-#define INST_THROW 0x15
+#define INST_DUP      0xa
+#define INST_ASSIGN   0xb
+#define INST_RAISE    0xc
+#define INST_NEW      0xd
+#define INST_BLOCK_LITERAL 0xe
+#define INST_THROW    0xf
 
 Object* new_object(Object *proto = 0);
 Object* new_string(char const *str, Fixnum length = -1);
@@ -2234,8 +2234,9 @@ Object *code_gen_try_expr(Object *cxt, Object *block, Object *try_expr) {
   return block;
 }
 
-Object *code_gen_return_expr(Object *cxt, Object *block, Object *if_expr) {
-  // FIXME
+Object *code_gen_return_expr(Object *cxt, Object *block, Object *ret_expr) {
+  code_gen_expr(cxt, block, get_slot(ret_expr, sym("expr")));
+  push(block, object(INST_RET));
   return block;
 }
 
@@ -2412,19 +2413,28 @@ Object *native_file_read_line(Object *frame, Object *self) {
   }
 }
 
-Object *native_sys_print(Object *frame, Object *self) {
+Object *native_print(Object *frame, Object *self) {
   Object *stack = get_slot(frame, SYM_STACK);
   Object *arg = pop(stack);
   if ( is_sym(arg) ) {
     arg = frame_resolve(frame, arg);
   }
-  if ( is_string(arg) ) {
+  if ( arg == 0 ) {
+    fprintf(stdout, "nil");
+  }    
+  else if ( is_string(arg) ) {
     fwrite(arg->buffer->data, arg->buffer->length, 1, stdout);
-    return frame;
+  }
+  else if ( is_integer(arg) ) {
+    fprintf(stdout, "%d", *(int *)arg->buffer->data);
+  }
+  else if ( is_fixnum(arg) ) {
+    fprintf(stdout, "%ld", (long int)fixnum(arg));
   }
   else {
     return new_exception_frame(frame, "Expected string argument");
   }
+  return frame;
 }
 
 Object *native_not(Object *frame, Object *self) {
@@ -2479,7 +2489,7 @@ Object *native_is_true(Object *frame, Object *self) {
 
 Object *new_sys() {
   Object *sys = new_object();
-  set_slot(sys, sym("print"), new_function(&native_sys_print));
+  set_slot(sys, sym("print"), new_function(&native_print));
   return sys;
 }
 

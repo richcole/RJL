@@ -1,9 +1,13 @@
 Added support for exceptions.
 Added support for self.
 Added support Object new.
+Added basic support for return
 
 Remaining to be done:
+* add a native function called println that calls the native function print
 * add support for return from functions
+** make return of block literals actually return the 
+   function not evaluate it
 * add support for inline arrays and hash tables
 * add support for arrays
 * add preloading of standard library
