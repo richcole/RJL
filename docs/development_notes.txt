@@ -12,3 +12,14 @@ Remaining to be done:
 * add support for arrays
 * add preloading of standard library
 
+
+
+test_028.r -
+  - this fails because self is not being pushed into the stack when a block is
+  returned from a function call.
+  - the return might be to an assignment, so really the calling code should push
+  self onto the stack
+  - but then there is a block check on every function return
+  
+
+

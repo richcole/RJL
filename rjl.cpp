@@ -859,13 +859,16 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       return frame;
     }
     else {
-      Object *slot = pop(stack);
       push(stack, target);
-      push(stack, slot);
+      push(stack, slot_name);
       target = frame_resolve(frame, sym("Integer"));
       return object_send(target, frame, stack);
     }
   }
+}
+
+void set_tmp_self(Object *frame, Object *self) {
+  set_slot(frame, sym("TMP_SELF"), self);
 }
 
 Object* object_send(Object *target, Object *frame, Object *stack) {
@@ -883,7 +886,8 @@ Object* object_send(Object *target, Object *frame, Object *stack) {
   }
   else {
     if ( is_closure(slot_value) || is_function(slot_value) ) {
-      push(stack, target);
+      set_tmp_self(frame, target); // SELF
+      //      push(stack, target); // SELF
     }
     push(stack, slot_value);
     return frame;
@@ -895,8 +899,19 @@ Object* function_send(Object *target, Object *frame, Object *stack) {
   return (*func_ptr)(frame, pop(stack));
 }
 
+Object *get_self(Object *stack, Object *frame) {
+  Object *self = get_slot(frame, sym("TMP_SELF"));
+  if ( self != 0 ) {
+    set_slot(frame, sym("TMP_SELF"), 0);
+  }
+  else {
+    self = get_slot(get_slot(frame, SYM_LOCAL), SYM_SELF);
+  }
+  return self;
+};
+
 Object* closure_send(Object *closure, Object *frame, Object *stack) {
-  Object *self = pop(stack);
+  Object *self          = get_self(stack, frame);
   Object *closure_frame = new_frame(frame, self, closure); 
   Object *arg_slots     = get_slot(closure, SYM_ARGS);
   if ( arg_slots != 0 ) {
@@ -950,9 +965,9 @@ Object* send(Object *frame, Object *stack)
       return exister_send(locate_setter_target(frame, slot), slot, frame, stack);
     }
     else {
-      if ( is_closure(target) || is_function(target) ) {
-        push(stack, get_slot(get_slot(frame, SYM_LOCAL), SYM_SELF)); // self
-      }
+      //      if ( is_closure(target) || is_function(target) ) {
+      //        push(stack, get_slot(get_slot(frame, SYM_LOCAL), SYM_SELF)); // self
+      //      }
       push(stack, target);
       return frame;
     }
@@ -2140,7 +2155,7 @@ Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum in
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
     code_gen_stmt_list(cxt, block, stmt_list_node);
   }
-  if ( include_ret ) {
+  if ( include_ret && peek(block) != object(INST_RET) ) {
     push(block, object(INST_RET));
   }
   return block;
@@ -2235,7 +2250,13 @@ Object *code_gen_try_expr(Object *cxt, Object *block, Object *try_expr) {
 }
 
 Object *code_gen_return_expr(Object *cxt, Object *block, Object *ret_expr) {
-  code_gen_expr(cxt, block, get_slot(ret_expr, sym("expr")));
+  Object *expr = get_slot(ret_expr, sym("expr"));
+  code_gen_expr(cxt, block, expr);
+  if ( array_length(expr) == 1 && is_type(get_at(expr, 0), sym("block")) ) {
+    // kill the send that follows the block, if the return has a 
+    // single block argument
+    pop(block);
+  }
   push(block, object(INST_RET));
   return block;
 }
@@ -2316,7 +2337,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
           set_at(stack, j, setter_sym(get_at(stack, j)));
         }
         else {
-          // insert code here to perform assignment where slot name is an expr
+          // FIXME: insert code here to perform assignment where slot name is an expr
           abort();
         }
         j--;
@@ -2326,7 +2347,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
           set_at(stack, j, exister_sym(get_at(stack, j)));
         }
         else {
-          // insert code here to perform existence where slot name is an expr
+          // FIXME: insert code here to perform existence where slot name is an expr
           abort();
         }
         --j;
@@ -2452,6 +2473,42 @@ Object *native_not(Object *frame, Object *self) {
   return frame;
 }
 
+Object *native_plus(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_plus");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_plus");
+  }
+  else {
+    push(stack, object(fixnum(self) + fixnum(arg)));
+  }
+  return frame;
+}
+
+Object *native_minus(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_minus");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_minus");
+  }
+  else {
+    push(stack, object(fixnum(self) - fixnum(arg)));
+  }
+  return frame;
+}
+
 Object *native_toplevel_catch(Object *frame, Object *self) {
   Object *stack       = get_slot(frame, SYM_STACK);
   Object *arg         = pop(stack);
@@ -2499,6 +2556,7 @@ Object* run_program(Object *block) {
   Object *parent_stack = get_slot(parent_frame, SYM_STACK);
   Object *sys = new_sys();
   Object *parent_local = get_slot(parent_frame, SYM_LOCAL);
+  Object *integer_object = new_object(ParentObject);
 
   set_slot(block, SYM_LEXICAL_FRAME, parent_frame);
   set_slot(parent_local, sym("not"), new_function(&native_not));
@@ -2508,6 +2566,10 @@ Object* run_program(Object *block) {
   set_slot(parent_local, SYM_OBJECT, ParentObject);
   set_slot(ParentObject, SYM_NEW, new_function(&native_new));
 
+  set_slot(parent_local, sym("Integer"), integer_object);
+  set_slot(integer_object, sym("+"), new_function(&native_plus));
+  set_slot(integer_object, sym("-"), new_function(&native_minus));
+
   // create a top level catch block
   Object *catch_block = new_block();
   Object *catch_block_arg_list = new_array();
@@ -2516,7 +2578,7 @@ Object* run_program(Object *block) {
   push(catch_block, object(INST_PUSH));
   push(catch_block, sym("ex"));
   push(catch_block, object(INST_PUSH));
-  push(catch_block, 0);  // self
+  // push(catch_block, 0);  // self
   push(catch_block, object(INST_PUSH));
   push(catch_block, new_function(&native_toplevel_catch));
   push(catch_block, object(INST_SEND));
@@ -2525,7 +2587,7 @@ Object* run_program(Object *block) {
   set_slot(block, sym("catch_block"), catch_block);
 
   push(parent_stack, sys);
-  push(parent_stack, 0); // self
+  // push(parent_stack, 0); // self
   push(parent_stack, block);
   push(parent_block, object(INST_SEND));
   push(parent_block, object(INST_TERM));

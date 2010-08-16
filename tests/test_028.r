@@ -1,5 +1,5 @@
 { sys |
-  a = { x | return { y | x + y } } ;
-  print (a 1 2) ;
-  print "\n" ;
+  a = { x | return { y | return x + y } } ;
+  sys print (a 1 2) ;
+  sys print "\n" ;
 }
