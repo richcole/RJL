@@ -858,7 +858,7 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       }
       return frame;
     }
-    else if ( false && slot_name == SYM_PLUS && is_fixnum(arg) ) {
+    else if ( slot_name == SYM_PLUS && is_fixnum(arg) ) {
       pop(stack);
       push(stack, object(fixnum(target) + fixnum(arg)));
       return frame;
