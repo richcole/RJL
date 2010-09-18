@@ -1,7 +1,11 @@
-Added support for exceptions.
-Added support for self.
-Added support Object new.
-Added basic support for return
+* Added support for exceptions.
+* Added support for self.
+* Added support Object new.
+* Added basic support for return
+* Modified the way self is passed around by adding a slot to the frame
+called tmp_self
+* Fixed bugs related to self in throw and also in native integer
+operations
 
 Remaining to be done:
 * add a native function called println that calls the native function print
@@ -14,12 +18,6 @@ Remaining to be done:
 
 
 
-test_028.r -
-  - this fails because self is not being pushed into the stack when a block is
-  returned from a function call.
-  - the return might be to an assignment, so really the calling code should push
-  self onto the stack
-  - but then there is a block check on every function return
   
 
 

@@ -814,8 +814,13 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
   }
   else {
     Object *slot_name = pop(stack);
-    if ( slot_name == SYM_LE && is_fixnum(peek(stack)) ) {
-      if ( fixnum(target) < fixnum(pop(stack)) ) {
+    Object *arg = peek(stack);
+    if ( is_sym(arg) ) {
+      arg = frame_resolve(frame, arg);
+    }
+    if ( slot_name == SYM_LE && is_fixnum(arg) ) {
+      pop(stack);
+      if ( fixnum(target) < fixnum(arg) ) {
         push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
@@ -823,8 +828,9 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       }
       return frame;
     }
-    if ( slot_name == SYM_LEQ && is_fixnum(peek(stack)) ) {
-      if ( fixnum(target) <= fixnum(pop(stack)) ) {
+    if ( slot_name == SYM_LEQ && is_fixnum(arg) ) {
+      pop(stack);
+      if ( fixnum(target) <= fixnum(arg) ) {
         push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
@@ -832,8 +838,9 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       }
       return frame;
     }
-    if ( slot_name == SYM_GT && is_fixnum(peek(stack)) ) {
-      if ( fixnum(target) > fixnum(pop(stack)) ) {
+    if ( slot_name == SYM_GT && is_fixnum(arg) ) {
+      pop(stack);
+      if ( fixnum(target) > fixnum(arg) ) {
         push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
@@ -841,8 +848,9 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       }
       return frame;
     }
-    if ( slot_name == SYM_GEQ && is_fixnum(peek(stack)) ) {
-      if ( fixnum(target) >= fixnum(pop(stack)) ) {
+    if ( slot_name == SYM_GEQ && is_fixnum(arg) ) {
+      pop(stack);
+      if ( fixnum(target) >= fixnum(arg) ) {
         push(stack, frame_resolve(frame, SYM_TRUE));
       }
       else {
@@ -850,19 +858,21 @@ Object* fixnum_send(Object *target, Object *frame, Object *stack) {
       }
       return frame;
     }
-    else if ( slot_name == SYM_PLUS && is_fixnum(peek(stack)) ) {
-      push(stack, object(fixnum(target) + fixnum(pop(stack))));
+    else if ( slot_name == SYM_PLUS && is_fixnum(arg) ) {
+      pop(stack);
+      push(stack, object(fixnum(target) + fixnum(arg)));
       return frame;
     }
-    else if ( slot_name == SYM_MINUS && is_fixnum(peek(stack)) ) {
-      push(stack, object(fixnum(target) - fixnum(pop(stack))));
+    else if ( slot_name == SYM_MINUS && is_fixnum(arg) ) {
+      pop(stack);
+      push(stack, object(fixnum(target) - fixnum(arg)));
       return frame;
     }
     else {
-      push(stack, target);
+      Object *boxed_fixnum = new_object(frame_resolve(frame, sym("Integer")));
       push(stack, slot_name);
-      target = frame_resolve(frame, sym("Integer"));
-      return object_send(target, frame, stack);
+      set_slot(boxed_fixnum, sym("value"), target);
+      return object_send(boxed_fixnum, frame, stack);
     }
   }
 }
@@ -2481,6 +2491,9 @@ Object *native_plus(Object *frame, Object *self) {
   if ( is_sym(arg) ) {
     arg = frame_resolve(frame, arg);
   }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
+  }
   if ( ! is_fixnum(self) ) {
     return new_exception_frame(frame, "Expected integer self in native_plus");
   }    
@@ -2498,6 +2511,9 @@ Object *native_minus(Object *frame, Object *self) {
   Object *arg         = pop(stack);
   if ( is_sym(arg) ) {
     arg = frame_resolve(frame, arg);
+  }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
   }
   if ( ! is_fixnum(self) ) {
     return new_exception_frame(frame, "Expected integer self in native_minus");
