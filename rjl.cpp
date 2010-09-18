@@ -894,11 +894,6 @@ Object* object_send(Object *target, Object *frame, Object *stack) {
   }
 }
 
-Object* function_send(Object *target, Object *frame, Object *stack) {
-  native_function_ptr func_ptr = *(native_function_ptr*)target->buffer->data;
-  return (*func_ptr)(frame, pop(stack));
-}
-
 Object *get_self(Object *stack, Object *frame) {
   Object *self = get_slot(frame, sym("TMP_SELF"));
   if ( self != 0 ) {
@@ -909,6 +904,11 @@ Object *get_self(Object *stack, Object *frame) {
   }
   return self;
 };
+
+Object* function_send(Object *target, Object *frame, Object *stack) {
+  native_function_ptr func_ptr = *(native_function_ptr*)target->buffer->data;
+  return (*func_ptr)(frame, get_self(stack, frame));
+}
 
 Object* closure_send(Object *closure, Object *frame, Object *stack) {
   Object *self          = get_self(stack, frame);
@@ -1106,6 +1106,8 @@ void interpret(Object *frame) {
             pc    = fixnum(get_slot(frame, SYM_PC));
           }
           break;
+        default:
+          abort();
     }
   }
 }
@@ -2577,7 +2579,7 @@ Object* run_program(Object *block) {
   set_slot(catch_block, SYM_ARGS, catch_block_arg_list);
   push(catch_block, object(INST_PUSH));
   push(catch_block, sym("ex"));
-  push(catch_block, object(INST_PUSH));
+  // push(catch_block, object(INST_PUSH)); // self
   // push(catch_block, 0);  // self
   push(catch_block, object(INST_PUSH));
   push(catch_block, new_function(&native_toplevel_catch));
