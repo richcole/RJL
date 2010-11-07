@@ -1492,12 +1492,33 @@ bool is_digit(char c) {
   return c >= '0' && c <= '9';
 }
 
+bool is_alpha(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
+}
+
+bool is_reserved_punct(char c) {
+  return c == '[' && c == ']' && 
+    c == '{' && c == '}' && c == '|' && c == '(' && c == ')' && c == ';';
+}
+
+bool is_punc(char c) {
+  return ! is_space(c) && ! is_alpha(c) && ! is_digit(c);
+}
+
 bool is_ident_start(char c) {
-  return ! is_space(c);
+  return is_alpha(c);
 }
 
 bool is_ident_continue(char c) {
-  return ! is_space(c) && c != '[' && c != ']' && c != '{' && c != '}' && c != '|' && c != '(' && c != ')' && c != ';' ;
+  return is_alpha(c) || is_digit(c);
+};
+
+bool is_op_start(char c) {
+  return is_punc(c) && ! is_reserved_punct(c);
+}
+
+bool is_op_continue(char c) {
+  return is_punc(c) && ! is_reserved_punct(c);
 };
 
 Object *parse_string(char const* str, int str_len) {
@@ -1578,6 +1599,9 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
   case '[':
     set_slot(tok, SYM_TYPE, TOK_OPEN_ARRAY);
     return i+1;
+  case ']':
+    set_slot(tok, SYM_TYPE, TOK_CLOSE_ARRAY);
+    return i+1;
   case '|':
     if ( i+1 < line_len && line[i+1] == '}' ) {
       set_slot(tok, SYM_TYPE, TOK_CLOSE_MAP);
@@ -1587,9 +1611,6 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
       set_slot(tok, SYM_TYPE, TOK_PIPE);
       return i+1;
     }
-  case ']':
-    set_slot(tok, SYM_TYPE, TOK_OPEN_MAP);
-    return i+1;
   case ';':
     set_slot(tok, SYM_TYPE, TOK_SEMI);
     return i+1;
@@ -1672,6 +1693,10 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
   else if ( is_ident_start(line[i]) ) {
     set_slot(tok, SYM_TYPE, TOK_IDENT);
     while( is_ident_continue(line[i]) ) ++i;
+  }
+  else if ( is_op_start(line[i]) ) {
+    set_slot(tok, SYM_TYPE, TOK_IDENT);
+    while( is_op_continue(line[i]) ) ++i;
   }
 
   Fixnum tok_len = i - start_index;
@@ -1899,6 +1924,7 @@ Object* parse_return_expr(Object *parse_cxt);
 Object* parse_try_expr(Object *parse_cxt);
 Object* parse_expr(Object *parse_cxt);
 Object *parse_group_expr(Object *parse_cxt);
+Object *parse_array_expr(Object *parse_cxt);
 
 Object *parse_program(Object *parse_cxt) {
   Object *program    = new_parse_node(sym("program"));
@@ -2061,6 +2087,21 @@ Object *parse_group_expr(Object *parse_cxt) {
   return expr;
 }
 
+Object *parse_array_expr(Object *parse_cxt) {
+  Object *block = new_parse_node(sym("array_block"));
+  if ( ! mustbe(parse_cxt, TOK_OPEN_ARRAY) ) {
+    return block;
+  }
+  if ( have_arg_list(parse_cxt) ) {
+    set_slot(block, sym("arg_list"), parse_arg_list(parse_cxt));
+  }
+  set_slot(block, sym("stmt_list"), parse_stmt_list(parse_cxt));
+  if ( ! mustbe(parse_cxt, TOK_CLOSE_ARRAY) ) {
+    return block;
+  }
+  return block;
+};
+
 Object *parse_expr(Object *parse_cxt, Object *expr) {
   while ( true ) {
     if ( have(parse_cxt, TOK_IDENT) ) {
@@ -2071,6 +2112,9 @@ Object *parse_expr(Object *parse_cxt, Object *expr) {
     }
     else if ( have(parse_cxt, TOK_OPEN_BLOCK) ) {
       push(expr, parse_block(parse_cxt));
+    }
+    else if ( have(parse_cxt, TOK_OPEN_ARRAY) ) {
+      push(expr, parse_array_expr(parse_cxt));
     }
     else if ( have(parse_cxt, TOK_ASSIGN) ) {
       push(expr, advance(parse_cxt));
@@ -2097,6 +2141,7 @@ Fixnum is_type(Object *cand, Object *type);
 Object *code_gen_program(Object *cxt, Object *program);
 Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum include_ret);
 Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list);
+Object *code_gen_stmt_array_list(Object *cxt, Object *block, Object *stmt_list);
 Object *code_gen_expr(Object *cxt, Object *block, Object *expr);
 Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr);
 Object *code_gen_while_expr(Object *cxt, Object *block, Object *while_expr);
@@ -2173,27 +2218,68 @@ Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum in
   return block;
 }
 
+Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
+  if ( block == 0 ) {
+    block = new_block();
+    Object *arg_list = get_slot(block_node, sym("arg_list"));
+    code_gen_arg_list(cxt, block, arg_list);
+  }
+  push(block, object(INST_PUSH));
+  push(block, Array);
+  push(block, object(INST_PUSH));
+  push(block, sym("new"));
+  push(block, object(INST_SEND));
+  push(block, object(INST_PUSH));
+  push(block, sym("_array="));
+  push(block, object(INST_SEND));
+  Object *stmt_list_node = get_slot(block_node, sym("stmt_list"));
+  if ( is_type(stmt_list_node, sym("stmt_list")) ) {
+    code_gen_stmt_array_list(cxt, block, stmt_list_node);
+  }
+  push(block, sym("_array"));
+  push(block, object(INST_SEND));
+  push(block, object(INST_RET));
+  return block;
+}
+
+void code_gen_stmt(Object *cxt, Object *block, Object *stmt_list, int i)
+{
+  Object *expr = get_at(stmt_list, i);
+  if ( is_type(expr, sym("expr")) ) {
+    code_gen_expr(cxt, block, expr);
+  }
+  else if ( is_type(expr, sym("if_expr")) ) {
+    code_gen_if_expr(cxt, block, expr);
+  }
+  else if ( is_type(expr, sym("while_expr")) ) {
+    code_gen_while_expr(cxt, block, expr);
+  }
+  else if ( is_type(expr, sym("try_expr")) ) {
+    code_gen_try_expr(cxt, block, expr);
+  }
+  else if ( is_type(expr, sym("return_expr")) ) {
+    code_gen_return_expr(cxt, block, expr);
+  }
+  else if ( is_type(expr, sym("throw_expr")) ) {
+    code_gen_throw_expr(cxt, block, expr);
+  }
+};
+
 Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list) {
   for(int i=0; i<array_length(stmt_list); ++i) {
-    Object *expr = get_at(stmt_list, i);
-    if ( is_type(expr, sym("expr")) ) {
-      code_gen_expr(cxt, block, expr);
-    }
-    else if ( is_type(expr, sym("if_expr")) ) {
-      code_gen_if_expr(cxt, block, expr);
-    }
-    else if ( is_type(expr, sym("while_expr")) ) {
-      code_gen_while_expr(cxt, block, expr);
-    }
-    else if ( is_type(expr, sym("try_expr")) ) {
-      code_gen_try_expr(cxt, block, expr);
-    }
-    else if ( is_type(expr, sym("return_expr")) ) {
-      code_gen_return_expr(cxt, block, expr);
-    }
-    else if ( is_type(expr, sym("throw_expr")) ) {
-      code_gen_throw_expr(cxt, block, expr);
-    }
+    code_gen_stmt(cxt, block, stmt_list, i);
+  }
+  return block;
+}
+
+Object *code_gen_stmt_array_list(Object *cxt, Object *block, Object *stmt_list) {
+  for(int i=0; i<array_length(stmt_list); ++i) {
+    code_gen_stmt(cxt, block, stmt_list, i);
+    push(block, object(INST_PUSH));
+    push(block, sym("_array"));
+    push(block, object(INST_PUSH));
+    push(block, sym("push"));
+    push(block, object(INST_SEND));
   }
   return block;
 }
@@ -2325,6 +2411,12 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     }
     else if ( is_type(elem, sym("group_expr")) ) {
       push(stack, code_gen_expr(cxt, new_block(), elem));
+    }
+    else if ( is_type(elem, sym("array_block")) ) {
+      Object *block =  code_gen_array_block(cxt, new_block(), elem);
+      Object *block_marker = new_object(BlockLiteralMarker);
+      set_slot(block_marker, SYM_BLOCK, block);
+      push(stack, block_marker);
     }
     else if ( is_type(elem, sym("block")) ) {
       if ( peek(stack) == SendMarker ) { 
@@ -2506,6 +2598,24 @@ Object *native_plus(Object *frame, Object *self) {
   return frame;
 }
 
+Object *native_array_get(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( ! is_array(self) ) {
+    return new_exception_frame(frame, "Expected array self in native_array_get");
+  }
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_array_get");
+  }
+  else {
+    push(stack, get_at(self, fixnum(arg)));
+  }
+  return frame;
+}
+
 Object *native_minus(Object *frame, Object *self) {
   Object *stack       = get_slot(frame, SYM_STACK);
   Object *arg         = pop(stack);
@@ -2574,7 +2684,9 @@ Object* run_program(Object *block) {
   Object *parent_stack = get_slot(parent_frame, SYM_STACK);
   Object *sys = new_sys();
   Object *parent_local = get_slot(parent_frame, SYM_LOCAL);
-  Object *integer_object = new_object(ParentObject);
+
+  Object *integer_object = Integer;
+  Object *array_object = Array;
 
   set_slot(block, SYM_LEXICAL_FRAME, parent_frame);
   set_slot(parent_local, sym("not"), new_function(&native_not));
@@ -2585,8 +2697,11 @@ Object* run_program(Object *block) {
   set_slot(ParentObject, SYM_NEW, new_function(&native_new));
 
   set_slot(parent_local, sym("Integer"), integer_object);
-  set_slot(integer_object, sym("+"), new_function(&native_plus));
+  set_slot(integer_object, sym("+"), new_function(native_plus));
   set_slot(integer_object, sym("-"), new_function(&native_minus));
+
+  set_slot(parent_local, sym("Array"), array_object);
+  set_slot(array_object, sym(":"), new_function(&native_array_get));
 
   // create a top level catch block
   Object *catch_block = new_block();
