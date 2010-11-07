@@ -2225,9 +2225,9 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
     code_gen_arg_list(cxt, block, arg_list);
   }
   push(block, object(INST_PUSH));
-  push(block, Array);
-  push(block, object(INST_PUSH));
   push(block, sym("new"));
+  push(block, object(INST_PUSH));
+  push(block, Array);
   push(block, object(INST_SEND));
   push(block, object(INST_PUSH));
   push(block, sym("_array="));
@@ -2236,6 +2236,7 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
     code_gen_stmt_array_list(cxt, block, stmt_list_node);
   }
+  push(block, object(INST_PUSH));
   push(block, sym("_array"));
   push(block, object(INST_SEND));
   push(block, object(INST_RET));
@@ -2276,9 +2277,9 @@ Object *code_gen_stmt_array_list(Object *cxt, Object *block, Object *stmt_list) 
   for(int i=0; i<array_length(stmt_list); ++i) {
     code_gen_stmt(cxt, block, stmt_list, i);
     push(block, object(INST_PUSH));
-    push(block, sym("_array"));
-    push(block, object(INST_PUSH));
     push(block, sym("push"));
+    push(block, object(INST_PUSH));
+    push(block, sym("_array"));
     push(block, object(INST_SEND));
   }
   return block;
@@ -2413,7 +2414,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
       push(stack, code_gen_expr(cxt, new_block(), elem));
     }
     else if ( is_type(elem, sym("array_block")) ) {
-      Object *block =  code_gen_array_block(cxt, new_block(), elem);
+      Object *block =  code_gen_array_block(cxt, elem, new_block());
       Object *block_marker = new_object(BlockLiteralMarker);
       set_slot(block_marker, SYM_BLOCK, block);
       push(stack, block_marker);
@@ -2616,6 +2617,21 @@ Object *native_array_get(Object *frame, Object *self) {
   return frame;
 }
 
+Object *native_array_push(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( ! is_array(self) ) {
+    return new_exception_frame(frame, "Expected array self in native_array_get");
+  }
+  else {
+    push(self, arg);
+  }
+  return frame;
+}
+
 Object *native_minus(Object *frame, Object *self) {
   Object *stack       = get_slot(frame, SYM_STACK);
   Object *arg         = pop(stack);
@@ -2702,6 +2718,7 @@ Object* run_program(Object *block) {
 
   set_slot(parent_local, sym("Array"), array_object);
   set_slot(array_object, sym(":"), new_function(&native_array_get));
+  set_slot(array_object, sym("push"), new_function(&native_array_push));
 
   // create a top level catch block
   Object *catch_block = new_block();
