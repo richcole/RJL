@@ -710,6 +710,7 @@ Object *new_frame(Object *parent_frame, Object *self, Object *closure) {
     new_frame->proto = closure;
     set_slot(new_frame, SYM_STACK,         new_array());
     set_slot(new_frame, SYM_LOCAL,         local);
+    set_slot(local,     SYM_LOCAL,         local);
     set_slot(new_frame, SYM_PARENT_FRAME,  parent_frame);
     set_slot(new_frame, SYM_PC,            0);
     set_slot(local,     SYM_SELF,          self);
@@ -947,17 +948,22 @@ Object* closure_send(Object *closure, Object *frame, Object *stack) {
 }
 
 Object* locate_setter_target(Object *frame, Object *slot) {
-  Object *sslot = setter_slot(slot);
-  Object *local = 0;
-  Object *curr_frame = frame;
-  while( curr_frame != 0 ) {
-    local = get_slot(curr_frame, SYM_LOCAL);
-    if ( has_slot(local, sslot) ) {
-      return local;
-    }
-    curr_frame = get_slot(curr_frame, SYM_LEXICAL_FRAME);
+  if ( get_slot(frame->proto, sym("type")) == sym("map_block") ) {
+    return get_slot(frame, SYM_LOCAL);
   }
-  return get_slot(frame, SYM_LOCAL);
+  else {
+    Object *sslot = setter_slot(slot);
+    Object *local = 0;
+    Object *curr_frame = frame;
+    while( curr_frame != 0 ) {
+      local = get_slot(curr_frame, SYM_LOCAL);
+      if ( has_slot(local, sslot) ) {
+        return local;
+      }
+      curr_frame = get_slot(curr_frame, SYM_LEXICAL_FRAME);
+    }
+    return get_slot(frame, SYM_LOCAL);
+  }
 }
 
 Object* send(Object *frame, Object *stack) 
@@ -1579,20 +1585,20 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
     set_slot(tok, SYM_TYPE, TOK_EOL);
     return i+1;
   case '{':
+    set_slot(tok, SYM_TYPE, TOK_OPEN_BLOCK);
+    return i+1;
+  case '}':
+    set_slot(tok, SYM_TYPE, TOK_CLOSE_BLOCK);
+    return i+1;
+  case '(':
     if ( i+1 < line_len && line[i+1] == '|' ) {
       set_slot(tok, SYM_TYPE, TOK_OPEN_MAP);
       return i+2;
     }
     else {
-      set_slot(tok, SYM_TYPE, TOK_OPEN_BLOCK);
+      set_slot(tok, SYM_TYPE, TOK_OPEN_GROUP);
       return i+1;
     }
-  case '}':
-    set_slot(tok, SYM_TYPE, TOK_CLOSE_BLOCK);
-    return i+1;
-  case '(':
-    set_slot(tok, SYM_TYPE, TOK_OPEN_GROUP);
-    return i+1;
   case ')':
     set_slot(tok, SYM_TYPE, TOK_CLOSE_GROUP);
     return i+1;
@@ -1603,7 +1609,7 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
     set_slot(tok, SYM_TYPE, TOK_CLOSE_ARRAY);
     return i+1;
   case '|':
-    if ( i+1 < line_len && line[i+1] == '}' ) {
+    if ( i+1 < line_len && line[i+1] == ')' ) {
       set_slot(tok, SYM_TYPE, TOK_CLOSE_MAP);
       return i+2;
     }
@@ -2096,9 +2102,20 @@ Object *parse_array_expr(Object *parse_cxt) {
     set_slot(block, sym("arg_list"), parse_arg_list(parse_cxt));
   }
   set_slot(block, sym("stmt_list"), parse_stmt_list(parse_cxt));
-  if ( ! mustbe(parse_cxt, TOK_CLOSE_ARRAY) ) {
+  mustbe(parse_cxt, TOK_CLOSE_ARRAY);
+  return block;
+};
+
+Object *parse_map_expr(Object *parse_cxt) {
+  Object *block = new_parse_node(sym("map_block"));
+  if ( ! mustbe(parse_cxt, TOK_OPEN_MAP) ) {
     return block;
   }
+  if ( have_arg_list(parse_cxt) ) {
+    set_slot(block, sym("arg_list"), parse_arg_list(parse_cxt));
+  }
+  set_slot(block, sym("stmt_list"), parse_stmt_list(parse_cxt));
+  mustbe(parse_cxt, TOK_CLOSE_MAP);
   return block;
 };
 
@@ -2115,6 +2132,9 @@ Object *parse_expr(Object *parse_cxt, Object *expr) {
     }
     else if ( have(parse_cxt, TOK_OPEN_ARRAY) ) {
       push(expr, parse_array_expr(parse_cxt));
+    }
+    else if ( have(parse_cxt, TOK_OPEN_MAP) ) {
+      push(expr, parse_map_expr(parse_cxt));
     }
     else if ( have(parse_cxt, TOK_ASSIGN) ) {
       push(expr, advance(parse_cxt));
@@ -2224,6 +2244,7 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
     Object *arg_list = get_slot(block_node, sym("arg_list"));
     code_gen_arg_list(cxt, block, arg_list);
   }
+  set_slot(block, sym("type"), sym("array_block"));
   push(block, object(INST_PUSH));
   push(block, sym("new"));
   push(block, object(INST_PUSH));
@@ -2238,6 +2259,24 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
   }
   push(block, object(INST_PUSH));
   push(block, sym("_array"));
+  push(block, object(INST_SEND));
+  push(block, object(INST_RET));
+  return block;
+}
+
+Object *code_gen_map_block(Object *cxt, Object *block_node, Object *block) {
+  if ( block == 0 ) {
+    block = new_block();
+    Object *arg_list = get_slot(block_node, sym("arg_list"));
+    code_gen_arg_list(cxt, block, arg_list);
+  }
+  set_slot(block, sym("type"), sym("map_block"));
+  Object *stmt_list_node = get_slot(block_node, sym("stmt_list"));
+  if ( is_type(stmt_list_node, sym("stmt_list")) ) {
+    code_gen_stmt_list(cxt, block, stmt_list_node);
+  }
+  push(block, object(INST_PUSH));
+  push(block, SYM_LOCAL);
   push(block, object(INST_SEND));
   push(block, object(INST_RET));
   return block;
@@ -2415,6 +2454,12 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
     }
     else if ( is_type(elem, sym("array_block")) ) {
       Object *block =  code_gen_array_block(cxt, elem, new_block());
+      Object *block_marker = new_object(BlockLiteralMarker);
+      set_slot(block_marker, SYM_BLOCK, block);
+      push(stack, block_marker);
+    }
+    else if ( is_type(elem, sym("map_block")) ) {
+      Object *block =  code_gen_map_block(cxt, elem, new_block());
       Object *block_marker = new_object(BlockLiteralMarker);
       set_slot(block_marker, SYM_BLOCK, block);
       push(stack, block_marker);
