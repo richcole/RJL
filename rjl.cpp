@@ -1798,6 +1798,7 @@ Object *new_parse_cxt(Object *tokens) {
   push(begin_set, TOK_IDENT);
   push(begin_set, TOK_ASSIGN);
   push(begin_set, TOK_INT);
+  push(begin_set, TOK_STRING);
   set_slot(parse_cxt, sym("expr_or_assign_begin_set"), begin_set);
 
   begin_set = new_array();
@@ -1808,6 +1809,7 @@ Object *new_parse_cxt(Object *tokens) {
   push(begin_set, TOK_OPEN_BLOCK);
   push(begin_set, TOK_IDENT);
   push(begin_set, TOK_INT);
+  push(begin_set, TOK_STRING);
   push(begin_set, TOK_TRY);
   push(begin_set, TOK_RETURN);
   push(begin_set, TOK_THROW);
@@ -2145,6 +2147,9 @@ Object *parse_expr(Object *parse_cxt, Object *expr) {
     else if ( have(parse_cxt, TOK_INT) ) {
       push(expr, advance(parse_cxt));
     }
+    else if ( have(parse_cxt, TOK_STRING) ) {
+      push(expr, advance(parse_cxt));
+    }
     else {
       break;
     }
@@ -2447,6 +2452,9 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
       push(stack, get_slot(elem, sym("value")));
     }
     else if ( is_type(elem, TOK_INT) ) {
+      push(stack, get_slot(elem, sym("value")));
+    }
+    else if ( is_type(elem, TOK_STRING) ) {
       push(stack, get_slot(elem, sym("value")));
     }
     else if ( is_type(elem, sym("group_expr")) ) {
