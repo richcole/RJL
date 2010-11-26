@@ -1,11 +1,11 @@
 { sys |
   fib = { x |
-    if ( x <= 2 ) { 
-      return x 
+    if ( x <= 1 ) { 
+      return x;
     }
     else { 
-      return ( fib (x - 1) ) + ( fib (x - 2) )
+      return ( fib (x - 1) ) + ( fib (x - 2) );
     };
   };
-  sys print (fib 5);
+  sys print (fib 6);
 }
