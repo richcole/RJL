@@ -36,21 +36,22 @@ struct ArrayBuffer {
 
 typedef Object* (*native_function_ptr)(Object *frame, Object *self);
 
-#define INST_POP      0x1
-#define INST_SEND     0x2
-#define INST_CALL     0x3
-#define INST_PUSH     0x4
-#define INST_JMP      0x5
-#define INST_JMPZ     0x6
-#define INST_JMPNZ    0x7
-#define INST_RET      0x8
-#define INST_TERM     0x9
-#define INST_DUP      0xa
-#define INST_ASSIGN   0xb
-#define INST_RAISE    0xc
-#define INST_NEW      0xd
+#define INST_POP           0x1
+#define INST_SEND          0x2
+#define INST_CALL          0x3
+#define INST_PUSH          0x4
+#define INST_JMP           0x5
+#define INST_JMPZ          0x6
+#define INST_JMPNZ         0x7
+#define INST_RET           0x8
+#define INST_TERM          0x9
+#define INST_DUP           0xa
+#define INST_ASSIGN        0xb
+#define INST_RAISE         0xc
+#define INST_NEW           0xd
 #define INST_BLOCK_LITERAL 0xe
-#define INST_THROW    0xf
+#define INST_THROW         0xf
+#define INST_BLOCK_OPEN    0x10
 
 Object* new_object(Object *proto = 0);
 Object* new_string(char const *str, Fixnum length = -1);
@@ -79,6 +80,7 @@ Object* ExisterTable = new_object(ParentObject);
 
 Object* SendMarker  = new_object(ParentObject);
 Object* BlockLiteralMarker  = new_object(ParentObject);
+Object* BlockOpen   = new_object(ParentObject);
 
 Object* Instr   = new_instr_table();
 // do not init until after symbol table because this uses the symbol table
@@ -652,19 +654,35 @@ Object *pop(Object *obj) {
 }
 
 Object *peek(Object *stack) {
-    Object *obj = array_parent(stack);
-    if ( is_array(obj) ) {
-        ArrayBuffer* array = (ArrayBuffer *)obj->buffer;
-        if ( array->tail > 0 ) {
-            return array->data[array->tail-1];
-        }
-        else {
-            return 0;
-        }
+  Object *obj = array_parent(stack);
+  if ( is_array(obj) ) {
+    ArrayBuffer* array = (ArrayBuffer *)obj->buffer;
+    if ( array->tail > 0 ) {
+      return array->data[array->tail-1];
     }
     else {
-        return 0;
+      return 0;
     }
+  }
+  else {
+    return 0;
+  }
+}
+
+Object *peek_at(Object *stack, int index) {
+  Object *obj = array_parent(stack);
+  if ( is_array(obj) ) {
+    ArrayBuffer* array = (ArrayBuffer *)obj->buffer;
+    if ( array->tail > index ) {
+      return array->data[array->tail-(index+1)];
+    }
+    else {
+      return 0;
+    }
+  }
+  else {
+    return 0;
+  }
 }
 
 Fixnum stack_length(Object *stack) {
@@ -809,7 +827,7 @@ Object* exister_send(Object *target, Object *slot, Object *frame, Object *stack)
 }
 
 Object* fixnum_send(Object *target, Object *frame, Object *stack) {
-  if ( array_length(stack) == 0 ) {
+  if ( array_length(stack) == 0 || peek(stack) == BlockOpen ) {
     push(stack, target);
     return frame;
   }
@@ -883,7 +901,7 @@ void set_tmp_self(Object *frame, Object *self) {
 }
 
 Object* object_send(Object *target, Object *frame, Object *stack) {
-  if ( stack_length(stack) == 0 ) {
+  if ( stack_length(stack) == 0 || peek(stack) == BlockOpen ) {
     push(stack, target);
     return frame;
   }
@@ -1037,6 +1055,10 @@ void interpret(Object *frame) {
           top = pop(stack);
           set_slot(frame, SYM_PC, object(++pc));
           break;
+        case INST_BLOCK_OPEN:
+          push(stack, BlockOpen);
+          set_slot(frame, SYM_PC, object(++pc));
+          break;
         case INST_PUSH:
           // a push instruction must be followed by an object
           // for string object we probably want to call dup on them
@@ -1078,15 +1100,27 @@ void interpret(Object *frame) {
           break;
         case INST_SEND:
           new_frame = send(frame, stack);
-          if ( 
-            frame == new_frame      && 
-            stack_length(stack) < 2 && 
-            ( ! ( is_closure(peek(stack)) || is_function(peek(stack)) ) || 
-              get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE) 
-          ) {
-            set_slot(frame, SYM_PC, object(++pc));
+
+          if ( frame == new_frame ) {
+            top = peek(stack);
+            if ( is_closure(top) || is_function(top)) {
+              // stay here to evaluate the closure
+            }
+            else if ( peek_at(stack, 1) == BlockOpen ) {
+              pop(stack);
+              pop(stack);
+              push(stack, top);
+              set_slot(frame, SYM_PC, object(++pc));
+            }
+            else if ( peek_at(stack, 0) == BlockOpen ) {
+              set_slot(frame, SYM_PC, object(++pc));
+              pop(stack);
+            }
+            else if ( get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE ) {
+              set_slot(frame, SYM_PC, object(++pc));
+            }
           }
-          else if ( frame != new_frame ) {
+          else {  
             frame = new_frame;
             stack = get_slot(frame, SYM_STACK);
             code  = get_code(frame);
@@ -1124,6 +1158,7 @@ void interpret(Object *frame) {
           break;
         default:
           abort();
+        
     }
   }
 }
@@ -1158,6 +1193,7 @@ void test_send() {
     Object *one   = sym("one");
     set_slot(obj, one, object(1));
 
+    push(block, object(INST_BLOCK_OPEN));
     push(block, object(INST_PUSH));
     push(block, one);
     push(block, object(INST_PUSH));
@@ -2250,6 +2286,8 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
     code_gen_arg_list(cxt, block, arg_list);
   }
   set_slot(block, sym("type"), sym("array_block"));
+  push(block, object(INST_BLOCK_OPEN));
+  push(block, object(INST_BLOCK_OPEN));
   push(block, object(INST_PUSH));
   push(block, sym("new"));
   push(block, object(INST_PUSH));
@@ -2258,6 +2296,7 @@ Object *code_gen_array_block(Object *cxt, Object *block_node, Object *block) {
   push(block, object(INST_PUSH));
   push(block, sym("_array="));
   push(block, object(INST_SEND));
+  push(block, object(INST_BLOCK_OPEN));
   Object *stmt_list_node = get_slot(block_node, sym("stmt_list"));
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
     code_gen_stmt_array_list(cxt, block, stmt_list_node);
@@ -2280,6 +2319,7 @@ Object *code_gen_map_block(Object *cxt, Object *block_node, Object *block) {
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
     code_gen_stmt_list(cxt, block, stmt_list_node);
   }
+  push(block, object(INST_BLOCK_OPEN));
   push(block, object(INST_PUSH));
   push(block, SYM_LOCAL);
   push(block, object(INST_SEND));
@@ -2319,6 +2359,7 @@ Object *code_gen_stmt_list(Object *cxt, Object *block, Object *stmt_list) {
 
 Object *code_gen_stmt_array_list(Object *cxt, Object *block, Object *stmt_list) {
   for(int i=0; i<array_length(stmt_list); ++i) {
+    push(block, object(INST_BLOCK_OPEN));
     code_gen_stmt(cxt, block, stmt_list, i);
     push(block, object(INST_PUSH));
     push(block, sym("push"));
@@ -2345,6 +2386,7 @@ Object *code_gen_if_expr(Object *cxt, Object *block, Object *if_expr) {
   Fixnum else_jmp_index;
   Fixnum if_jmp_index;
 
+  push(block, object(INST_BLOCK_OPEN));
   code_gen_expr(cxt, block, cond);
   code_gen_truthiness(cxt, block);
 
@@ -2384,6 +2426,7 @@ Object *code_gen_try_expr(Object *cxt, Object *block, Object *try_expr) {
 
   set_slot(try_block, sym("catch_block"), catch_block);
 
+  push(block, object(INST_BLOCK_OPEN));
   push(block, object(INST_PUSH));
   push(block, try_block);
   push(block, object(INST_BLOCK_LITERAL));
@@ -2419,6 +2462,7 @@ Object *code_gen_while_expr(Object *cxt, Object *block, Object *while_expr) {
 
   while_cond_index = array_length(block);
 
+  push(block, object(INST_BLOCK_OPEN));
   code_gen_expr(cxt, block, cond);
   code_gen_truthiness(cxt, block);
 
@@ -2513,6 +2557,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
       push(stack, SendMarker);
     }
   }
+  push(block, object(INST_BLOCK_OPEN));
   for(i=array_length(stack)-1;i>=0;--i) {
     Object *elem = get_at(stack, i);
     if ( is_block(elem) ) {
@@ -2778,10 +2823,9 @@ Object* run_program(Object *block) {
   Object *catch_block_arg_list = new_array();
   push(catch_block_arg_list, sym("ex"));
   set_slot(catch_block, SYM_ARGS, catch_block_arg_list);
+  push(catch_block, object(INST_BLOCK_OPEN));
   push(catch_block, object(INST_PUSH));
   push(catch_block, sym("ex"));
-  // push(catch_block, object(INST_PUSH)); // self
-  // push(catch_block, 0);  // self
   push(catch_block, object(INST_PUSH));
   push(catch_block, new_function(&native_toplevel_catch));
   push(catch_block, object(INST_SEND));
@@ -2789,8 +2833,8 @@ Object* run_program(Object *block) {
 
   set_slot(block, sym("catch_block"), catch_block);
 
+  push(parent_stack, BlockOpen);
   push(parent_stack, sys);
-  // push(parent_stack, 0); // self
   push(parent_stack, block);
   push(parent_block, object(INST_SEND));
   push(parent_block, object(INST_TERM));
