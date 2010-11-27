@@ -53,7 +53,7 @@ typedef Object* (*native_function_ptr)(Object *frame, Object *self);
 #define INST_THROW         0xf
 #define INST_BLOCK_OPEN    0x10
 
-Object* new_object(Object *proto = 0);
+Object* new_object(Object *proto);
 Object* new_string(char const *str, Fixnum length = -1);
 Object* new_string_of_length(Fixnum length);
 Object* new_block();
@@ -66,7 +66,7 @@ Object* new_symbol(char const *str, int length = -1);
 Object* new_instr_table();
 Fixnum is_function(Object *obj);
 
-Object* ParentObject = new_object();
+Object* ParentObject = new_object(0);
 Object* Array   = new_object(ParentObject);
 Object* String  = new_object(ParentObject);
 Object* Symbol  = new_object(ParentObject);
@@ -444,7 +444,7 @@ Object* sym(Object *key) {
 }
 
 Object *new_instr_table() {
-    Object *instr_table = new_object();
+    Object *instr_table = new_object(ParentObject);
     set_slot(instr_table, sym("pop"),    object(INST_POP));
     set_slot(instr_table, sym("send"),   object(INST_SEND));
     set_slot(instr_table, sym("call"),   object(INST_CALL));
@@ -716,15 +716,14 @@ void set_at(Object *obj, Fixnum index, Object *value) {
 }
 
 Object *new_closure(Object *block, Object *lexical_frame) {
-    Object *new_closure = new_object();
-    new_closure->proto = block;
+    Object *new_closure = new_object(block);
     set_slot(new_closure, SYM_LEXICAL_FRAME, lexical_frame);
     return new_closure;
 }
 
 Object *new_frame(Object *parent_frame, Object *self, Object *closure) {
-    Object *new_frame = new_object();
-    Object *local     = new_object();
+    Object *new_frame = new_object(ParentObject);
+    Object *local     = new_object(ParentObject);
     new_frame->proto = closure;
     set_slot(new_frame, SYM_STACK,         new_array());
     set_slot(new_frame, SYM_LOCAL,         local);
@@ -819,7 +818,7 @@ Object* exister_send(Object *target, Object *slot, Object *frame, Object *stack)
   Object *eslot = exister_slot(slot);
   Object *obj = get_slot(target, eslot);
   if ( obj == 0 ) {
-    obj = new_object();
+    obj = new_object(ParentObject);
     set_slot(target, eslot, obj);
   }
   push(stack, obj);
@@ -1189,7 +1188,7 @@ void test_send() {
     Object *ret  = 0;
     Object *block = new_block();
     Object *frame = new_frame(ret, 0, block);
-    Object *obj   = new_object();
+    Object *obj   = new_object(ParentObject);
     Object *one   = sym("one");
     set_slot(obj, one, object(1));
 
@@ -1315,7 +1314,7 @@ Object* load(FILE *input)
     Fixnum offset;
 
     Object *block     = new_block();
-    Object *blocks    = new_object();
+    Object *blocks    = new_object(ParentObject);
     Object *instr_sym = 0;
     Object *labels    = new_array();
     Object *instr     = 0;
@@ -1395,12 +1394,6 @@ void dump_buffer(Object *object, int indent, int newline, Object *visited) {
   else if ( is_fixnum(object) ) {
     printf("%ld", (long int)fixnum(object));
   }
-  else if ( is_integer(object) ) {
-    dump_object(object, 0, 0);
-  }
-  else if ( is_double(object) ) {
-    dump_object(object, 0, 0);
-  }
   else if ( object->buffer ) {
     for(i=0;i<object->buffer->length;++i) {
       if ( object->buffer->data[i] == '\n' ) {
@@ -1437,7 +1430,7 @@ void dump_object(Object *obj, int indent, Object *visited) {
   indent_string[indent]=0;
   memset(indent_string, ' ', indent);
   if ( visited == 0 ) {
-    visited = new_object();
+    visited = new_object(ParentObject);
   }
   if ( obj == 0 ) {
     printf("0\n");
@@ -1457,9 +1450,6 @@ void dump_object(Object *obj, int indent, Object *visited) {
   }
   else if ( is_double(obj) ) {
     printf("%lf\n", *(double *)obj->buffer->data);
-  }
-  else if ( is_integer(obj) ) {
-    printf("%d\n", *(int *)obj->buffer->data);
   }
   else if ( is_object(obj) ) {
     if ( get_slot(visited, obj) != 0 ) {
@@ -1688,7 +1678,7 @@ Fixnum read_tok(char const* line, Fixnum line_len, Fixnum offset, Object *tok) {
       float_value += line[i] - '0';
       ++i;
     }
-    if ( i+1 < line_len && line[i+1] == '.' ) {
+    if ( i < line_len && line[i] == '.' ) {
       set_slot(tok, SYM_TYPE, TOK_FLOAT);
       ++i;
       while( i < line_len && is_digit(line[i]) ) {
@@ -1803,7 +1793,7 @@ Object *token_stack(FILE *input) {
   while ( fgets(line, sizeof(line), input) ) {
     offset = 0;
     while ( offset < (Fixnum)sizeof(line) && line[offset] != 0 ) {
-      Object *tok = new_object();
+      Object *tok = new_object(ParentObject);
       offset = read_tok(line, sizeof(line), offset, tok);
       push(tokens, tok);
     }
@@ -1811,17 +1801,17 @@ Object *token_stack(FILE *input) {
   return tokens;
 }
 
-Object *ParseError = new_object();
+Object *ParseError = new_object(ParentObject);
 
 void parse_error(Object *parse_cxt, char const* str) {
   Object *parse_errors = get_slot(parse_cxt, sym("errors"));
-  Object *error        = new_object();
+  Object *error        = new_object(ParentObject);
   set_slot(error, sym("message"), new_string(str));
   push(parse_errors, error);
 };
 
 Object *new_parse_cxt(Object *tokens) {
-  Object *parse_cxt = new_object();
+  Object *parse_cxt = new_object(ParentObject);
   set_slot(parse_cxt, sym("pos"),    object(0));
   set_slot(parse_cxt, sym("tokens"), tokens);
   set_slot(parse_cxt, sym("errors"), new_array());
@@ -1843,6 +1833,9 @@ Object *new_parse_cxt(Object *tokens) {
   push(begin_set, TOK_WHILE);
   push(begin_set, TOK_OPEN_MAP);
   push(begin_set, TOK_OPEN_BLOCK);
+  push(begin_set, TOK_OPEN_GROUP);
+  push(begin_set, TOK_OPEN_ARRAY);
+  push(begin_set, TOK_OPEN_MAP);
   push(begin_set, TOK_IDENT);
   push(begin_set, TOK_INT);
   push(begin_set, TOK_STRING);
@@ -2211,13 +2204,13 @@ Object *code_gen_return_expr(Object *cxt, Object *block, Object *return_expr);
 Object *code_gen_throw_expr(Object *cxt, Object *block, Object *throw_expr);
 
 Object *new_code_gen_cxt() {
-  Object *code_gen_cxt = new_object();
+  Object *code_gen_cxt = new_object(ParentObject);
   set_slot(code_gen_cxt, sym("errors"), new_array());
   return code_gen_cxt;
 }
 
 void code_gen_error(Object *cxt, Object *node, char const* reason) {
-  Object *error = new_object();
+  Object *error = new_object(ParentObject);
   set_slot(error, sym("node"), node);
   set_slot(error, sym("text"), new_string(reason));
   push(get_slot(cxt, sym("errors")), error);
@@ -2586,8 +2579,8 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
 // Native function interface
 // ----------------------------------------------------------------------
 
-Object *File = new_object();
-Object *Function = new_object();
+Object *File = new_object(ParentObject);
+Object *Function = new_object(ParentObject);
 
 Object *new_function(native_function_ptr f) {
   Object *obj = new_object(Function);
@@ -2650,7 +2643,13 @@ Object *native_print(Object *frame, Object *self) {
     fwrite(arg->buffer->data, arg->buffer->length, 1, stdout);
   }
   else if ( is_integer(arg) ) {
-    fprintf(stdout, "%d", *(int *)arg->buffer->data);
+    Object *value = get_slot(arg, SYM_VALUE);
+    if ( is_fixnum(value) ) {
+      fprintf(stdout, "%ld", (long int)fixnum(value));
+    }
+    else {
+      return new_exception_frame(frame, "Expected value in boxed integer");
+    }
   }
   else if ( is_fixnum(arg) ) {
     fprintf(stdout, "%ld", (long int)fixnum(arg));
@@ -2693,6 +2692,110 @@ Object *native_plus(Object *frame, Object *self) {
   }
   else {
     push(stack, object(fixnum(self) + fixnum(arg)));
+  }
+  return frame;
+}
+
+Object *native_gt(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_gt");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_gt");
+  }
+  else {
+    if ( fixnum(self) > fixnum(arg) ) {
+      push(stack, frame_resolve(frame, SYM_TRUE));
+    }
+    else {
+      push(stack, frame_resolve(frame, SYM_FALSE));
+    }
+  }
+  return frame;
+}
+
+Object *native_geq(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_geq");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_geq");
+  }
+  else {
+    if ( fixnum(self) >= fixnum(arg) ) {
+      push(stack, frame_resolve(frame, SYM_TRUE));
+    }
+    else {
+      push(stack, frame_resolve(frame, SYM_FALSE));
+    }
+  }
+  return frame;
+}
+
+Object *native_le(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_le");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_le");
+  }
+  else {
+    if ( fixnum(self) < fixnum(arg) ) {
+      push(stack, frame_resolve(frame, SYM_TRUE));
+    }
+    else {
+      push(stack, frame_resolve(frame, SYM_FALSE));
+    }
+  }
+  return frame;
+}
+
+Object *native_leq(Object *frame, Object *self) {
+  Object *stack       = get_slot(frame, SYM_STACK);
+  Object *arg         = pop(stack);
+  if ( is_sym(arg) ) {
+    arg = frame_resolve(frame, arg);
+  }
+  if ( is_object(self) ) {
+    self = get_slot(self, sym("value"));
+  }
+  if ( ! is_fixnum(self) ) {
+    return new_exception_frame(frame, "Expected integer self in native_leq");
+  }    
+  if ( ! is_fixnum(arg) ) {
+    return new_exception_frame(frame, "Expected integer argument in native_leq");
+  }
+  else {
+    if ( fixnum(self) <= fixnum(arg) ) {
+      push(stack, frame_resolve(frame, SYM_TRUE));
+    }
+    else {
+      push(stack, frame_resolve(frame, SYM_FALSE));
+    }
   }
   return frame;
 }
@@ -2787,7 +2890,7 @@ Object *native_is_true(Object *frame, Object *self) {
 // Sys
 
 Object *new_sys() {
-  Object *sys = new_object();
+  Object *sys = new_object(ParentObject);
   set_slot(sys, sym("print"), new_function(&native_print));
   return sys;
 }
@@ -2810,11 +2913,17 @@ Object* run_program(Object *block) {
   set_slot(parent_local, SYM_OBJECT, ParentObject);
   set_slot(ParentObject, SYM_NEW, new_function(&native_new));
 
-  set_slot(parent_local, sym("Integer"), integer_object);
-  set_slot(integer_object, sym("+"), new_function(native_plus));
+  set_slot(parent_local,   sym("Integer"), integer_object);
+  set_slot(sys,            sym("Integer"), integer_object);
+  set_slot(integer_object, sym("+"), new_function(&native_plus));
   set_slot(integer_object, sym("-"), new_function(&native_minus));
+  set_slot(integer_object, sym("<"), new_function(&native_le));
+  set_slot(integer_object, sym(">"), new_function(&native_gt));
+  set_slot(integer_object, sym("<="), new_function(&native_leq));
+  set_slot(integer_object, sym(">="), new_function(&native_geq));
 
   set_slot(parent_local, sym("Array"), array_object);
+  set_slot(sys,          sym("Array"), array_object);
   set_slot(array_object, sym(":"), new_function(&native_array_get));
   set_slot(array_object, sym("push"), new_function(&native_array_push));
 
@@ -2850,7 +2959,7 @@ int main(int argc, char **argv) {
   set_slot(File, SYM_READ_LINE, new_function(&native_file_read_line));
 
   Fixnum i, j, k;
-  Object *options = new_object();
+  Object *options = new_object(ParentObject);
   Object *value   = 0;
 
   for(i=1;i<argc; ++i) {
