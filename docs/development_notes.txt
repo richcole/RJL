@@ -1,3 +1,27 @@
+== Added support for a block array
+
+- the syntax as defined doesn't allow for a neat syntax for
+  updating an element of an array. Right now we have
+
+    a = BlockArray new 10;
+    a := 1 12;
+
+  That is we're usign the := operator to do array index assignment.
+
+- The latest test require calling initialize as part of new. This is 
+  a somewhat special function because it allows the inner function access
+  to the stack of the parent function.
+
+- Also should test that subclassing an array works in that the array buffer
+  will be attacked to the actual object and not inherrited from the parent.
+
+- Presently quite a bit of the code relies on child objects having access to 
+  the array elements of a parent class. This is unhealthy behaviour to have
+  occur implicitly.
+
+
+== Older Notes
+
 * Added support for exceptions.
 * Added support for self.
 * Added support Object new.

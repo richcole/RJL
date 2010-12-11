@@ -67,20 +67,21 @@ Object* new_instr_table();
 Fixnum is_function(Object *obj);
 
 Object* ParentObject = new_object(0);
-Object* Array   = new_object(ParentObject);
-Object* String  = new_object(ParentObject);
-Object* Symbol  = new_object(ParentObject);
-Object* Integer = new_object(ParentObject);
-Object* Block   = new_object(ParentObject);
-Object* Double  = new_object(ParentObject);
+Object* Array      = new_object(ParentObject);
+Object* String     = new_object(ParentObject);
+Object* Symbol     = new_object(ParentObject);
+Object* Integer    = new_object(ParentObject);
+Object* Block      = new_object(ParentObject);
+Object* Double     = new_object(ParentObject);
+Object* ByteArray  = new_object(ParentObject);
 
 Object* SymbolTable = new_object(ParentObject);
 Object* SetterTable = new_object(ParentObject);
 Object* ExisterTable = new_object(ParentObject);
 
-Object* SendMarker  = new_object(ParentObject);
+Object* SendMarker          = new_object(ParentObject);
 Object* BlockLiteralMarker  = new_object(ParentObject);
-Object* BlockOpen   = new_object(ParentObject);
+Object* BlockOpen           = new_object(ParentObject);
 
 Object* Instr   = new_instr_table();
 // do not init until after symbol table because this uses the symbol table
@@ -102,7 +103,6 @@ Object* SYM_LEXICAL_FRAME = sym("lexical_frame");
 Object* SYM_PARENT_FRAME  = sym("parent_frame");
 Object* SYM_LOCAL         = sym("local");
 
-Object* SYM_ASSIGNMENT = sym("assignment");
 Object* SYM_TRUE       = sym("true");
 Object* SYM_FALSE      = sym("false");
 Object* SYM_NEW        = sym("new");
@@ -808,7 +808,6 @@ Object* setter_send(Object *target, Object *slot, Object *frame, Object *stack) 
   }
   else {
     Object *value = pop(stack);
-    set_slot(frame, SYM_ASSIGNMENT, SYM_TRUE);
     set_slot(target, setter_slot(slot), value);
   }
   return frame;
@@ -985,7 +984,6 @@ Object* locate_setter_target(Object *frame, Object *slot) {
 
 Object* send(Object *frame, Object *stack) 
 {
-  set_slot(frame, SYM_ASSIGNMENT, SYM_FALSE);
   Object *target   = pop(stack);
   
   if ( is_sym(target) ) {
@@ -1114,9 +1112,6 @@ void interpret(Object *frame) {
             else if ( peek_at(stack, 0) == BlockOpen ) {
               set_slot(frame, SYM_PC, object(++pc));
               pop(stack);
-            }
-            else if ( get_slot(frame, SYM_ASSIGNMENT) == SYM_TRUE ) {
-              set_slot(frame, SYM_PC, object(++pc));
             }
           }
           else {  
@@ -2266,7 +2261,7 @@ Object *code_gen_block(Object *cxt, Object *block_node, Object *block, Fixnum in
   if ( is_type(stmt_list_node, sym("stmt_list")) ) {
     code_gen_stmt_list(cxt, block, stmt_list_node);
   }
-  if ( include_ret && peek(block) != object(INST_RET) ) {
+  if ( include_ret ) {
     push(block, object(INST_RET));
   }
   return block;
@@ -2547,6 +2542,7 @@ Object *code_gen_expr(Object *cxt, Object *block, Object *expr) {
         }
         --j;
       }
+      push(block, object(INST_BLOCK_OPEN));
       push(stack, SendMarker);
     }
   }
@@ -2591,6 +2587,97 @@ Object *new_function(native_function_ptr f) {
 Fixnum is_function(Object *obj) {
   return is_object(obj) && obj->proto == Function ? 1 : 0;
 };
+
+Object* integer_argument(Object *frame, Object *self, Fixnum& ret_value) {
+  Object *stack = get_slot(frame, SYM_STACK);
+  Object *arg   = pop(stack);
+  if ( is_fixnum(arg) ) {
+    ret_value = fixnum(arg);
+  }
+  else if ( is_integer(arg) ) {
+    Object *value = get_slot(arg, SYM_VALUE);
+    if ( is_fixnum(value) ) {
+      ret_value = fixnum(value);
+    }
+    else {
+      return new_exception_frame(frame, "Expected value in boxed integer");
+    }
+  }
+  else {
+    return new_exception_frame(frame, "Expected integer");
+  }
+  return 0;
+}
+
+Object* native_byte_array_get(Object *frame, Object *self) {
+  Fixnum index = 0;
+  Object *ex = integer_argument(frame, self, index);
+  if ( ex != 0 ) {
+    return ex;
+  }
+  if ( self->buffer == 0 ) {
+    return new_exception_frame(frame, "Expected byte array to have buffer");
+  }
+  else {
+    if ( index >= self->buffer->length ) {
+      return new_exception_frame(frame, "Byte Array bounds exceeded");
+    }
+    else {
+      Object *stack = get_slot(frame, SYM_STACK);
+      push(stack, object(self->buffer->data[index]));
+    }
+  }
+  return frame;
+}
+
+Object* native_byte_array_set(Object *frame, Object *self) {
+  Fixnum index = 0;
+  Fixnum value = 0;
+  Object *ex = 0;
+
+  ex = integer_argument(frame, self, index);
+  if ( ex != 0 ) return ex;
+
+  ex = integer_argument(frame, self, value);
+  if ( ex != 0 ) return ex;
+
+  if ( self->buffer == 0 ) {
+    return new_exception_frame(frame, "Expected byte array to have buffer");
+  }
+  else {
+    if ( index >= self->buffer->length ) {
+      return new_exception_frame(frame, "Byte Array bounds exceeded");
+    }
+    else {
+      self->buffer->data[index] = value;
+    }
+  }
+  return frame;
+}
+
+Object* native_byte_array_set_size(Object *frame, Object *self) {
+  Fixnum new_length = 0;
+  Object *ex = integer_argument(frame, self, new_length);
+  if ( ex != 0 ) {
+    return ex;
+  }
+  if ( self->buffer == 0 ) {
+    self->buffer = (Buffer *)allocate(sizeof(Fixnum)+new_length);
+    self->buffer->length = new_length;
+  }
+  else {
+    Buffer *new_buffer = (Buffer *)allocate(sizeof(Fixnum)+new_length);
+    new_buffer->length = new_length;
+    if ( new_buffer->length >= self->buffer->length ) {
+      memcpy(new_buffer->data, self->buffer->data, self->buffer->length);
+    }
+    else {
+      memcpy(new_buffer->data, self->buffer->data, new_buffer->length);
+    }
+    self->buffer = new_buffer;
+  }
+  return frame;
+}
 
 Object* native_file_open(Object *frame, Object *self) {
   Object *stack = get_slot(frame, SYM_STACK);
@@ -2904,6 +2991,7 @@ Object* run_program(Object *block) {
 
   Object *integer_object = Integer;
   Object *array_object = Array;
+  Object *byte_array_object = ByteArray;
 
   set_slot(block, SYM_LEXICAL_FRAME, parent_frame);
   set_slot(parent_local, sym("not"), new_function(&native_not));
@@ -2921,6 +3009,13 @@ Object* run_program(Object *block) {
   set_slot(integer_object, sym(">"), new_function(&native_gt));
   set_slot(integer_object, sym("<="), new_function(&native_leq));
   set_slot(integer_object, sym(">="), new_function(&native_geq));
+
+  set_slot(parent_local,      sym("ByteArray"), byte_array_object);
+  set_slot(sys,               sym("ByteArray"), byte_array_object);
+  set_slot(byte_array_object, sym(":="), new_function(&native_byte_array_set));
+  set_slot(byte_array_object, sym(":"), new_function(&native_byte_array_get));
+  set_slot(byte_array_object, sym("size="), new_function(&native_byte_array_set_size));
+
 
   set_slot(parent_local, sym("Array"), array_object);
   set_slot(sys,          sym("Array"), array_object);
