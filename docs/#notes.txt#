@@ -1,0 +1,11 @@
+Can we unify closures and objects?
+
+e.g. what is the difference between
+
+  { x: 1; y: 1 }
+
+and
+
+  (| x: 1; y: 1 |)
+
+One of these is a block, the other is an instanciated object. 

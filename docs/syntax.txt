@@ -1,0 +1,34 @@
+ident  = /[A-za-z0-9:]/+ ;
+string = /"([^\\"]|'\\")*"/" ;
+int    = /-?/[0-9]+/ ;
+float  = /-?/[0-9]+\.[0-9]+('e''-'?[0-9]+)? ;
+
+block := '{' argument_list? statement_list '}' ;
+
+argument_list := ident+ '|' ;
+
+statement_list := statement ';' statement_list ;
+statement_list := ;
+
+block_statement = '{' statement_list '}';
+
+if_statement := 
+  'if' '(' expr ')' block_statement 
+    ( 'elseif' block_statement )*
+    [ 'else' block_statement ] 
+;
+
+while_statement := 'while' '(' expr ')' block_statement ;
+
+statement := if_statement | while_statement | expr;
+
+expr := '(' expr ') ;
+expr := ident op ident ;
+expr := ident ;
+
+object_expr := '(|' statement_list '|)' ;
+
+
+expr = 'return' expr ;
+expr = 
+

@@ -1,0 +1,53 @@
+= RJL
+
+This is a second go at a language inspired by Self, Smalltalk and Ruby.
+
+== Flavor of the Language
+
+{ sys |
+
+  sys Object merge:: { mixin |
+    mixin slots each: { slot |
+      self at_slot: slot set: (mixin get_slot: slot);
+    };
+    return obj;
+  };
+
+  sys Object merge: (|
+    merge:: { mixin |
+      obj: self new;
+      mixin slots each: { slot | 
+        obj at_slot: slot set: (mixin get_slot: slot);
+      };
+      return obj;
+    };
+  |);
+
+  sys Sequence merge: (|
+    aggregate:by:: { agg block |
+      self each: { value |
+        agg: (block invoke: agg with: value)
+      };
+      return agg;
+    }
+    copy:: { col |
+      col each: { value |
+        self push: value;
+      };
+    };
+  |)
+  
+  sys Vector: (
+    sys Array extend (|
+      new:: { array |
+        copy: array;
+      };
+      inner_product:: { x |
+        return self indexes aggregate: 0 by: { agg index |
+          return agg + (self get: index) * (x get: index);
+        }
+      };
+    |)
+  );
+
+}
