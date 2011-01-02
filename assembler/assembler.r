@@ -2,6 +2,12 @@
 
   ByteArray = sys ByteArray;
 
+  sys Object extend = { map |
+    new_object = self new;
+    map each { key, value | new_object := key value };
+    return new_object;
+  }
+
   code_block = ByteArray new size = 10;
 
   CodeBlock = (|
@@ -48,6 +54,5 @@
       }
     };
   |);
-
 
 }

@@ -85,3 +85,4 @@ end
 task :test => test_outputs + test_diff_outputs + [:eval_test_outputs]
 task :perf_test => perf_test_outputs
 task :default => [:no_tabs, :test]
+task :release => [release_rjl]
