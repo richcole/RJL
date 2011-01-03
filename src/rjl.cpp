@@ -9,12 +9,17 @@
 #include "block.h"
 #include "native.h"
 
-void init() {
+void init_symbols() {
   Nil->buffer = (Buffer *) new_string_buffer("Nil");
   Dirty->buffer = (Buffer *) new_string_buffer("Dirty");
   String->buffer = (Buffer *) new_string_buffer("String");
   Array->buffer = (Buffer *) new_string_buffer("Array");
   Func->buffer = (Buffer *) new_string_buffer("Func");
+  init_file_symbols(sys);
+}
+
+void init_sys(Object *sys) {
+	init_file_sys(sys);
 }
 
 Object *get_code(Object *frame, Fixnum pc) {
@@ -154,7 +159,9 @@ void interp(Object *frame) {
 }
 
 int main() {
-  init();
+  Object *sys = new_object();
+
+  init(sys);
 
   Object *lexical_parent = new_object();
   Object *local = new_object();

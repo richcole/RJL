@@ -1,7 +1,12 @@
-ident  = /[A-za-z0-9:]/+ ;
-string = /"([^\\"]|'\\")*"/" ;
-int    = /-?/[0-9]+/ ;
-float  = /-?/[0-9]+\.[0-9]+('e''-'?[0-9]+)? ;
+# tokens
+
+arg_ident  = /[A-za-z0-9:]+:/ ;
+ident      = /[A-za-z0-9_:]+[A-za-z0-9_]/ ;
+string     = /"([^\\"]|'\\")*"/ ;
+int        = /-?[0-9]+/ ;
+float      = /-?[0-9]+\.[0-9]+('e''-'?[0-9]+)?/ ;
+
+# grammar
 
 block := '{' argument_list? statement_list '}' ;
 
@@ -9,8 +14,6 @@ argument_list := ident+ '|' ;
 
 statement_list := statement ';' statement_list ;
 statement_list := ;
-
-block_statement = '{' statement_list '}';
 
 if_statement := 
   'if' '(' expr ')' block_statement 
@@ -22,13 +25,14 @@ while_statement := 'while' '(' expr ')' block_statement ;
 
 statement := if_statement | while_statement | expr;
 
-expr := '(' expr ') ;
-expr := ident op ident ;
+expr  := '(' expr ') ;
+expr  := 'return' expr ;
+expr  := '(|' statement_list '|)' ;
+expr  := '[' statement_list ']' ;
+expr  := '{' statement_list '}';
+
 expr := ident ;
-
-object_expr := '(|' statement_list '|)' ;
-
-
-expr = 'return' expr ;
-expr = 
+expr := expr op expr ;
+expr := arg_ident expr ; 
+expr := arg_ident expr;
 

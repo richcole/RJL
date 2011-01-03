@@ -8,7 +8,7 @@ Object* native_print(Object *frame) {
     fprintf(stdout, "%s\n", buf->data);
   }
   else {
-    fprintf(stdout, "Not a string\n");
+    return new_exception(frame, "Expected a string in native_print");
   }
   return frame;
 }
