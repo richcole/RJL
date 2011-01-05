@@ -22,12 +22,7 @@ Object* new_array() {
   return array;
 }
 
-ArrayBuffer *get_array_buffer(Object *array) {
-  if ( array != 0 && array->buffer != 0 && array->buffer->type == Array ) {
-    return (ArrayBuffer *) array->buffer;
-  }
-  return 0;
-}
+def_get_buffer(ArrayBuffer, array);
 
 Fixnum array_length(Object *array) {
   ArrayBuffer *buf = get_array_buffer(array);
@@ -38,7 +33,7 @@ Fixnum array_length(Object *array) {
 }
 
 Fixnum is_array(Object *array) {
-  if ( array != 0 && array->buffer != 0 && array->buffer->type == Array ) {
+  if ( get_array_buffer(array) != 0 ) {
     return 1;
   }
   return 0;
@@ -84,4 +79,10 @@ Object *pop(Object *array) {
   }
   return 0;
 }
+
+Object *init_array_symbols() {
+	add_sym(Array, "Array");
+}
+
+
 

@@ -7,3 +7,7 @@ Object *new_exception(Object *frame, char const* reason) {
   set(obj, Frame,  frame);
   set(obj, Reason, new_string(reason));
 }
+
+init_exception_symbols() {
+	add_sym(Exception, "Exception");
+}

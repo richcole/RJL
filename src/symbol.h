@@ -1,32 +1,27 @@
-Object* new_sym(char const* s) {
-  Object *obj = new_object();
-  obj->buffer = (Buffer *) new_string_buffer(s);
-  return obj;
-};
-
 #define SYM(name) \
-  Object *const name = new_sym(#name)
+  Object *const name = new_object;
 
-SYM(True);
-SYM(False);
-SYM(Push);
-SYM(Pc);
-SYM(Send);
-SYM(Jmp);
-SYM(JmpZ);
-SYM(JmpNZ);
-SYM(Code);
-SYM(Stack);
-SYM(Ret);
-SYM(Term);
-SYM(Block);
-SYM(Parent);
-SYM(Frame);
-SYM(Local);
-SYM(Self);
-SYM(LexicalParent);
-SYM(Print);
-SYM(Arg);
-SYM(Sys);
-
+void init_symbols() {
+  add_sym(True,    "True");
+  add_sym(False,   "False");
+  add_sym(Push,    "push");
+  add_sym(Pc,      "pc");
+  add_sym(Send,    "send");
+  add_sym(Jmp,     "jmp");
+  add_sym(JmpZ,    "jmpz");
+  add_sym(JmpNZ,   "jmpz");
+  add_sym(Code,    "code");
+  add_sym(Stack,   "stack");
+  add_sym(Ret,     "ret");
+  add_sym(Term,    "term");
+  add_sym(Block,   "block");
+  add_sym(Parent,  "parent");
+  add_sym(Frame,   "frame");
+  add_sym(Local,   "local");
+  add_sym(Self,    "self");
+  add_sym(LexicalParent, "lexical_parent");
+  add_sym(Print,   "print");
+  add_sym(Arg,     "arg");
+  add_sym(Sys,     "sys");
+}
 

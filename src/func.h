@@ -28,18 +28,34 @@ Object *new_func(FuncPtr func_ptr) {
   return object;
 }
 
-FuncBuffer *get_func_buffer(Object *obj) {
-  if ( obj != 0 && obj->buffer != 0 && obj->buffer->type == Func ) {
-    return (FuncBuffer *) obj->buffer;
-  }
-  return 0;
-}
+def_get_buffer(FuncBuffer, func);
 
 Object *call_func(Object *frame, Object *func) {
   FuncBuffer *func_buf = get_func_buffer(func);
   if ( func_buf != 0 ) {
     return (*func_buf->func)(frame);
   }
-  return frame;
+  return new_exception(frame, "Expected a function object");
+}
+
+Object *native_call(Object *self, Object *slot) {
+	Object *frame = new_frame();
+	Object *stack = get(frame, Stack, stack);
+	Object *func = get(self, slot);
+	Object *frame = call_func(frame, func);
+	return pop(stack);
+} 
+
+Object *native_call(Object *self, Object *slot, Object *arg) {
+	Object *frame = new_frame();
+	Object *stack = get(frame, Stack, stack);
+	push(stack, arg);
+	Object *func = get(self, slot);
+	Object *frame = call_func(frame, func);
+	return pop(stack);
+} 
+
+Object *init_func_symbols() {
+	add_sym(Func, "Func");
 }
 

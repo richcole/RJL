@@ -1,8 +1,10 @@
 
 #include "fixnum.h"
+#include "string.h"
+#include "buffer.h"
+#include "symbol_table.h"
 #include "mem.h"
 #include "object.h"
-#include "string.h"
 #include "array.h"
 #include "symbol.h"
 #include "func.h"
@@ -10,12 +12,16 @@
 #include "native.h"
 
 void init_symbols() {
-  Nil->buffer = (Buffer *) new_string_buffer("Nil");
-  Dirty->buffer = (Buffer *) new_string_buffer("Dirty");
-  String->buffer = (Buffer *) new_string_buffer("String");
-  Array->buffer = (Buffer *) new_string_buffer("Array");
-  Func->buffer = (Buffer *) new_string_buffer("Func");
-  init_file_symbols(sys);
+
+  init_string_symbols();
+  init_symbol_table_symbols();
+  init_array_symbols();	
+  init_func_symbols();
+  init_file_symbols();
+  init_exception_symbols();
+
+	add_sym(Nil, "nil");
+	add_sym(Dirty, "dirty");
 }
 
 void init_sys(Object *sys) {

@@ -40,18 +40,38 @@ Object *new_string(char const* s) {
   return obj;
 }
 
-StringBuffer *get_string_buffer(Object *obj) {
-  if ( obj && obj->buffer && obj->buffer->type == String ) {
-    return (StringBuffer *) obj->buffer;
-  }
-  return 0;
-}
+def_get_buffer(StringBuffer, string);
 
 Fixnum is_string(Object *obj) {
   if ( obj && obj->buffer && obj->buffer->type == String ) {
     return 1;
   }
   return 0;
+}
+
+Object* string_equals(Object *s1, Object *s2) {
+	StringBuffer *sb1 = get_string_buffer(s1);
+	StringBuffer *sb2 = get_string_buffer(s2);
+	
+	if ( sb1 == 0 || sb2 == 0 ) {
+		return False;
+	}
+	if ( sb1->length != sb2->length ) {
+		return False;
+	}
+	for(Fixnum i=0;i<sb1->length;++i) {
+		if ( sb1->data[i] != sb2->data[i] ) {
+			return False;
+		}
+	}
+	return True;
+}
+
+// forward decl
+void add_sym(Object *obj, char const* str);
+
+void init_string_symbols() {
+	add_sym(String, "String");
 }
 
 
