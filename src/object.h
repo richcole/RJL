@@ -109,4 +109,3 @@ Fixnum get_fixnum(Object *obj, Object *slot) {
   return fixnum(get(obj, slot));
 }
 
-

@@ -22,7 +22,7 @@ Object* new_array() {
   return array;
 }
 
-def_get_buffer(ArrayBuffer, array);
+def_get_buffer(Array, array);
 
 Fixnum array_length(Object *array) {
   ArrayBuffer *buf = get_array_buffer(array);
@@ -53,7 +53,9 @@ void grow_array(Object *array) {
   ArrayBuffer *array_buffer = get_array_buffer(array);
   if ( array_buffer != 0 ) {
     ArrayBuffer *new_buffer = new_array_buffer(array_buffer->length*2);
-    memcpy(new_buffer->data, array_buffer->data, array_buffer->length * sizeof(Object *));
+    rjl_memcpy(new_buffer->data, array_buffer->data, 
+      array_buffer->length * sizeof(Object *)
+    );
     new_buffer->tail = array_buffer->tail;
     mem_free(array_buffer);
     array->buffer = (Buffer *)new_buffer;
@@ -80,7 +82,7 @@ Object *pop(Object *array) {
   return 0;
 }
 
-Object *init_array_symbols() {
+void init_array_symbols() {
 	add_sym(Array, "Array");
 }
 

@@ -10,6 +10,7 @@ Object* native_print(Object *frame) {
   else {
     return new_exception(frame, "Expected a string in native_print");
   }
+  push(get(frame, Stack), Nil);
   return frame;
 }
 
@@ -85,5 +86,22 @@ void dump(Object *obj, Fixnum indent) {
       }
     }
   }
-}  
+} 
 
+Object *native_string_reserve(Object *frame) {
+  Object* new_size = pop(get(frame, Stack));
+  if ( ! is_fixnum(new_size) ) {
+    return new_exception(frame, "Expected fixnum argument");
+  }
+  string_set_reserve(get(frame, Self), fixnum(new_size));
+  push(get(frame, Stack), Nil);
+  return frame;
+}
+
+void init_native_sys(Object *sys) {
+  set(sys, Print, new_func(native_print));
+
+  Object *string_object = new_object();
+  set(sys, String, string_object);
+  set(string_object, sym("reserve:"), new_func(native_string_reserve));
+};

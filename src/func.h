@@ -28,7 +28,7 @@ Object *new_func(FuncPtr func_ptr) {
   return object;
 }
 
-def_get_buffer(FuncBuffer, func);
+def_get_buffer(Func, func);
 
 Object *call_func(Object *frame, Object *func) {
   FuncBuffer *func_buf = get_func_buffer(func);
@@ -40,22 +40,22 @@ Object *call_func(Object *frame, Object *func) {
 
 Object *native_call(Object *self, Object *slot) {
 	Object *frame = new_frame();
-	Object *stack = get(frame, Stack, stack);
-	Object *func = get(self, slot);
-	Object *frame = call_func(frame, func);
+	Object *stack = get(frame, Stack);
+	Object *func  = get(self, slot);
+	frame = call_func(frame, func);
 	return pop(stack);
 } 
 
 Object *native_call(Object *self, Object *slot, Object *arg) {
 	Object *frame = new_frame();
-	Object *stack = get(frame, Stack, stack);
+	Object *stack = get(frame, Stack);
 	push(stack, arg);
 	Object *func = get(self, slot);
-	Object *frame = call_func(frame, func);
+	frame = call_func(frame, func);
 	return pop(stack);
 } 
 
-Object *init_func_symbols() {
+void init_func_symbols() {
 	add_sym(Func, "Func");
 }
 
