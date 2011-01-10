@@ -1,11 +1,10 @@
-Can we unify closures and objects?
+Lexical closures:
+  - currently local object of a frame has a parent pointer that is set
+    to the local object of the lexically closing frame
+    - creating a lexical closure hasn't yet been implemented
 
-e.g. what is the difference between
-
-  { x: 1; y: 1 }
-
-and
-
-  (| x: 1; y: 1 |)
-
-One of these is a block, the other is an instanciated object. 
+Exceptions:
+  - exceptions use a field in the frame called "catch" which is a stack
+    of pc locations to jump to
+  - a thin copy of the catch frame is constructed which holds the 
+    new pc value

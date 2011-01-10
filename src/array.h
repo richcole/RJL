@@ -82,9 +82,19 @@ Object *pop(Object *array) {
   return 0;
 }
 
+void push_slot(Object *obj, Object *slot, Object *val) {
+  Object *stack = get(obj, slot);
+  if ( exists(stack) ) {
+    stack = new_array();
+    set(obj, slot, stack);
+  }
+  push(stack, val);
+}
+
 void init_array_symbols() {
 	add_sym(Array, "Array");
 }
+
 
 
 

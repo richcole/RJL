@@ -16,7 +16,7 @@ FuncBuffer* new_func_buffer(FuncPtr func_ptr) {
 }
 
 Fixnum is_func(Object *object) {
-  if ( object != 0 && object->buffer != 0 && object->buffer->type == Func ) {
+  if ( object != Nil && object->buffer != 0 && object->buffer->type == Func ) {
     return 1;
   }
   return 0;
@@ -50,6 +50,27 @@ Object *native_call(Object *self, Object *slot, Object *arg) {
 	Object *frame = new_frame();
 	Object *stack = get(frame, Stack);
 	push(stack, arg);
+	Object *func = get(self, slot);
+	frame = call_func(frame, func);
+	return pop(stack);
+} 
+
+Object *native_call(Object *self, Object *slot, Object *arg1, Object *arg2) {
+	Object *frame = new_frame();
+	Object *stack = get(frame, Stack);
+	push(stack, arg1);
+	push(stack, arg2);
+	Object *func = get(self, slot);
+	frame = call_func(frame, func);
+	return pop(stack);
+} 
+
+Object *native_call(Object *self, Object *slot, Object *arg1, Object *arg2, Object *arg3) {
+	Object *frame = new_frame();
+	Object *stack = get(frame, Stack);
+	push(stack, arg1);
+	push(stack, arg2);
+	push(stack, arg3);
 	Object *func = get(self, slot);
 	frame = call_func(frame, func);
 	return pop(stack);

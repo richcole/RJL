@@ -88,6 +88,10 @@ void dump(Object *obj, Fixnum indent) {
   }
 } 
 
+void dump(Object *obj) {
+  dump(obj, 0);
+}
+
 Object *native_string_reserve(Object *frame) {
   Object* new_size = pop(get(frame, Stack));
   if ( ! is_fixnum(new_size) ) {
@@ -98,10 +102,30 @@ Object *native_string_reserve(Object *frame) {
   return frame;
 }
 
+Object *native_string_shift(Object *frame) {
+  Fixnum offset = fixnum(pop(get(frame, Stack)));
+  Object *self = get(frame, Self);
+  StringBuffer *buf = get_string_buffer(self);
+  if ( buf != 0 ) {
+    if ( offset < buf->length ) {
+      rjl_memcpy(buf->data, buf->data + offset, buf->length - offset);
+      string_truncate_buffer(self, buf->length - offset);
+    }
+    else {
+      return new_exception(frame, "offset is larger than string length");
+    }
+  }
+  else {
+    return new_exception(frame, "expected self to be a string");
+  }
+  return frame;
+};
+
 void init_native_sys(Object *sys) {
-  set(sys, Print, new_func(native_print));
+  set(sys, sym("println:"), new_func(native_print));
 
   Object *string_object = new_object();
   set(sys, String, string_object);
   set(string_object, sym("reserve:"), new_func(native_string_reserve));
+  set(string_object, sym("shift:"), new_func(native_string_shift));
 };

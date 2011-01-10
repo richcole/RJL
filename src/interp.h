@@ -1,18 +1,7 @@
-Object *resolve(Object *target, Object *slot) {
-  if ( target == 0 ) {
-    return 0;
-  }
-  Object *value = get(target, slot);
-  if ( value == 0 ) {
-    value = resolve(get(target, Parent), slot);
-  }
-  return value;
-}
-
 Object* send(Object *frame, Object *slot) {
   Object *stack  = get(frame, Stack);
   Object *target = pop(stack);
-  Object *value  = resolve(target, slot);
+  Object *value  = get(target, slot);
   if ( is_block(value) ) {
     return new_frame(target, value, frame);
   }
@@ -29,8 +18,10 @@ Object* ret(Object *frame) {
   Object *stack        = get(frame, Stack);
   Object *ret_value    = pop(stack);
   Object *parent_frame = get(frame, Parent);
-  Object *parent_stack = get(parent_frame, Stack);
-  push(parent_stack, ret_value);
+  if ( exists(parent_frame) ) {
+    Object *parent_stack = get(parent_frame, Stack);
+    push(parent_stack, ret_value);
+  }
   return parent_frame;
 }
 
@@ -39,6 +30,7 @@ void interp(Object *frame) {
   Object *instr = 0;
 
   while(frame != 0) {
+
     pc    = get_fixnum(frame, Pc);
     instr = get_code(frame, pc);
 
@@ -91,7 +83,7 @@ void interp(Object *frame) {
       set_fixnum(frame, Pc, pc);
     }
 
-    if ( instr == Ret ) {
+    if ( instr == Return ) {
       frame = ret(frame);
     }
 

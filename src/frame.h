@@ -5,18 +5,21 @@ Object* new_frame() {
   return frame;
 }
 
-Object* new_frame(Object *self, Object *block, Object *parent_frame) {
+Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   Object *frame = new_object();
   Object *local = new_object();
 
-  set(frame, Parent,        parent_frame);
+  set(frame, Return,        ret_frame);
+  set(frame, Code,          code);
   set(frame, Stack,         new_array());
-  set(frame, Code,          get(block, Code));
-  set(frame, Local,         local);
+  set(frame, Local,         new_object());
   set(frame, Pc,            0);
-
   set(local, Self,          self);
   return frame;
+}
+
+void set_lexical_parent(Object *frame, Object *parent) {
+  set(get(frame, Local), Parent, parent);
 }
 
 Object* get_code(Object *frame, Fixnum index) {

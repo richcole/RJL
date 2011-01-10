@@ -46,7 +46,9 @@ Object* new_object() {
 };
 
 Object *Dirty = new_object();
+Object *Undefined = new_object();
 Object *Nil = new_object();
+Object *Parent = new_object();
 
 void grow(Object *obj);
 
@@ -55,7 +57,7 @@ Fixnum hash(Object *key, Fixnum length) {
 }
 
 void set(Object *obj, Object *key, Object *value) {
-  if ( obj->occupied * 4 > obj->length * 3 ) {
+  if ( obj->occupied * 4 >= obj->length * 3 ) {
     grow(obj);
   }
   Fixnum cand = hash(key, obj->length);
@@ -69,7 +71,7 @@ void set(Object *obj, Object *key, Object *value) {
   obj->table[cand].value = value;
 }
 
-Object *get(Object *obj, Object *key) {
+Object *get_plain(Object *obj, Object *key) {
   if ( obj == 0 ) {
     return 0;
   }
@@ -78,7 +80,7 @@ Object *get(Object *obj, Object *key) {
     cand = (cand + 1) % obj->length;
   }
   if ( obj->table[cand].key == 0 ) {
-    return Nil;
+    return Undefined;
   }
   else {
     return obj->table[cand].value;
@@ -101,6 +103,22 @@ void grow(Object *obj) {
   obj->table = tmp.table;
 }
 
+Fixnum exists(Object *obj) {
+  return obj != Nil && obj != Undefined;
+}
+
+Object *get(Object *target, Object *slot) {
+  Object *value = get_plain(target, slot);
+  while ( value == Undefined ) {
+    target = get_plain(target, Parent);
+    if ( ! exists(target) ) {
+      return Undefined;
+    }
+    value = get_plain(target, slot);
+  }
+  return value;
+};
+
 void set_fixnum(Object *obj, Object *slot, Fixnum value) {
   set(obj, slot, object(value));
 }
@@ -109,3 +127,12 @@ Fixnum get_fixnum(Object *obj, Object *slot) {
   return fixnum(get(obj, slot));
 }
 
+void copy(Object *dst, Object *src, Object *slot) {
+  set(dst, slot, get(src, slot));
+}
+
+Object* new_object(Object *parent) {
+  Object *obj = new_object();
+  set(obj, Parent, parent);
+  return obj;
+};

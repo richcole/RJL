@@ -48,26 +48,27 @@ Object *new_errno_exception(Object *frame, char const* message) {
 
 Object* native_file_close(Object *frame) {
 	Object *stack = get(frame, Stack);
-	FileBuffer *file = get_file_buffer(pop(stack));
-	if ( file == 0 ) {
+	FileBuffer *file_buf = get_file_buffer(pop(stack));
+	if ( file_buf == 0 ) {
 		return new_exception(frame, "Expected a file as first argument");
 	}
-	if ( file->file == 0 ) {
+	if ( file_buf->file == 0 ) {
 		return new_exception(frame, "File pointer is null");
 	}
-	int result = fclose(file->file);
+	int result = fclose(file_buf->file);
 	if ( result != 0 ) {
 		return new_errno_exception(frame, "Failed while closing file");
 	}
+  return frame;
 }
 
 Object* native_file_eof(Object *frame) {
 	Object *stack = get(frame, Stack);
-	FileBuffer *file = get_file_buffer(pop(stack));
-  if ( file == 0 ) {
+	FileBuffer *file_buf = get_file_buffer(pop(stack));
+  if ( file_buf == 0 ) {
   	return new_exception(frame, "Expected a file as first argument");
   }
-	if ( feof(file->file) ) {
+	if ( feof(file_buf->file) ) {
 		push(stack, True);
 	}
 	else {
@@ -79,8 +80,8 @@ Object* native_file_eof(Object *frame) {
 Object* native_file_read(Object *frame) {
 	Object *stack = get(frame, Stack);
 
-	FileBuffer *file = get_file_buffer(pop(stack));
-  if ( file == 0 ) {
+	FileBuffer *file_buf = get_file_buffer(pop(stack));
+  if ( file_buf == 0 ) {
   	return new_exception(frame, "Expected a file as first argument");
   }
 
@@ -106,7 +107,7 @@ Object* native_file_read(Object *frame) {
   	return new_exception(frame, "Offset + length exceeds string length");
   }
   
-  int num_read = fread(string_buf->data + offset, length, 1, file->file);
+  int num_read = fread(string_buf->data + offset, length, 1, file_buf->file);
   if ( num_read >= 0 ) {
     string_truncate_buffer(string, offset + num_read);
     return frame;

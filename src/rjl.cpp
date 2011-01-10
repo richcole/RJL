@@ -34,45 +34,62 @@ Object* init_sys() {
   Object *sys = new_object();
 	init_file_sys(sys);
   init_native_sys(sys);
+  init_scanner_sys(sys);
   return sys;
+}
+
+void code_push(Object *code, Object *val) {
+  push(code, Push);
+  push(code, val);
+}
+
+void code_send(Object *code, Object *slot) {
+  push(code, Send);
+  push(code, slot);
+}
+
+void code_self(Object *code) {
+  push(code, Self);
+}
+
+void code_return(Object *code) {
+  push(code, Return);
+}
+
+void code_term(Object *code) {
+  push(code, Term);
+}
+
+Object *top_level_frame(Object *sys) {
+  Object *code       = new_array();
+  Object *frame      = new_frame(0, code, 0);
+  
+  // set the lexical parent to be sys
+  set_lexical_parent(frame, sys);
+
+  // main parent code
+  code_push(code, new_string("Hello World"));
+  code_self(code);
+  code_send(code, sym("println:"));
+  code_term(code);
+
+  // parent catch block
+  push_slot(frame, Catch, object(array_length(code)));
+  push(code, Arg);
+  push(code, sym("ex"));
+  push(code, Push);
+  push(code, new_string("Exception raised."));
+  push(code, Push);
+  push(code, Self);
+  code_push(code, sym("println:"));
+  push(code, Return);
+
+  return frame;
 }
 
 int main() {
   init_symbols();
   Object *sys = init_sys();
 
-  Object *lexical_parent = new_object();
-  Object *local = new_object();
-  set(lexical_parent, Local, local);
-
-  Object *code  = new_array();
-  Object *block = new_block(lexical_parent, code);
-
-  Object *parent_code  = new_array();
-  Object *parent_block = new_block(lexical_parent, parent_code);
-  Object *parent_frame = new_frame(0, parent_block, 0);
-
-  push(parent_code, Ret);
-
-  Object *frame = new_frame(0, block, parent_frame);
-
-  Object *parent_stack = get(parent_frame, Stack);
-  push(parent_stack, sys);
-
-  push(code, Arg);
-  push(code, Sys);
-
-  push(code, Push);
-  push(code, new_string("Hello World"));
-
-  push(code, Self);
-  push(code, Send);
-  push(code, Sys);
-
-  push(code, Send);
-  push(code, Print);
-
-  push(code, Ret);
-
-  interp(frame);
+  interp(top_level_frame(sys));
 };
