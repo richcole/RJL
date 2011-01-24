@@ -26,18 +26,36 @@ Object *new_file(FILE *file) {
   return obj;
 }
 
-Object* native_file_open(Object *frame) {
+Fixnum is_file(Object *obj) {
+	FileBuffer *file_buf = get_file_buffer(obj);
+  if ( file_buf != 0 ) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+Object* native_file_open_mode(Object *frame, Object *self) {
 	Object *stack = get(frame, Stack);
-	StringBuffer *file_name_buf = get_string_buffer(pop(stack));
 	StringBuffer *file_mode_buf = get_string_buffer(pop(stack));
+	StringBuffer *file_name_buf = get_string_buffer(pop(stack));
 	if ( file_name_buf == 0 ) {
 		return new_exception(frame, "Expected a string as first argument");
 	}
 	if ( file_mode_buf == 0 ) {
 		return new_exception(frame, "Expected a string as second argument");
 	}
-	push(stack, new_file(fopen(file_name_buf->data, file_mode_buf->data)));
+  Object *file_object = new_file(fopen(file_name_buf->data, file_mode_buf->data));
+  set(file_object, Parent, self);
+	push(stack, file_object);
 	return frame;
+}
+
+Object* native_file_open(Object *frame, Object *self) {
+	Object *stack = get(frame, Stack);
+  push(stack, new_string("r"));
+  return native_file_open_mode(frame, self);
 }
 
 Object *new_errno_exception(Object *frame, char const* message) {
@@ -46,9 +64,8 @@ Object *new_errno_exception(Object *frame, char const* message) {
   return ex;
 };
 
-Object* native_file_close(Object *frame) {
-	Object *stack = get(frame, Stack);
-	FileBuffer *file_buf = get_file_buffer(pop(stack));
+Object* native_file_close(Object *frame, Object *self) {
+	FileBuffer *file_buf = get_file_buffer(self);
 	if ( file_buf == 0 ) {
 		return new_exception(frame, "Expected a file as first argument");
 	}
@@ -62,9 +79,9 @@ Object* native_file_close(Object *frame) {
   return frame;
 }
 
-Object* native_file_eof(Object *frame) {
+Object* native_file_eof(Object *frame, Object *self) {
 	Object *stack = get(frame, Stack);
-	FileBuffer *file_buf = get_file_buffer(pop(stack));
+	FileBuffer *file_buf = get_file_buffer(self);
   if ( file_buf == 0 ) {
   	return new_exception(frame, "Expected a file as first argument");
   }
@@ -76,38 +93,38 @@ Object* native_file_eof(Object *frame) {
 	}
 	return frame;
 };
-
-Object* native_file_read(Object *frame) {
+Object* native_file_read_into_offset_length(Object *frame, Object *self) {
 	Object *stack = get(frame, Stack);
 
-	FileBuffer *file_buf = get_file_buffer(pop(stack));
+	FileBuffer *file_buf = get_file_buffer(self);
+  Object *length_obj   = pop(stack);
+  Object *offset_obj   = pop(stack);
+  Object *string       = pop(stack);
+
   if ( file_buf == 0 ) {
-  	return new_exception(frame, "Expected a file as first argument");
+  	return new_exception(frame, "Expected a file as self argument");
   }
 
-  Object *string = pop(stack);
   StringBuffer *string_buf = get_string_buffer(string);
   if ( string_buf == 0 ) {
-  	return new_exception(frame, "Expected a string as second argument");
+  	return new_exception(frame, "Expected a string as first argument");
   }
 
-  Object *offset_obj = pop(stack);
   if ( ! is_fixnum(offset_obj) ) {
-  	return new_exception(frame, "Expected a fixnum as fourth argument");
+  	return new_exception(frame, "Expected a fixnum as second argument");
   }
   Fixnum offset = fixnum(offset_obj);
   
-  Object *length_obj = pop(stack);
   if ( ! is_fixnum(length_obj) ) {
   	return new_exception(frame, "Expected a fixnum as third argument");
   }
   Fixnum length = fixnum(length_obj);
 
-  if ( offset + length >= string_buf->reserved ) {
+  if ( offset + length > string_buf->reserved ) {
   	return new_exception(frame, "Offset + length exceeds string length");
   }
   
-  int num_read = fread(string_buf->data + offset, length, 1, file_buf->file);
+  int num_read = fread(string_buf->data + offset, 1, length, file_buf->file);
   if ( num_read >= 0 ) {
     string_truncate_buffer(string, offset + num_read);
     return frame;
@@ -125,8 +142,9 @@ void init_file_symbols() {
 void init_file_sys(Object *sys) {
 	Object *file_object = new_object();
 	set(sys, File, file_object);
-	set(file_object, sym("open:mode:"),               new_func(native_file_open));
+	set(file_object, sym("open:"),                    new_func(native_file_open));
+	set(file_object, sym("open:mode:"),               new_func(native_file_open_mode));
 	set(file_object, sym("close"),                    new_func(native_file_close));
-	set(file_object, sym("read:into:offset:length:"), new_func(native_file_read));
+	set(file_object, sym("read:into:offset:length:"), new_func(native_file_read_into_offset_length));
 	set(file_object, sym("eof"),                      new_func(native_file_eof));
 }

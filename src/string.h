@@ -1,5 +1,6 @@
 
 Object *String = new_object();
+Object *StringObject = new_object();
 
 struct StringBuffer {
   Object *type;
@@ -45,16 +46,19 @@ StringBuffer *new_string_buffer(char const* s) {
 Object *new_string(char const* s) {
   Object *obj = new_object();
   obj->buffer = (Buffer *) new_string_buffer(s);
+  set(obj, Parent, StringObject);
   return obj;
 }
 
 Object *new_string(Fixnum reserved) {
   Object *obj = new_object();
   obj->buffer = (Buffer *) new_string_buffer(reserved);
+  set(obj, Parent, StringObject);
   return obj;
 }
 
 def_get_buffer(String, string);
+def_set_buffer(String, string);
 
 Fixnum is_string(Object *obj) {
   if ( obj && obj->buffer && obj->buffer->type == String ) {
@@ -104,7 +108,7 @@ Fixnum string_equals(Object *s1, char const* s2) {
 
 void string_truncate_buffer(Object *str, Fixnum len) {
   StringBuffer *buf = get_string_buffer(str);
-  if ( buf != 0 && buf->reserved <= len ) {
+  if ( buf != 0 && len <= buf->reserved ) {
     buf->length = len;
     buf->data[buf->length] = 0;
   }
@@ -123,7 +127,7 @@ void string_set_reserve(Object *str, Fixnum new_size) {
   nb->length = len;
   nb->data[nb->length] = 0;
 
-  str->buffer = (Buffer *)nb;
+  set_string_buffer(str, nb);
   mem_free(cb);
 }
 
@@ -163,6 +167,7 @@ Object *string_substring(Object *string, Fixnum start, Fixnum end) {
     Object *ret = new_string(end - start);
     StringBuffer *ret_buf = get_string_buffer(ret);
     rjl_memcpy(ret_buf->data, buf->data + start, end - start);
+    ret_buf->length = end - start;
     return ret;
   }
   return 0;

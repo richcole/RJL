@@ -7,6 +7,7 @@ struct ArrayBuffer {
 };
 
 Object* Array = new_object();
+Object* ArrayObject = new_object();
 
 ArrayBuffer *new_array_buffer(int len) {
   ArrayBuffer *buf = (ArrayBuffer *)mem_alloc(sizeof(ArrayBuffer)+(len*sizeof(Object *)));
@@ -19,10 +20,12 @@ ArrayBuffer *new_array_buffer(int len) {
 Object* new_array() {
   Object *array = new_object();
   array->buffer = (Buffer *) new_array_buffer(10);
+  set(array, Parent, ArrayObject);
   return array;
 }
 
 def_get_buffer(Array, array);
+def_set_buffer(Array, array);
 
 Fixnum array_length(Object *array) {
   ArrayBuffer *buf = get_array_buffer(array);
@@ -57,8 +60,8 @@ void grow_array(Object *array) {
       array_buffer->length * sizeof(Object *)
     );
     new_buffer->tail = array_buffer->tail;
+    set_array_buffer(array, new_buffer);
     mem_free(array_buffer);
-    array->buffer = (Buffer *)new_buffer;
   }
 }
 
@@ -67,6 +70,7 @@ void push(Object *array, Object *value) {
   if ( array_buffer != 0 ) {
     if ( array_buffer->tail >= array_buffer->length ) {
       grow_array(array);
+      array_buffer = get_array_buffer(array);
     }
     array_buffer->data[array_buffer->tail++] = value;
   }
@@ -84,7 +88,7 @@ Object *pop(Object *array) {
 
 void push_slot(Object *obj, Object *slot, Object *val) {
   Object *stack = get(obj, slot);
-  if ( exists(stack) ) {
+  if ( ! exists(stack) ) {
     stack = new_array();
     set(obj, slot, stack);
   }

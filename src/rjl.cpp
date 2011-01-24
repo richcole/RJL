@@ -48,6 +48,12 @@ void code_send(Object *code, Object *slot) {
   push(code, slot);
 }
 
+void code_self_send(Object *code, Object *slot) {
+  push(code, Self);
+  push(code, Send);
+  push(code, slot);
+}
+
 void code_self(Object *code) {
   push(code, Self);
 }
@@ -60,6 +66,11 @@ void code_term(Object *code) {
   push(code, Term);
 }
 
+void code_arg(Object *code, Object *arg_name) {
+  push(code, Arg);
+  push(code, arg_name);
+}
+
 Object *top_level_frame(Object *sys) {
   Object *code       = new_array();
   Object *frame      = new_frame(0, code, 0);
@@ -68,28 +79,39 @@ Object *top_level_frame(Object *sys) {
   set_lexical_parent(frame, sys);
 
   // main parent code
-  code_push(code, new_string("Hello World"));
-  code_self(code);
-  code_send(code, sym("println:"));
+  code_self_send(code, sym("args"));
+  code_send(code, sym("pop"));
+  code_self_send(code, File);
+  code_send(code, sym("open:"));
+  code_self_send(code, sym("Scanner"));
+  code_send(code, sym("tokenize:"));
   code_term(code);
 
   // parent catch block
   push_slot(frame, Catch, object(array_length(code)));
-  push(code, Arg);
-  push(code, sym("ex"));
-  push(code, Push);
-  push(code, new_string("Exception raised."));
-  push(code, Push);
-  push(code, Self);
-  code_push(code, sym("println:"));
+  code_arg(code, sym("ex"));
+  code_push(code, new_string("Exception raised."));
+  code_self_send(code, sym("println:"));
+  code_self_send(code, sym("ex"));
+  code_send(code, Reason);
+  code_self_send(code, sym("println:"));
   push(code, Return);
 
   return frame;
 }
 
-int main() {
+Object* parse_arguments(int argc, char **argv) {
+  Object *args = new_array();
+  for(int i=1;i<argc; ++i) {
+    push(args, new_string(argv[i]));
+  }
+  return args;
+}
+
+int main(int argc, char **argv) {
   init_symbols();
   Object *sys = init_sys();
+  set(sys, sym("args"), parse_arguments(argc, argv));
 
   interp(top_level_frame(sys));
 };

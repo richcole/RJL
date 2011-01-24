@@ -11,6 +11,17 @@ Object *find_catch_frame(Object *frame) {
   return Nil;
 }
 
+Fixnum is_exception(Object *ex) {
+  Object *parent = get(ex, Parent);
+  if ( parent != Undefined ) {
+    if ( parent == Exception ) {
+      return 1;
+    }
+    parent = get(ex, Parent);
+  }
+  return 0;
+}
+
 Object *new_exception_frame(Object *frame, Object *ex) {
   Object *catch_frame = new_object(find_catch_frame(frame));
   push(get(catch_frame, Stack), ex);
@@ -24,7 +35,7 @@ Object *new_exception(Object *frame, char const* reason) {
   set(ex, Frame,  frame);
   set(ex, Reason, new_string(reason));
 
-  return new_exception_frame(frame, ex);
+  return ex;
 }
 
 void init_exception_symbols() {

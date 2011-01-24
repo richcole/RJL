@@ -6,7 +6,7 @@ Object* send(Object *frame, Object *slot) {
     return new_frame(target, value, frame);
   }
   else if ( is_func(value) ) {
-    return call_func(frame, value);
+    return call_func(target, value, frame);
   }
   else {
     push(stack, value);
@@ -28,6 +28,7 @@ Object* ret(Object *frame) {
 void interp(Object *frame) {
   Fixnum pc     = 0;
   Object *instr = 0;
+  Object *new_frame = 0;
 
   while(frame != 0) {
 
@@ -38,29 +39,39 @@ void interp(Object *frame) {
       push(get(frame, Stack), get_code(frame, pc+1));
       pc += 2;
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == Arg ) {
       set(get(frame, Local), get_code(frame, pc+1), pop(get(get(frame, Parent), Stack)));
       pc += 2;
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == Self ) {
       push(get(frame, Stack), get(frame, Local));
       pc += 1;
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == Send ) {
-      frame = send(frame, get_code(frame, pc+1));
-      pc += 2;
-      set_fixnum(frame, Pc, pc);
+      new_frame = send(frame, get_code(frame, pc+1));
+      if ( is_exception(new_frame) ) {
+        frame = new_exception_frame(frame, new_frame);
+      }
+      else if ( new_frame == frame ) {
+        pc += 2;
+        set_fixnum(frame, Pc, pc);
+      }
+      continue;
     }
 
     if ( instr == Jmp ) { 
       pc += get_code_fixnum(frame, pc+1);
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == JmpZ ) {
@@ -71,6 +82,7 @@ void interp(Object *frame) {
         pc += 2;
       }
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == JmpNZ ) {
@@ -81,15 +93,19 @@ void interp(Object *frame) {
         pc += 2;
       }
       set_fixnum(frame, Pc, pc);
+      continue;
     }
 
     if ( instr == Return ) {
       frame = ret(frame);
+      continue;
     }
 
     if ( instr == Term ) {
       return;
     }
+
+    abort();
   }
 }
 

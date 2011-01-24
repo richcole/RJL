@@ -42,8 +42,8 @@ void scan_context_push_token(Object *sc, Object *symbol) {
 	set(token, sym("symbol"),      symbol);
   set(token, sym("value"),       
     string_substring(get(sc, sym("line")), 
-      fixnum(get(sc, sym("tok_start"))), 
-      fixnum(get(sc, sym("tok_end")))
+      fixnum(get(sc, sym("token_start"))), 
+      fixnum(get(sc, sym("token_end")))
     )
   );
   push(get(sc, sym("tokens")), token);
@@ -70,8 +70,8 @@ Object *new_scan_context(Object *file) {
   set(sc, sym("line_number"), object(0));
   set(sc, sym("char_number"), object(0));
   set(sc, sym("index"),       object(0));
-  set(sc, sym("tok_start"),   object(0));
-  set(sc, sym("tok_end"),     object(0));
+  set(sc, sym("token_start"),   object(0));
+  set(sc, sym("token_end"),     object(0));
   set(sc, sym("tokens"),      new_array());
   return sc;
 };
@@ -85,7 +85,7 @@ void scan_context_read_line(Object *sc) {
   Object *file = get(sc, sym("file"));
   Object *line = get(sc, sym("line"));
   native_call(line, sym("shift:"), get(sc, sym("index")));
-  set(sc, sym("index"), object(string_reserve(line) - string_length(line)));
+  set(sc, sym("index"), 0);
   native_call(file, sym("read:into:offset:length:"), 
     line, object(string_length(line)), 
     object(string_reserve(line) - string_length(line))
@@ -95,8 +95,8 @@ void scan_context_read_line(Object *sc) {
 };
 
 Fixnum scan_context_line_is_exhausted(Object *sc) {
-  Object *line = get(sc, sym("line"));
-  if ( line != 0 && line->length < fixnum(get(sc, sym("index"))) ) {
+  StringBuffer *buf = get_string_buffer(get(sc, sym("line")));
+  if ( buf != 0 && buf->length > fixnum(get(sc, sym("index"))) ) {
     return 0;
   }
   else {
@@ -137,15 +137,10 @@ void scan_context_newline(Object *sc) {
 }
 
 char scan_context_advance(Object *sc) {
-  if ( scan_context_has_next(sc) ) {
-    scan_context_incr(sc, "char_number");
-    scan_context_incr(sc, "token_end");
-    scan_context_incr(sc, "index");
-    return scan_context_curr(sc);
-  }
-  else {
-    return 0;
-  }
+  scan_context_incr(sc, "char_number");
+  scan_context_incr(sc, "token_end");
+  scan_context_incr(sc, "index");
+  return scan_context_curr(sc);
 }
 
 void scan_context_mark(Object *sc) {
@@ -224,6 +219,19 @@ Object *tokenize(Object *file) {
             continue;
       }
 
+      if ( ch == '"' ) {
+        ch = scan_context_advance(sc);
+        while ( ch != '"' && ch != 0 ) {
+          if ( ch == '\\' ) {
+            scan_context_advance(sc);
+          }
+          ch = scan_context_advance(sc);
+        }            
+        scan_context_advance(sc);
+        scan_context_push_token(sc, String);
+        continue;
+      }
+
       if  (ch == '-' && is_digit(scan_context_next(sc))) {
         if ( ! (ch = scan_context_advance(sc)) ) break;
       }        
@@ -264,10 +272,13 @@ Object *tokenize(Object *file) {
   return sc;
 }
 
-Object* native_scanner_tokenize(Object *frame) {
+Object* native_scanner_tokenize(Object *frame, Object *self) {
   Object *file = pop(get(frame, Stack));
+  if ( ! is_file(file) ) {
+    return new_exception(frame, "Expected a file argument");
+  }
   push(get(frame, Stack), tokenize(file));
-  return file;
+  return frame;
 }
 
 void init_scanner_sys(Object *sys) {
