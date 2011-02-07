@@ -1,7 +1,6 @@
 
 Object *LineNumber = new_object();
 Object *CharNumber = new_object();
-Object *Symbol     = new_object();
 Object *Eof        = new_object();
 Object *Read       = new_object();
 Object *BlockOpen  = new_object();
@@ -19,7 +18,6 @@ Object *Ident      = new_object();
 void init_scanner_symbols() {
   add_sym(LineNumber,    "line_number");
   add_sym(CharNumber,    "char_number");
-  add_sym(Symbol,        "symbol");
   add_sym(Eof,           "eof");
   add_sym(Read,          "read");
   add_sym(BlockOpen,     "block_open");
@@ -35,11 +33,11 @@ void init_scanner_symbols() {
   add_sym(Ident,         "ident");
 };
 
-void scan_context_push_token(Object *sc, Object *symbol) {
+void scan_context_push_token(Object *sc, Object *type) {
 	Object *token = new_object();
 	set(token, sym("line_number"), get(sc, sym("line_number")));
   set(token, sym("char_number"), get(sc, sym("char_number")));
-	set(token, sym("symbol"),      symbol);
+	set(token, sym("type"),        type);
   set(token, sym("value"),       
     string_substring(get(sc, sym("line")), 
       fixnum(get(sc, sym("token_start"))), 
@@ -228,7 +226,7 @@ Object *tokenize(Object *file) {
           ch = scan_context_advance(sc);
         }            
         scan_context_advance(sc);
-        scan_context_push_token(sc, String);
+        scan_context_push_token(sc, sym("string"));
         continue;
       }
 

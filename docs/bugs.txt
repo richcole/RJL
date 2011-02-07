@@ -1,0 +1,7 @@
+Scanner:
+  - doesn't get the line number correct
+  - string literals include their quotes
+  - only ident tokens are produced not arg_idents
+
+Parser:
+  - because of errors in the scanner the expression tree is wrong for test_001.r

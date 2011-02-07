@@ -39,7 +39,7 @@ void dump(Object *obj, Fixnum indent, Object *visited) {
   else if ( is_object(obj) ) {
     set(visited, obj, True);
     if ( obj->occupied > 0 ) {
-      fprintf(stdout, "{\n");
+      fprintf(stdout, "{ %p \n", obj);
       for(i=0;i<obj->length;++i) {
         Object *key = obj->table[i].key;
         if ( key != 0 && key != Dirty ) {
@@ -55,7 +55,7 @@ void dump(Object *obj, Fixnum indent, Object *visited) {
       }
     }
     else {
-      fprintf(stdout, "{");
+      fprintf(stdout, "{ %p", obj);
     }
 
     if ( is_array(obj) ) {
@@ -96,13 +96,21 @@ void dump(Object *obj) {
   dump(obj, 0, new_object());
 }
 
+Object* native_dump(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  dump(pop(stack));
+  push(stack, Nil);
+  return frame;
+}
+
 Object *native_string_reserve(Object *frame, Object *self) {
-  Object* new_size = pop(get(frame, Stack));
+  Object *stack = get(frame, Stack);
+  Object* new_size = pop(stack);
   if ( ! is_fixnum(new_size) ) {
     return new_exception(frame, "Expected fixnum argument");
   }
   string_set_reserve(self, fixnum(new_size));
-  push(get(frame, Stack), Nil);
+  push(stack, Nil);
   return frame;
 }
 
@@ -143,6 +151,7 @@ Object *native_array_length(Object *frame, Object *self) {
 
 void init_native_sys(Object *sys) {
   set(sys, sym("println:"), new_func(native_print));
+  set(sys, sym("dump:"), new_func(native_dump));
 
   set(sys, String, StringObject);
   set(StringObject, sym("reserve:"), new_func(native_string_reserve));
