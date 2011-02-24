@@ -34,14 +34,32 @@ void init_scanner_symbols() {
 };
 
 void scan_context_push_token(Object *sc, Object *type) {
-	Object *token = new_object();
-	set(token, sym("line_number"), get(sc, sym("line_number")));
-  set(token, sym("char_number"), get(sc, sym("char_number")));
-	set(token, sym("type"),        type);
+  Object *token = new_object();
+  Fixnum token_start = fixnum(get(sc, sym("token_start")));
+  Fixnum line_start = fixnum(get(sc, sym("line_start")));
+  set(token, sym("line_number"), get(sc, sym("line_number")));
+  set(token, sym("char_number"), object(token_start - line_start));
+  set(token, sym("type"),        type);
   set(token, sym("value"),       
-    string_substring(get(sc, sym("line")), 
-      fixnum(get(sc, sym("token_start"))), 
-      fixnum(get(sc, sym("token_end")))
+      string_substring(get(sc, sym("line")), 
+		       fixnum(get(sc, sym("token_start"))), 
+		       fixnum(get(sc, sym("token_end")))
+    )
+  );
+  push(get(sc, sym("tokens")), token);
+};
+
+void scan_context_push_string_token(Object *sc, Object *type) {
+  Object *token = new_object();
+  Fixnum token_start = fixnum(get(sc, sym("token_start")));
+  Fixnum line_start = fixnum(get(sc, sym("line_start")));
+  set(token, sym("line_number"), get(sc, sym("line_number")));
+  set(token, sym("char_number"), object(token_start - line_start));
+  set(token, sym("type"),        type);
+  set(token, sym("value"),       
+      string_substring(get(sc, sym("line")), 
+		       fixnum(get(sc, sym("token_start")))+1, 
+		       fixnum(get(sc, sym("token_end")))-1
     )
   );
   push(get(sc, sym("tokens")), token);
@@ -132,13 +150,18 @@ void scan_context_incr(Object *sc, char const* sym_str) {
 void scan_context_newline(Object *sc) {
   scan_context_incr(sc, "line_number");
   set(sc, sym("char_number"), object(0));
+  set(sc, sym("line_start"), get(sc, sym("index")));
 }
 
 char scan_context_advance(Object *sc) {
   scan_context_incr(sc, "char_number");
   scan_context_incr(sc, "token_end");
   scan_context_incr(sc, "index");
-  return scan_context_curr(sc);
+  char c = scan_context_curr(sc);
+  if ( c == '\n' ) {
+    scan_context_newline(sc);
+  }
+  return c;
 }
 
 void scan_context_mark(Object *sc) {
@@ -161,28 +184,28 @@ Fixnum is_ident_continue(char c) {
 };
 
 Object *tokenize(Object *file) {
-	
-	Object *sc = new_scan_context(file);
-	
-	while( scan_context_eof(sc) == False ) {
-		scan_context_read_line(sc);
-		
-		while(! scan_context_line_is_exhausted(sc)) {
-		  char ch = scan_context_curr(sc);
+  
+  Object *sc = new_scan_context(file);
+  
+  while( scan_context_eof(sc) == False ) {
+    scan_context_read_line(sc);
+    
+    while(! scan_context_line_is_exhausted(sc)) {
+      char ch = scan_context_curr(sc);
 
-			if ( is_white_space(ch) ) {
+      if ( is_white_space(ch) ) {
         scan_context_advance(sc);
-				continue;
-			}
-			
-			if ( is_line_ending(ch) ) {
+        continue;
+      }
+      
+      if ( is_line_ending(ch) ) {
         scan_context_advance(sc);
-				continue;
-			}
+        continue;
+      }
 
       scan_context_mark(sc);
 
-			switch(ch) {
+      switch(ch) {
           case '{': 
             scan_context_push_token(sc, BlockOpen);
             scan_context_advance(sc);
@@ -226,7 +249,7 @@ Object *tokenize(Object *file) {
           ch = scan_context_advance(sc);
         }            
         scan_context_advance(sc);
-        scan_context_push_token(sc, sym("string"));
+        scan_context_push_string_token(sc, sym("string"));
         continue;
       }
 
@@ -265,7 +288,7 @@ Object *tokenize(Object *file) {
         scan_context_push_token(sc, Ident);
       }
     }
-	}
+  }
 
   return sc;
 }

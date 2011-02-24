@@ -1,6 +1,4 @@
 Scanner:
-  - doesn't get the line number correct
-  - string literals include their quotes
   - only ident tokens are produced not arg_idents
 
 Parser:
