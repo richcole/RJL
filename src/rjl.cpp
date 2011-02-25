@@ -16,6 +16,7 @@
 #include "file.h"
 #include "scanner.h"
 #include "parser.h"
+#include "code_generator.h"
 
 #include "interp.h"
 
@@ -29,6 +30,7 @@ void init_symbols() {
   init_general_symbols();
   init_scanner_symbols();
   init_parser_symbols();
+  init_code_generator_symbols();
 }
 
 Object* init_sys() {
@@ -37,6 +39,7 @@ Object* init_sys() {
   init_native_sys(sys);
   init_scanner_sys(sys);
   init_parser_sys(sys);
+  init_code_generator_sys(sys);
   return sys;
 }
 
@@ -89,6 +92,8 @@ Object *top_level_frame(Object *sys) {
   code_send(code, sym("tokenize:"));
   code_self_send(code, sym("Parser"));
   code_send(code, sym("parse:"));
+  code_self_send(code, sym("CodeGenerator"));
+  code_send(code, sym("generate:"));
   code_self_send(code, sym("dump:"));
   code_term(code);
 

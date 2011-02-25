@@ -1,4 +1,4 @@
 { sys |
-  println:: ( sys get print:);
+  println:: (sys get: print:);
   println: "Hello World";
 }
