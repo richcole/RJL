@@ -68,7 +68,7 @@ Object* parse_expr(Object *pc) {
     advance(pc);
   }
   else if ( have(pc, sym("arg_ident")) ) {
-    set(expr, sym("type"), sym("send_expr"));
+    set(expr, sym("type"), sym("send_arg_expr"));
     while ( have(pc, sym("arg_ident")) ) {
       push_slot(expr, sym("arg_names"), curr(pc));
       advance(pc);
@@ -84,9 +84,9 @@ Object* parse_expr(Object *pc) {
 }
 
 Object* parse_stmt(Object *pc) {
-  Object *stmt = new_object();
+  Object *stmt = 0;
   if ( have_set(pc, sym("begin_expr")) ) {
-    set(stmt, sym("expr"), parse_expr_list(pc));
+    stmt = parse_expr_list(pc);
     mustbe(pc, sym("semi"));
   }
   return stmt;
@@ -116,7 +116,7 @@ void create_sets(Object *pc) {
   Object *begin_expr = new_object();
   set(pc, sym("begin_expr"), begin_expr);
   set(begin_expr, sym("ident"), sym("true"));
-  set(begin_expr, sym("ident_arg"), sym("true"));
+  set(begin_expr, sym("arg_ident"), sym("true"));
   set(begin_expr, sym("string"), sym("true"));
 };
 

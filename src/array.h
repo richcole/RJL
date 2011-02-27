@@ -86,6 +86,16 @@ Object *pop(Object *array) {
   return 0;
 }
 
+Object *array_last(Object *array) {
+  ArrayBuffer *array_buffer = get_array_buffer(array);
+  if ( array_buffer != 0 ) {
+    if ( array_buffer->tail > 0 ) {
+      return array_buffer->data[array_buffer->tail-1];
+    }
+  }
+  return 0;
+}
+
 void push_slot(Object *obj, Object *slot, Object *val) {
   Object *stack = get(obj, slot);
   if ( ! exists(stack) ) {

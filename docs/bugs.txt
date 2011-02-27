@@ -1,5 +1,8 @@
-Scanner:
-  - only ident tokens are produced not arg_idents
+Testing
+  - Only test_001 has been executed at this time
 
-Parser:
-  - because of errors in the scanner the expression tree is wrong for test_001.r
+Top Level Code:
+  - Executing a program causes the scanner, parse, and code generation context
+    objects to be dumped.
+
+

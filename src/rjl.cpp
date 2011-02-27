@@ -14,8 +14,11 @@
 #include "native.h"
 
 #include "file.h"
+#include "setter.h"
 #include "scanner.h"
 #include "parser.h"
+#include "foreach.h"
+#include "code.h"
 #include "code_generator.h"
 
 #include "interp.h"
@@ -23,7 +26,7 @@
 void init_symbols() {
   init_string_symbols();
   init_symbol_table_symbols();
-  init_array_symbols();	
+  init_array_symbols();
   init_func_symbols();
   init_file_symbols();
   init_exception_symbols();
@@ -35,45 +38,12 @@ void init_symbols() {
 
 Object* init_sys() {
   Object *sys = new_object();
-	init_file_sys(sys);
+  init_file_sys(sys);
   init_native_sys(sys);
   init_scanner_sys(sys);
   init_parser_sys(sys);
   init_code_generator_sys(sys);
   return sys;
-}
-
-void code_push(Object *code, Object *val) {
-  push(code, Push);
-  push(code, val);
-}
-
-void code_send(Object *code, Object *slot) {
-  push(code, Send);
-  push(code, slot);
-}
-
-void code_self_send(Object *code, Object *slot) {
-  push(code, Self);
-  push(code, Send);
-  push(code, slot);
-}
-
-void code_self(Object *code) {
-  push(code, Self);
-}
-
-void code_return(Object *code) {
-  push(code, Return);
-}
-
-void code_term(Object *code) {
-  push(code, Term);
-}
-
-void code_arg(Object *code, Object *arg_name) {
-  push(code, Arg);
-  push(code, arg_name);
 }
 
 Object *top_level_frame(Object *sys) {
@@ -94,7 +64,12 @@ Object *top_level_frame(Object *sys) {
   code_send(code, sym("parse:"));
   code_self_send(code, sym("CodeGenerator"));
   code_send(code, sym("generate:"));
+  code_self_send(code, sym("context:"));
+  code_self_send(code, sym("context"));
   code_self_send(code, sym("dump:"));
+  code_push(code, sys);
+  code_self_send(code, sym("context"));
+  code_send(code, sym("code:"));
   code_term(code);
 
   // parent catch block

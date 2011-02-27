@@ -8,6 +8,10 @@ Object* send(Object *frame, Object *slot) {
   else if ( is_func(value) ) {
     return call_func(target, value, frame);
   }
+  else if ( value == Undefined && is_setter_slot(slot) ) {
+    set(target, setter_field(slot), pop(stack));
+    return frame;
+  }
   else {
     push(stack, value);
     return frame;
@@ -17,12 +21,12 @@ Object* send(Object *frame, Object *slot) {
 Object* ret(Object *frame) {
   Object *stack        = get(frame, Stack);
   Object *ret_value    = pop(stack);
-  Object *parent_frame = get(frame, Parent);
-  if ( exists(parent_frame) ) {
-    Object *parent_stack = get(parent_frame, Stack);
-    push(parent_stack, ret_value);
+  Object *return_frame = get(frame, Return);
+  if ( exists(return_frame) ) {
+    Object *return_stack = get(return_frame, Stack);
+    push(return_stack, ret_value);
   }
-  return parent_frame;
+  return return_frame;
 }
 
 void interp(Object *frame) {
@@ -43,7 +47,7 @@ void interp(Object *frame) {
     }
 
     if ( instr == Arg ) {
-      set(get(frame, Local), get_code(frame, pc+1), pop(get(get(frame, Parent), Stack)));
+      set(get(frame, Local), get_code(frame, pc+1), pop(get(get(frame, Return), Stack)));
       pc += 2;
       set_fixnum(frame, Pc, pc);
       continue;
@@ -64,6 +68,9 @@ void interp(Object *frame) {
       else if ( new_frame == frame ) {
         pc += 2;
         set_fixnum(frame, Pc, pc);
+      }
+      else {
+        frame = new_frame;
       }
       continue;
     }

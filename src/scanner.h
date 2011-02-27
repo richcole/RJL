@@ -1,6 +1,4 @@
 
-Object *LineNumber = new_object();
-Object *CharNumber = new_object();
 Object *Eof        = new_object();
 Object *Read       = new_object();
 Object *BlockOpen  = new_object();
@@ -14,55 +12,38 @@ Object *Semi       = new_object();
 Object *Number     = new_object();
 Object *Line       = new_object();
 Object *Ident      = new_object();
-
-void init_scanner_symbols() {
-  add_sym(LineNumber,    "line_number");
-  add_sym(CharNumber,    "char_number");
-  add_sym(Eof,           "eof");
-  add_sym(Read,          "read");
-  add_sym(BlockOpen,     "block_open");
-  add_sym(BlockClose,    "block_close");
-  add_sym(GroupOpen,     "group_open");
-  add_sym(GroupClose,    "group_close");
-  add_sym(ArrayOpen,     "array_open");
-  add_sym(ArrayClose,    "array_close");
-  add_sym(Pipe,          "pipe");
-  add_sym(Semi,          "semi");
-  add_sym(Number,        "number");
-  add_sym(Line,          "line");
-  add_sym(Ident,         "ident");
-};
+Object *Operator   = new_object();
 
 void scan_context_push_token(Object *sc, Object *type) {
   Object *token = new_object();
-  Fixnum token_start = fixnum(get(sc, sym("token_start")));
-  Fixnum line_start = fixnum(get(sc, sym("line_start")));
-  set(token, sym("line_number"), get(sc, sym("line_number")));
-  set(token, sym("char_number"), object(token_start - line_start));
-  set(token, sym("type"),        type);
-  set(token, sym("value"),       
-      string_substring(get(sc, sym("line")), 
-		       fixnum(get(sc, sym("token_start"))), 
-		       fixnum(get(sc, sym("token_end")))
+  Fixnum token_start = fixnum(get(sc, "token_start"));
+  Fixnum line_start  = fixnum(get(sc, "line_start"));
+  set(token, "line_number", get(sc, "line_number"));
+  set(token, "char_number", object(token_start - line_start));
+  set(token, "type",        type);
+  set(token, "value",       
+      string_substring(get(sc, "line"), 
+		       fixnum(get(sc, "token_start")), 
+		       fixnum(get(sc, "token_end"))
     )
   );
-  push(get(sc, sym("tokens")), token);
+  push(get(sc, "tokens"), token);
 };
 
 void scan_context_push_string_token(Object *sc, Object *type) {
   Object *token = new_object();
-  Fixnum token_start = fixnum(get(sc, sym("token_start")));
-  Fixnum line_start = fixnum(get(sc, sym("line_start")));
-  set(token, sym("line_number"), get(sc, sym("line_number")));
-  set(token, sym("char_number"), object(token_start - line_start));
-  set(token, sym("type"),        type);
-  set(token, sym("value"),       
-      string_substring(get(sc, sym("line")), 
-		       fixnum(get(sc, sym("token_start")))+1, 
-		       fixnum(get(sc, sym("token_end")))-1
+  Fixnum token_start = fixnum(get(sc, "token_start"));
+  Fixnum line_start  = fixnum(get(sc, "line_start"));
+  set(token, "line_number", get(sc, "line_number"));
+  set(token, "char_number", object(token_start - line_start));
+  set(token, "type",        type);
+  set(token, "value",       
+      string_substring(get(sc, "line"), 
+		       fixnum(get(sc, "token_start"))+1, 
+		       fixnum(get(sc, "token_end"))-1
     )
   );
-  push(get(sc, sym("tokens")), token);
+  push(get(sc, "tokens"), token);
 };
 
 Fixnum is_white_space(char c) {
@@ -79,40 +60,52 @@ Fixnum is_line_ending(char c) {
   return 0;
 }
 
+Fixnum is_arg_ident(Object *tok) {
+  return is_setter_slot(get(tok, "value"));
+}
+
+void detect_arg_ident(Object *sc) {
+  Object *tok = array_last(get(sc, "tokens"));
+  if (is_arg_ident(tok)) {
+    set(tok, "type", "arg_ident");
+  }
+}
+
 Object *new_scan_context(Object *file) {
   Object *sc = new_object();
-  set(sc, sym("file"),        file);
-  set(sc, sym("line"),        new_string(1024));
-  set(sc, sym("line_number"), object(0));
-  set(sc, sym("char_number"), object(0));
-  set(sc, sym("index"),       object(0));
-  set(sc, sym("token_start"),   object(0));
-  set(sc, sym("token_end"),     object(0));
-  set(sc, sym("tokens"),      new_array());
+  set(sc, "file",        file);
+  set(sc, "line",        new_string(1024));
+  set(sc, "line_number", object(0));
+  set(sc, "line_start", object(0));
+  set(sc, "char_number", object(0));
+  set(sc, "index",       object(0));
+  set(sc, "token_start",   object(0));
+  set(sc, "token_end",     object(0));
+  set(sc, "tokens",      new_array());
   return sc;
 };
 
 Object *scan_context_eof(Object *sc) {
-  Object *file = get(sc, sym("file"));
-  return native_call(file, sym("eof"));
+  Object *file = get(sc, "file");
+  return native_call(file, "eof");
 };
 
 void scan_context_read_line(Object *sc) {
-  Object *file = get(sc, sym("file"));
-  Object *line = get(sc, sym("line"));
-  native_call(line, sym("shift:"), get(sc, sym("index")));
-  set(sc, sym("index"), 0);
-  native_call(file, sym("read:into:offset:length:"), 
+  Object *file = get(sc, "file");
+  Object *line = get(sc, "line");
+  native_call(line, "shift:", get(sc, "index"));
+  set(sc, "index", object(0));
+  native_call(file, "read:into:offset:length:", 
     line, object(string_length(line)), 
     object(string_reserve(line) - string_length(line))
   );
-  set(sc, sym("line_number"), object(fixnum(get(sc, sym("line_number")))+1));
-  set(sc, sym("char_number"), object(0));
+  set(sc, "line_number", object(fixnum(get(sc, "line_number"))+1));
+  set(sc, "char_number", object(0));
 };
 
 Fixnum scan_context_line_is_exhausted(Object *sc) {
-  StringBuffer *buf = get_string_buffer(get(sc, sym("line")));
-  if ( buf != 0 && buf->length > fixnum(get(sc, sym("index"))) ) {
+  StringBuffer *buf = get_string_buffer(get(sc, "line"));
+  if ( buf != 0 && buf->length > fixnum(get(sc, "index")) ) {
     return 0;
   }
   else {
@@ -121,20 +114,20 @@ Fixnum scan_context_line_is_exhausted(Object *sc) {
 }
 
 char scan_context_curr(Object *sc) {
-  Object *line  = get(sc, sym("line"));
-  Fixnum  index = fixnum(get(sc, sym("index")));
+  Object *line  = get(sc, "line");
+  Fixnum  index = fixnum(get(sc, "index"));
   return string_get_at(line, index);
 }
 
 char scan_context_next(Object *sc) {
-  Object *line  = get(sc, sym("line"));
-  Fixnum  index = fixnum(get(sc, sym("index")))+1;
+  Object *line  = get(sc, "line");
+  Fixnum  index = fixnum(get(sc, "index"))+1;
   return string_get_at(line, index);
 }
 
 Fixnum scan_context_has_next(Object *sc) {
-  Object *line  = get(sc, sym("line"));
-  Fixnum  index = fixnum(get(sc, sym("index")));
+  Object *line  = get(sc, "line");
+  Fixnum  index = fixnum(get(sc, "index"));
   if (  index+1 < string_length(line) ) {
     return 1;
   }
@@ -149,8 +142,8 @@ void scan_context_incr(Object *sc, char const* sym_str) {
 
 void scan_context_newline(Object *sc) {
   scan_context_incr(sc, "line_number");
-  set(sc, sym("char_number"), object(0));
-  set(sc, sym("line_start"), get(sc, sym("index")));
+  set(sc, "char_number", object(0));
+  set(sc, "line_start", get(sc, "index"));
 }
 
 char scan_context_advance(Object *sc) {
@@ -165,13 +158,26 @@ char scan_context_advance(Object *sc) {
 }
 
 void scan_context_mark(Object *sc) {
-  set(sc, sym("token_start"), get(sc, sym("index")));
-  set(sc, sym("token_end"),   get(sc, sym("index")));
+  set(sc, "token_start", get(sc, "index"));
+  set(sc, "token_end",   get(sc, "index"));
 }
 
 Fixnum is_digit(char c) {
   return c >= '0' && c <= '9';
 };
+
+Fixnum is_punct(char c) {
+  return  (c == '-') || (c == '<')  || (c == '>') ||
+    (c == '+') || (c == '&')  || (c == '=');
+}
+
+Fixnum is_operator_start(char c) {
+  return is_punct(c);
+}
+
+Fixnum is_operator_continue(char c) {
+  return is_punct(c);
+}
 
 Fixnum is_ident_start(char c) {
   return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
@@ -286,6 +292,15 @@ Object *tokenize(Object *file) {
           if ( ! (ch = scan_context_advance(sc)) ) break;
         }
         scan_context_push_token(sc, Ident);
+        detect_arg_ident(sc);
+      }
+
+      if ( is_operator_start(ch) ) {
+        if ( ! (ch = scan_context_advance(sc)) ) break;
+        while( is_operator_continue(ch) ) {
+          if ( ! (ch = scan_context_advance(sc)) ) break;
+        }
+        scan_context_push_token(sc, Operator);
       }
     }
   }
@@ -302,8 +317,25 @@ Object* native_scanner_tokenize(Object *frame, Object *self) {
   return frame;
 }
 
+void init_scanner_symbols() {
+  add_sym(Eof,           "eof");
+  add_sym(Read,          "read");
+  add_sym(BlockOpen,     "block_open");
+  add_sym(BlockClose,    "block_close");
+  add_sym(GroupOpen,     "group_open");
+  add_sym(GroupClose,    "group_close");
+  add_sym(ArrayOpen,     "array_open");
+  add_sym(ArrayClose,    "array_close");
+  add_sym(Pipe,          "pipe");
+  add_sym(Semi,          "semi");
+  add_sym(Number,        "number");
+  add_sym(Line,          "line");
+  add_sym(Ident,         "ident");
+  add_sym(Operator,      "operator");
+};
+
 void init_scanner_sys(Object *sys) {
   Object *scanner_object = new_object();
-  set(sys, sym("Scanner"), scanner_object);
-  set(scanner_object, sym("tokenize:"), new_func(native_scanner_tokenize));
+  set(sys, "Scanner", scanner_object);
+  set(scanner_object, "tokenize:", new_func(native_scanner_tokenize));
 }

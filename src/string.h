@@ -173,6 +173,22 @@ Object *string_substring(Object *string, Fixnum start, Fixnum end) {
   return 0;
 }
 
+void string_append(Object *str, Object *arg) {
+  StringBuffer *str_buf = get_string_buffer(str);
+  StringBuffer *arg_buf = get_string_buffer(arg);
+  if ( arg_buf == 0 || str_buf == 0 ) {
+    return;
+  }
+  Fixnum new_length = str_buf->length + arg_buf->length;
+  if ( new_length > str_buf->reserved ) {
+    string_set_reserve(str, new_length);
+  }
+  rjl_memcpy(str_buf->data + str_buf->length, arg_buf->data, arg_buf->length);
+  str_buf->length = new_length;
+  str_buf->data[str_buf->length + arg_buf->length] = 0;
+}
+
+
 // forward decl
 void add_sym(Object *obj, char const* str);
 

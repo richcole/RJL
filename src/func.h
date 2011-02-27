@@ -46,6 +46,10 @@ Object *native_call(Object *self, Object *slot) {
 	return pop(stack);
 } 
 
+Object *native_call(Object *self, char const* s) {
+  return native_call(self, sym(s));
+} 
+
 Object *native_call(Object *self, Object *slot, Object *arg) {
 	Object *frame = new_frame();
 	Object *stack = get(frame, Stack);
@@ -53,6 +57,14 @@ Object *native_call(Object *self, Object *slot, Object *arg) {
 	Object *func = get(self, slot);
 	frame = call_func(self, func, frame);
 	return pop(stack);
+} 
+
+Object *native_call(Object *self, char const* s, Object *arg) {
+  return native_call(self, sym(s), arg);
+} 
+
+Object *native_call(Object *self, char const* s, char const* a) {
+  return native_call(self, sym(s), sym(a));
 } 
 
 Object *native_call(Object *self, Object *slot, Object *arg1, Object *arg2) {
@@ -75,6 +87,10 @@ Object *native_call(Object *self, Object *slot, Object *arg1, Object *arg2, Obje
 	frame = call_func(self, func, frame);
 	return pop(stack);
 } 
+
+Object *native_call(Object *self, char const* s, Object *arg1, Object *arg2, Object *arg3) {
+  return native_call(self, sym(s), arg1, arg2, arg3);
+}
 
 void init_func_symbols() {
 	add_sym(Func, "Func");

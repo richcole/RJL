@@ -65,16 +65,17 @@ Object* symbol_table_add(SymbolTableBuffer *stb, Object *symbol) {
   if ( symbol == 0 ) {
     return 0;
   }
-	Fixnum cand = symbol_table_hash(symbol) % stb->length;
-	while( stb->data[cand] != 0 ) {
-		if ( string_equals(stb->data[cand], symbol) ) {
-			return stb->data[cand];
-		}
-		cand = (cand + 1) % stb->length;
-	}
-	stb->data[cand] = symbol;
-	stb->occupied++;
-	return symbol; 
+ 
+  Fixnum cand = symbol_table_hash(symbol) % stb->length;
+  while( stb->data[cand] != 0 ) {
+    if ( string_equals(stb->data[cand], symbol) ) {
+      return stb->data[cand];
+    }
+    cand = (cand + 1) % stb->length;
+  }
+  stb->data[cand] = symbol;
+  stb->occupied++;
+  return symbol; 
 }
 
 Object* symbol_table_add(SymbolTableBuffer *stb, char const* str) {
@@ -99,9 +100,25 @@ Object *sym(char const* str) {
 	return symbol_table_add(grow_symbol_table(global_symbol_table), str); 
 }
 
+Object *sym(Object *str) {
+	return symbol_table_add(grow_symbol_table(global_symbol_table), str); 
+}
+
 void add_sym(Object *obj, char const* str) {
 	obj->buffer = (Buffer *) new_string_buffer(str);
 	symbol_table_add(grow_symbol_table(global_symbol_table), obj);
+}
+
+Object *get(Object *target, char const* s) {
+  return get(target, sym(s));
+}
+
+void set(Object *target, char const* s, Object *value) {
+  set(target, sym(s), value);
+}
+
+void set(Object *target, char const* s, char const *v) {
+  set(target, sym(s), sym(v));
 }
 
 void init_symbol_table_symbols() {

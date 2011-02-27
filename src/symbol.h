@@ -39,13 +39,13 @@ void init_general_symbols() {
   add_sym(Self,    "self");
   add_sym(Arg,       "arg");
   add_sym(Sys,       "sys");
-	add_sym(Nil,       "nil");
-	add_sym(Undefined, "undefined");
-	add_sym(Dirty,     "dirty");
-	add_sym(Reason,    "reason");
+  add_sym(Nil,       "nil");
+  add_sym(Undefined, "undefined");
+  add_sym(Dirty,     "dirty");
+  add_sym(Reason,    "reason");
   add_sym(Catch,     "catch");
-	add_sym(True,   "True");
+  add_sym(True,   "True");
   add_sym(False,  "False");
-	add_sym(Parent, "parent");
+  add_sym(Parent, "parent");
 }
 
