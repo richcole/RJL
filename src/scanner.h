@@ -71,6 +71,18 @@ void detect_arg_ident(Object *sc) {
   }
 }
 
+Object* get_reserved_word(Object *sc, Object *word) {
+  return get(get(sc, "reserved_words"), sym(word));
+}
+
+void detect_reserved_word(Object *sc) {
+  Object *tok = array_last(get(sc, "tokens"));
+  Object *reserved_word = get_reserved_word(sc, get(tok, "value"));
+  if ( reserved_word != Undefined ) {
+    set(tok, "type", reserved_word);
+  }
+}
+
 Object *new_scan_context(Object *file) {
   Object *sc = new_object();
   set(sc, "file",        file);
@@ -82,6 +94,14 @@ Object *new_scan_context(Object *file) {
   set(sc, "token_start",   object(0));
   set(sc, "token_end",     object(0));
   set(sc, "tokens",      new_array());
+
+  Object *rw = new_object();
+  set(sc, "reserved_words", rw);
+  set(rw, "if", "if");
+  set(rw, "else", "else");
+  set(rw, "while", "while");
+  set(rw, "return", "return");
+  
   return sc;
 };
 
@@ -293,6 +313,7 @@ Object *tokenize(Object *file) {
         }
         scan_context_push_token(sc, Ident);
         detect_arg_ident(sc);
+        detect_reserved_word(sc);
       }
 
       if ( is_operator_start(ch) ) {

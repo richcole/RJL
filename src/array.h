@@ -105,9 +105,15 @@ void push_slot(Object *obj, Object *slot, Object *val) {
   push(stack, val);
 }
 
+void push_slot(Object *obj, char const *s, Object *value) {
+  push_slot(obj, sym(s), value);
+}
+
 void init_array_symbols() {
 	add_sym(Array, "Array");
 }
+
+
 
 
 

@@ -113,12 +113,20 @@ Object *get(Object *target, char const* s) {
   return get(target, sym(s));
 }
 
+Fixnum get_fixnum(Object *obj, char const* s) {
+  return get_fixnum(obj, sym(s));
+}
+
 void set(Object *target, char const* s, Object *value) {
   set(target, sym(s), value);
 }
 
 void set(Object *target, char const* s, char const *v) {
   set(target, sym(s), sym(v));
+}
+
+void set_fixnum(Object *obj, char const *s, Fixnum value) {
+  set_fixnum(obj, sym(s), value);
 }
 
 void init_symbol_table_symbols() {
