@@ -188,6 +188,22 @@ void string_append(Object *str, Object *arg) {
   str_buf->data[str_buf->length + arg_buf->length] = 0;
 }
 
+Object* string_concat(Object *str, Object *arg) {
+  Fixnum len = string_length(str) + string_length(arg);
+  Object *ret = new_string(len);
+  StringBuffer *ret_buf = get_string_buffer(ret);
+  StringBuffer *str_buf = get_string_buffer(str);
+  StringBuffer *arg_buf = get_string_buffer(arg);
+  if ( ret_buf == 0 || arg_buf == 0 || str_buf == 0 ) {
+    return 0;
+  }
+  rjl_memcpy(ret_buf->data, str_buf->data, str_buf->length);
+  rjl_memcpy(ret_buf->data + str_buf->length, arg_buf->data, arg_buf->length);
+  ret_buf->data[len] = 0;
+  ret_buf->length = len;
+  return ret;
+};
+
 
 // forward decl
 void add_sym(Object *obj, char const* str);

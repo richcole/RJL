@@ -1,3 +1,6 @@
+Object* code_gen_block(Object *pc, Object *block);
+void code_gen_group(Object *pc, Object *code, Object *block, Object *group);
+
 void code_gen_args(Object *pc, Object *code, Object *block) {
   Object *args = get(block, sym("args"));
   FOR_EACH_ARRAY(i, arg, args) {
@@ -38,12 +41,33 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
   if ( has_type(expr, "string_literal") ) {
     code_push(code, get(expr, "value"));
   }
+  if ( has_type(expr, "block_expr") ) {
+    code_push(code, code_gen_block(pc, expr));
+  }
+  if ( has_type(expr, "group_expr") ) {
+    abort();
+  }
+  if ( has_type(expr, "number_literal") ) {
+    code_push(code, get(expr, "value"));
+  }
 }
 
 void code_gen_expr_list_stmt(
   Object* pc, Object* code, Object* block, Object *expr_list
 ) {
   FOR_EACH_ARRAY(i, expr, expr_list) {
+
+    if ( i == 0 && has_type(expr, "send_arg_expr") ) {
+      Object *args = get(expr, "args");
+      FOR_EACH_ARRAY(j, arg, args) {
+        code_gen_expr(pc, code, block, arg);
+      }
+    }
+
+    if ( i == 0 && has_type(expr, "operator_expr") ) {
+      code_gen_expr(pc, code, block, get(expr, "arg"));
+    }
+
     if ( i+1 < array_length(expr_list) ) {
       Object *next_expr = get_at(expr_list, i+1);
       if ( has_type(next_expr, "send_arg_expr") ) {
@@ -52,12 +76,22 @@ void code_gen_expr_list_stmt(
           code_gen_expr(pc, code, block, arg);
         }
       }
+      else if ( has_type(next_expr, "operator_expr") ) {
+        code_gen_expr(pc, code, block, get(next_expr, "arg"));
+      }
     }
+
     if ( has_type(expr, "send_expr") ) {
       code_depedent_send(code, i, get(get(expr, sym("target")), "value"));
     }
     else if ( has_type(expr, "send_arg_expr") ) {
       code_depedent_send(code, i, join_strings(get(expr, "arg_names")));
+    }
+    else if ( has_type(expr, "operator_expr") ) {
+      code_depedent_send(code, i, string_concat(get(get(expr, "op"), "value"), sym(":")));
+    }
+    else {
+      abort();
     }
   }
 }
@@ -65,6 +99,18 @@ void code_gen_expr_list_stmt(
 void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
   if ( has_type(stmt, "expr_list") ) {
     code_gen_expr_list_stmt(pc, code, block, get(stmt, sym("exprs")));
+  }
+  else if ( has_type(stmt, "if_stmt") ) {
+    code_push(code, code_gen_block(pc, get(stmt, "true_block")));
+    code_push(code, code_gen_block(pc, get(stmt, "false_block")));
+    code_gen_group(pc, code, block, get(stmt, "cond"));
+    code_send(code, sym("if:else:"));
+  }
+  else if ( has_type(stmt, "return_stmt") ) {
+    code_gen_expr_list_stmt(pc, code, block, get(stmt, "expr"));
+  }
+  else {
+    abort();
   }
 }
 
@@ -82,6 +128,10 @@ Object* code_gen_block(Object *pc, Object *block) {
   code_gen_stmts(pc, code, block);
   code_return(code);
   return code;
+}
+
+void code_gen_group(Object *pc, Object *code, Object *block, Object *group) {
+  code_gen_expr_list_stmt(pc, code, block, get(get(group, "expr_list"), "exprs"));
 }
 
 Object* code_generator_generate(Object *pc) {

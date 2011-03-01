@@ -140,7 +140,7 @@ Object* parse_stmt(Object *pc) {
   }
   else if ( have(pc, "return") ) {
     stmt = new_object();
-    set(stmt, "type", "return_expr");
+    set(stmt, "type", "return_stmt");
     advance(pc);
     set(stmt, "expr", parse_expr_list(pc));
   }
@@ -150,6 +150,7 @@ Object* parse_stmt(Object *pc) {
 
 Object* parse_block_expr(Object *pc) {
   Object *block = new_object();
+  set(block, "type", "block_expr");
 
   if ( ! mustbe(pc, BlockOpen) ) return block;
 
@@ -177,8 +178,9 @@ Object* parse_block_expr(Object *pc) {
 
 Object* parse_group_expr(Object *pc) {
   Object *group = new_object();
+  set(group, "type", "group");
   if ( ! mustbe(pc, GroupOpen) ) return group;
-  parse_expr_list(pc);
+  set(group, "expr_list", parse_expr_list(pc));
   mustbe(pc, "group_close");
   return group;
 }

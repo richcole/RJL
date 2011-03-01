@@ -1,5 +1,6 @@
 #define def_get_buffer(typeName, lcName)                         \
   typeName##Buffer *get_##lcName##_buffer(Object *obj) {         \
+  if ( obj == 0 ) return 0;                                      \
     do {                                                         \
 	    if ( obj->buffer != 0 && obj->buffer->type == typeName ) { \
         return (typeName##Buffer *) obj->buffer;                 \

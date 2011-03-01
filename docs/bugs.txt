@@ -1,5 +1,8 @@
-Testing
-  - Only test_001 has been executed at this time
+Code Generation
+  - code generation for return statements produces no code
+  - test_002 code cannot be executed
+  - group expressions don't result in code except in an if statement, i.e. not when in
+    an expression list
 
 Top Level Code:
   - Executing a program causes the scanner, parse, and code generation context
