@@ -1,7 +1,6 @@
 
-Object* parse_block(Object *pc);
-Object* parse_group(Object *pc);
-Object* parse_if_expr(Object *pc);
+Object* parse_block_expr(Object *pc);
+Object* parse_group_expr(Object *pc);
 Object* parse_expr(Object *pc);
 
 Object *curr(Object *pc) {
@@ -14,6 +13,14 @@ Object *curr(Object *pc) {
 void advance(Object *pc) {
   set_fixnum(pc, "index", get_fixnum(pc, "index")+1);
 };
+
+Object *mark(Object *pc) {
+  return get(pc, "index");
+}
+
+void restore(Object *pc, Object *mark) {
+  set(pc, "index", mark);
+}
 
 Fixnum have(Object *pc, Object *token_type) {
   Object *tok = curr(pc);
@@ -75,12 +82,6 @@ Object* parse_expr_list(Object *pc) {
   return expr;
 }
 
-Object* parse_if_expr(Object *pc) {
-  Object* expr = new_object();
-  set(expr, "type", sym("if_expr"));
-  return expr;
-}
-
 Object* parse_expr(Object *pc) {
   Object *expr = new_object();
   if ( have(pc, "ident") ) {
@@ -102,13 +103,21 @@ Object* parse_expr(Object *pc) {
     advance(pc);
   }
   else if ( have(pc, "block_open") ) {
-    expr = parse_block(pc);
+    expr = parse_block_expr(pc);
   }
   else if ( have(pc, "group_open") ) {
-    expr = parse_group(pc);
+    expr = parse_group_expr(pc);
   }
-  else if ( have(pc, "if") ) {
-    expr = parse_if_expr(pc);
+  else if ( have(pc, "operator") ) {
+    set(expr, "type", "operator_expr");
+    set(expr, "op",   curr(pc));
+    advance(pc);
+    set(expr, "arg",  parse_expr(pc));
+  }
+  else if ( have(pc, "number") ) {
+    set(expr, "type", "number_literal");
+    set(expr, "value", get(curr(pc), "value"));
+    advance(pc);
   }
   return expr;
 }
@@ -117,31 +126,60 @@ Object* parse_stmt(Object *pc) {
   Object *stmt = 0;
   if ( have_set(pc, "begin_expr") ) {
     stmt = parse_expr_list(pc);
-    mustbe(pc, "semi");
   }
+  else if ( have(pc, "if") ) {
+    mustbe(pc, "if");
+    stmt = new_object();
+    set(stmt, "type", "if_stmt");
+    set(stmt, "cond", parse_group_expr(pc));
+    set(stmt, "true_block", parse_block_expr(pc));
+    if ( have(pc, "else") ) {
+      mustbe(pc, "else");
+      set(stmt, "false_block", parse_block_expr(pc));
+    }
+  }
+  else if ( have(pc, "return") ) {
+    stmt = new_object();
+    set(stmt, "type", "return_expr");
+    advance(pc);
+    set(stmt, "expr", parse_expr_list(pc));
+  }
+  mustbe(pc, "semi");
   return stmt;
 }
 
-Object* parse_block(Object *pc) {
+Object* parse_block_expr(Object *pc) {
   Object *block = new_object();
+
   if ( ! mustbe(pc, BlockOpen) ) return block;
+
+  Object *begin_mark = mark(pc);
+
   while ( have(pc, Ident) ) {
     push_slot(block, "args", curr(pc));
     advance(pc);
   }
-  if ( ! mustbe(pc, Pipe) ) return block;
-  if ( ! have_set(pc, "end_block") ) {
+
+  if ( ! have(pc, "pipe") ) { 
+    set(block, "args", Undefined);
+    restore(pc, begin_mark);
+  }
+  else {
+    advance(pc);
+  }
+
+  while ( ! have_set(pc, "end_block") ) {
     push_slot(block, "stmts", parse_stmt(pc));
   }
   mustbe(pc, "block_close");
   return block;
 }
 
-Object* parse_group(Object *pc) {
+Object* parse_group_expr(Object *pc) {
   Object *group = new_object();
   if ( ! mustbe(pc, GroupOpen) ) return group;
-  parse_expr(pc);
-  mustbe(pc, "block_close");
+  parse_expr_list(pc);
+  mustbe(pc, "group_close");
   return group;
 }
 
@@ -156,6 +194,8 @@ void create_sets(Object *pc) {
   set(begin_expr, "ident", "true");
   set(begin_expr, "arg_ident", "true");
   set(begin_expr, "string", "true");
+  set(begin_expr, "operator", "true");
+  set(begin_expr, "group_open", "true");
 };
 
 Object *parse(Object *sc) {
@@ -164,7 +204,7 @@ Object *parse(Object *sc) {
   set(pc, "tokens", get(sc, "tokens"));
   set(pc, "index", object(0));
   create_sets(pc);
-  set(pc, "block", parse_block(pc));
+  set(pc, "block", parse_block_expr(pc));
   return pc;
 }
 
