@@ -42,10 +42,10 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_push(code, get(expr, "value"));
   }
   if ( has_type(expr, "block_expr") ) {
-    code_push(code, code_gen_block(pc, expr));
+    code_push_block(code, code_gen_block(pc, expr));
   }
-  if ( has_type(expr, "group_expr") ) {
-    abort();
+  if ( has_type(expr, "group") ) {
+    code_gen_group(pc, code, block, expr);
   }
   if ( has_type(expr, "number_literal") ) {
     code_push(code, get(expr, "value"));
@@ -90,6 +90,9 @@ void code_gen_expr_list_stmt(
     else if ( has_type(expr, "operator_expr") ) {
       code_depedent_send(code, i, string_concat(get(get(expr, "op"), "value"), sym(":")));
     }
+    else if ( has_type(expr, "group") ) {
+      code_gen_group(pc, code, block, expr);
+    }
     else {
       abort();
     }
@@ -101,13 +104,13 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     code_gen_expr_list_stmt(pc, code, block, get(stmt, sym("exprs")));
   }
   else if ( has_type(stmt, "if_stmt") ) {
-    code_push(code, code_gen_block(pc, get(stmt, "true_block")));
-    code_push(code, code_gen_block(pc, get(stmt, "false_block")));
+    code_push_block(code, code_gen_block(pc, get(stmt, "true_block")));
+    code_push_block(code, code_gen_block(pc, get(stmt, "false_block")));
     code_gen_group(pc, code, block, get(stmt, "cond"));
-    code_send(code, sym("if:else:"));
+    code_self_send(code, sym("if:else:"));
   }
   else if ( has_type(stmt, "return_stmt") ) {
-    code_gen_expr_list_stmt(pc, code, block, get(stmt, "expr"));
+    code_gen_expr_list_stmt(pc, code, block, get(get(stmt, "expr"), "exprs"));
   }
   else {
     abort();

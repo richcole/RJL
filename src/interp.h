@@ -46,6 +46,16 @@ void interp(Object *frame) {
       continue;
     }
 
+    if ( instr == PushBlock ) {
+      Object *stack = get(frame, Stack);
+      Object *block = get_code(frame, pc+1);
+      set(block, "lexical_parent", get(frame, Local));
+      push(stack, block);
+      pc += 2;
+      set_fixnum(frame, Pc, pc);
+      continue;
+    }
+
     if ( instr == Arg ) {
       set(get(frame, Local), get_code(frame, pc+1), pop(get(get(frame, Return), Stack)));
       pc += 2;

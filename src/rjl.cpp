@@ -11,6 +11,7 @@
 #include "frame.h"
 #include "func.h"
 #include "block.h"
+#include "boxed.h"
 #include "native.h"
 
 #include "file.h"

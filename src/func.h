@@ -16,7 +16,7 @@ FuncBuffer* new_func_buffer(FuncPtr func_ptr) {
 }
 
 Fixnum is_func(Object *object) {
-  if ( object != Nil && object->buffer != 0 && object->buffer->type == Func ) {
+  if ( object != 0 && object != Nil && object->buffer != 0 && object->buffer->type == Func ) {
     return 1;
   }
   return 0;

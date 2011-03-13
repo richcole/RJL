@@ -9,7 +9,6 @@ Object *ArrayOpen  = new_object();
 Object *ArrayClose = new_object();
 Object *Pipe       = new_object();
 Object *Semi       = new_object();
-Object *Number     = new_object();
 Object *Line       = new_object();
 Object *Ident      = new_object();
 Object *Operator   = new_object();
@@ -29,6 +28,10 @@ void scan_context_push_token(Object *sc, Object *type) {
   );
   push(get(sc, "tokens"), token);
 };
+
+void scan_context_push_token(Object *sc, char const* type) {
+  scan_context_push_token(sc, sym(type));
+}
 
 void scan_context_push_string_token(Object *sc, Object *type) {
   Object *token = new_object();
@@ -302,7 +305,7 @@ Object *tokenize(Object *file) {
             if ( ! (ch = scan_context_advance(sc)) ) break;
           }
         }
-        scan_context_push_token(sc, Number);
+        scan_context_push_token(sc, "number");
         continue;
       }
       
@@ -349,7 +352,6 @@ void init_scanner_symbols() {
   add_sym(ArrayClose,    "array_close");
   add_sym(Pipe,          "pipe");
   add_sym(Semi,          "semi");
-  add_sym(Number,        "number");
   add_sym(Line,          "line");
   add_sym(Ident,         "ident");
   add_sym(Operator,      "operator");

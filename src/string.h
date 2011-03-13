@@ -182,10 +182,11 @@ void string_append(Object *str, Object *arg) {
   Fixnum new_length = str_buf->length + arg_buf->length;
   if ( new_length > str_buf->reserved ) {
     string_set_reserve(str, new_length);
+    str_buf = get_string_buffer(str);
   }
   rjl_memcpy(str_buf->data + str_buf->length, arg_buf->data, arg_buf->length);
   str_buf->length = new_length;
-  str_buf->data[str_buf->length + arg_buf->length] = 0;
+  str_buf->data[new_length] = 0;
 }
 
 Object* string_concat(Object *str, Object *arg) {

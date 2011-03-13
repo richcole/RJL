@@ -3,6 +3,11 @@ void code_push(Object *code, Object *val) {
   push(code, val);
 }
 
+void code_push_block(Object *code, Object *val) {
+  push(code, PushBlock);
+  push(code, val);
+}
+
 void code_send(Object *code, Object *slot) {
   push(code, Send);
   push(code, slot);

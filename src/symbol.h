@@ -2,6 +2,7 @@
   Object *const name = new_object();
 
 SYM(Push);
+SYM(PushBlock);
 SYM(Pc);
 SYM(Send);
 SYM(Jmp);
@@ -23,8 +24,9 @@ Object *True = new_object();
 Object *False = new_object();
 
 void init_general_symbols() {
-  add_sym(Push,    "push");
-  add_sym(Pc,      "pc");
+  add_sym(Push,      "push");
+  add_sym(PushBlock, "push_block");
+  add_sym(Pc,        "pc");
   add_sym(Send,    "send");
   add_sym(Jmp,     "jmp");
   add_sym(JmpZ,    "jmpz");

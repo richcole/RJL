@@ -4,7 +4,7 @@
       return x;
     }
     else {
-      return (fib: x - 1) + (fib: x - 2);
+      return (fib: (x - 1)) + (fib: (x - 2));
     };
   };
       
