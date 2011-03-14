@@ -36,19 +36,24 @@ bool is_object(Object *obj) {
     return obj != 0 && ((Fixnum)obj & 0x3) == 0;
 }
 
+Object* new_object();
+void set(Object *obj, Object *key, Object *value);
+
+Object *ObjectObject = new_object();
+Object *Dirty = new_object();
+Object *Undefined = new_object();
+Object *Nil = new_object();
+Object *Parent = new_object();
+
 Object* new_object() {
   Object *obj = (Object *) mem_alloc(sizeof(Object));
   obj->length = 4;
   obj->occupied = 0;
   obj->table  = (ObjectPair *) mem_alloc(sizeof(ObjectPair)*obj->length);
   obj->buffer = 0;
+  set(obj, Parent, ObjectObject);
   return obj;
 };
-
-Object *Dirty = new_object();
-Object *Undefined = new_object();
-Object *Nil = new_object();
-Object *Parent = new_object();
 
 void grow(Object *obj);
 
@@ -110,10 +115,11 @@ Fixnum exists(Object *obj) {
 Object *get(Object *target, Object *slot) {
   Object *value = get_plain(target, slot);
   while ( value == Undefined ) {
-    target = get_plain(target, Parent);
-    if ( ! exists(target) ) {
+    Object *new_target = get_plain(target, Parent);
+    if ( new_target == target || ! exists(new_target) ) {
       return Undefined;
     }
+    target = new_target;
     value = get_plain(target, slot);
   }
   return value;

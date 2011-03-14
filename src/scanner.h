@@ -13,7 +13,7 @@ Object *Line       = new_object();
 Object *Ident      = new_object();
 Object *Operator   = new_object();
 
-void scan_context_push_token(Object *sc, Object *type) {
+void scan_context_push_token(Object *sc, Object *type, Fixnum offset) {
   Object *token = new_object();
   Fixnum token_start = fixnum(get(sc, "token_start"));
   Fixnum line_start  = fixnum(get(sc, "line_start"));
@@ -22,11 +22,15 @@ void scan_context_push_token(Object *sc, Object *type) {
   set(token, "type",        type);
   set(token, "value",       
       string_substring(get(sc, "line"), 
-		       fixnum(get(sc, "token_start")), 
+		       fixnum(get(sc, "token_start")) + offset, 
 		       fixnum(get(sc, "token_end"))
     )
   );
   push(get(sc, "tokens"), token);
+};
+
+void scan_context_push_token(Object *sc, Object *type) {
+  scan_context_push_token(sc, type, 0);
 };
 
 void scan_context_push_token(Object *sc, char const* type) {
@@ -100,6 +104,7 @@ Object *new_scan_context(Object *file) {
 
   Object *rw = new_object();
   set(sc, "reserved_words", rw);
+  set(rw, "parent", Undefined);
   set(rw, "if", "if");
   set(rw, "else", "else");
   set(rw, "while", "while");
@@ -309,6 +314,22 @@ Object *tokenize(Object *file) {
         continue;
       }
       
+      if ( ch == '#' ) {
+        if ( ! (ch = scan_context_advance(sc)) ) break;
+        if ( is_ident_continue(ch) ) {
+          while ( is_ident_continue(ch) ) {
+            if ( ! (ch = scan_context_advance(sc)) ) break;
+          }
+          scan_context_push_token(sc, sym("symbol"), 1);
+        }
+        else {
+          while( is_operator_continue(ch) ) {
+            if ( ! (ch = scan_context_advance(sc)) ) break;
+          }
+          scan_context_push_token(sc, Operator);
+        }
+      }
+
       if ( is_ident_start(ch) ) {
         if ( ! (ch = scan_context_advance(sc)) ) break;
         while( is_ident_continue(ch) ) {

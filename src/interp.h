@@ -80,6 +80,8 @@ void interp(Object *frame) {
         set_fixnum(frame, Pc, pc);
       }
       else {
+        pc += 2;
+        set_fixnum(frame, Pc, pc);
         frame = new_frame;
       }
       continue;

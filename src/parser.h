@@ -119,6 +119,11 @@ Object* parse_expr(Object *pc) {
     set(expr, "value", string_to_boxed_number(get(curr(pc), "value")));
     advance(pc);
   }
+  else if ( have(pc, "symbol") ) {
+    set(expr, "type", "symbol_literal");
+    set(expr, "value", sym(get(curr(pc), "value")));
+    advance(pc);
+  }
   return expr;
 }
 
@@ -197,6 +202,8 @@ void create_sets(Object *pc) {
   set(begin_expr, "arg_ident", "true");
   set(begin_expr, "string", "true");
   set(begin_expr, "operator", "true");
+  set(begin_expr, "number_literal", "true");
+  set(begin_expr, "symbol_literal", "true");
   set(begin_expr, "group_open", "true");
 };
 

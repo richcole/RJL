@@ -1,3 +1,5 @@
+Currentl the three tests are working.
+
 Lexical closures:
   - currently local object of a frame has a parent pointer that is set
     to the local object of the lexically closing frame

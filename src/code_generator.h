@@ -50,6 +50,9 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
   if ( has_type(expr, "number_literal") ) {
     code_push(code, get(expr, "value"));
   }
+  if ( has_type(expr, "symbol_literal") ) {
+    code_push(code, get(expr, "value"));
+  }
 }
 
 void code_gen_expr_list_stmt(

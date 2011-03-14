@@ -3,14 +3,35 @@
 
 Object* native_print(Object *frame, Object *self) {
   Object *arg = pop(get(frame, Stack));
-  StringBuffer *buf = get_string_buffer(arg);
-  if ( buf != 0 ) {
-    fprintf(stdout, "%s\n", buf->data);
+  if ( is_string(arg) ) {
+    StringBuffer *buf = get_string_buffer(arg);
+    if ( buf != 0 ) {
+      fprintf(stdout, "%s\n", buf->data);
+    }
+    else {
+      return new_exception(frame, "Couldn't interpret string in println");
+    }
+  }
+  else if ( is_boxed_int(arg) ) {
+    BoxedIntBuffer *buf = get_boxed_int_buffer(arg);
+    if ( buf != 0 ) {
+      fprintf(stdout, "%ld\n", buf->value);
+    }
+    else {
+      return new_exception(frame, "Couldn't interpret boxed int in println");
+    }
   }
   else {
-    return new_exception(frame, "Expected a string in native_print");
+    return new_exception(frame, "Couldn't interpret object in println");
   }
   push(get(frame, Stack), Nil);
+  return frame;
+}
+
+Object* native_object_get(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  Object *arg = pop(stack);
+  push(stack, get(self, arg));
   return frame;
 }
 
@@ -224,8 +245,8 @@ Object *native_boxed_int_minus(Object *frame, Object *self) {
 Object *native_if_else(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
   Object *cond = pop(stack);
-  Object *true_block = pop(stack);
   Object *false_block = pop(stack);
+  Object *true_block = pop(stack);
   Object *block = true_block;
   if ( cond != True ) {
     block = false_block;
@@ -243,6 +264,9 @@ void init_native_sys(Object *sys) {
   set(sys, sym("println:"), new_func(native_print));
   set(sys, sym("dump:"), new_func(native_dump));
   set(sys, sym("if:else:"), new_func(native_if_else));
+
+  set(sys, sym("Object"), ObjectObject);
+  set(ObjectObject, sym("get:"), new_func(native_object_get));
 
   set(sys, String, StringObject);
   set(StringObject, sym("reserve:"), new_func(native_string_reserve));
