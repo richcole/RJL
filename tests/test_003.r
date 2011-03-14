@@ -1,5 +1,5 @@
 
 { sys |
-  println:: (sys get: print:);
-  println: "Hello World";
+  p:: (sys get: #println:);
+  p: "Hello World";
 }

@@ -24,7 +24,7 @@ end
 def run_test(test_src, rjl)
   target = "run_#{File.basename(test_src)}"
   task target => [test_src, rjl] do
-    sh "valgrind #{rjl} #{test_src}"
+    sh "#{rjl} #{test_src}"
   end
   return target
 end
