@@ -51,6 +51,7 @@ Fixnum mustbe(Object *pc, Object *token_type) {
   }
   else {
     push_slot(pc, "errors", new_parse_error("Expected token type", token_type, curr(pc)));
+    advance(pc);
     return 0;
   }
 }
@@ -142,6 +143,13 @@ Object* parse_stmt(Object *pc) {
       mustbe(pc, "else");
       set(stmt, "false_block", parse_block_expr(pc));
     }
+  }
+  else if ( have(pc, "while") ) {
+    mustbe(pc, "while");
+    stmt = new_object();
+    set(stmt, "type", "while_stmt");
+    set(stmt, "cond", parse_group_expr(pc));
+    set(stmt, "while_block", parse_block_expr(pc));
   }
   else if ( have(pc, "return") ) {
     stmt = new_object();

@@ -41,17 +41,23 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
   if ( has_type(expr, "string_literal") ) {
     code_push(code, get(expr, "value"));
   }
-  if ( has_type(expr, "block_expr") ) {
+  else if ( has_type(expr, "block_expr") ) {
     code_push_block(code, code_gen_block(pc, expr));
   }
-  if ( has_type(expr, "group") ) {
+  else if ( has_type(expr, "group") ) {
     code_gen_group(pc, code, block, expr);
   }
-  if ( has_type(expr, "number_literal") ) {
+  else if ( has_type(expr, "number_literal") ) {
     code_push(code, get(expr, "value"));
   }
-  if ( has_type(expr, "symbol_literal") ) {
+  else if ( has_type(expr, "symbol_literal") ) {
     code_push(code, get(expr, "value"));
+  }
+  else if ( has_type(expr, "send_expr") ) {
+    code_self_send(code, sym(get(get(expr, "target"), "value")));
+  }
+  else {
+    abort();
   }
 }
 
@@ -112,6 +118,18 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     code_gen_group(pc, code, block, get(stmt, "cond"));
     code_self_send(code, sym("if:else:"));
   }
+  else if ( has_type(stmt, "while_stmt") ) {
+    Fixnum offset = array_length(code);
+    code_gen_group(pc, code, block, get(stmt, "cond"));
+    Fixnum jmp_offset = array_length(code)+1;
+    push(code, JmpNotTrue);
+    push(code, object(array_length(code)));
+    code_push_block(code, code_gen_block(pc, get(stmt, "while_block")));
+    code_send(code, sym("call"));
+    push(code, Jmp);
+    push(code, object(offset));
+    set_at(code, jmp_offset, object(array_length(code)));
+  }
   else if ( has_type(stmt, "return_stmt") ) {
     code_gen_expr_list_stmt(pc, code, block, get(get(stmt, "expr"), "exprs"));
   }
@@ -128,7 +146,7 @@ void code_gen_stmts(Object *pc, Object *code, Object *block) {
 }
 
 Object* code_gen_block(Object *pc, Object *block) {
-  Object *code = new_array();
+  Object *code = new_block();
   set(code, "is_block", True);
   code_gen_args(pc, code, block);
   code_gen_stmts(pc, code, block);

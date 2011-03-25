@@ -66,8 +66,8 @@ Object *top_level_frame(Object *sys) {
   code_self_send(code, sym("CodeGenerator"));
   code_send(code, sym("generate:"));
   code_self_send(code, sym("context:"));
-  code_self_send(code, sym("context"));
-  code_self_send(code, sym("dump:"));
+  //  code_self_send(code, sym("context"));
+  //  code_self_send(code, sym("dump:"));
   code_push(code, sys);
   code_self_send(code, sym("context"));
   code_send(code, sym("code:"));

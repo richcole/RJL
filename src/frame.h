@@ -13,6 +13,12 @@ Object* get_lexical_parent(Object *frame) {
   return get(get(frame, Local), Parent);
 }
 
+Object* new_local() {
+  Object *local = new_object();
+  set(local, "is_local", True);
+  return local;
+}
+
 Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   Object *frame = new_object();
   Object *local = new_object();
@@ -20,7 +26,7 @@ Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   set(frame, Return,        ret_frame);
   set(frame, Code,          code);
   set(frame, Stack,         new_array());
-  set(frame, Local,         new_object());
+  set(frame, Local,         new_local());
   set(frame, Pc,            0);
   set(local, Self,          self);
 

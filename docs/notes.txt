@@ -1,4 +1,4 @@
-Currentl the three tests are working.
+Added support for while loops.
 
 Lexical closures:
   - currently local object of a frame has a parent pointer that is set

@@ -9,7 +9,22 @@ Object* send(Object *frame, Object *slot) {
     return call_func(target, value, frame);
   }
   else if ( value == Undefined && is_setter_slot(slot) ) {
-    set(target, setter_field(slot), pop(stack));
+    Object *field = setter_field(slot);
+    if ( get(target, "is_local") == True ) {
+      Object *parent = target;
+      while( get(parent, "is_local") == True && get_plain(parent, field) == Undefined ) {
+        parent = get(parent, "parent");
+      }
+      if ( get(parent, "is_local") == True ) {
+        set(parent, field, pop(stack));
+      }
+      else {
+        set(target, field, pop(stack));
+      }
+    }
+    else {
+      set(target, field, pop(stack));
+    }
     return frame;
   }
   else {
@@ -88,14 +103,14 @@ void interp(Object *frame) {
     }
 
     if ( instr == Jmp ) { 
-      pc += get_code_fixnum(frame, pc+1);
+      pc = get_code_fixnum(frame, pc+1);
       set_fixnum(frame, Pc, pc);
       continue;
     }
 
-    if ( instr == JmpZ ) {
-      if ( pop(get(frame, Stack)) == 0 ) {
-        pc += get_code_fixnum(frame, pc+1);
+    if ( instr == JmpTrue ) {
+      if ( pop(get(frame, Stack)) == True ) {
+        pc = get_code_fixnum(frame, pc+1);
       }
       else {
         pc += 2;
@@ -104,9 +119,9 @@ void interp(Object *frame) {
       continue;
     }
 
-    if ( instr == JmpNZ ) {
-      if ( pop(get(frame, Stack)) == 0 ) {
-        pc += get_code_fixnum(frame, pc+1);
+    if ( instr == JmpNotTrue ) {
+      if ( pop(get(frame, Stack)) != True ) {
+        pc = get_code_fixnum(frame, pc+1);
       }
       else {
         pc += 2;

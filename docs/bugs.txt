@@ -1,5 +1,2 @@
-Top Level Code:
-  - Executing a program causes the scanner, parse, and code generation context
-    objects to be dumped.
 
 

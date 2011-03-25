@@ -52,6 +52,15 @@ Object* get_at(Object *array, Fixnum index) {
   return 0;
 }
 
+void set_at(Object *array, Fixnum index, Object *val) {
+  ArrayBuffer *array_buffer = get_array_buffer(array);
+  if ( array_buffer != 0 ) {
+    if ( index < array_buffer->tail ) {
+      array_buffer->data[index] = val;
+    }
+  }
+}
+
 void grow_array(Object *array) {
   ArrayBuffer *array_buffer = get_array_buffer(array);
   if ( array_buffer != 0 ) {
