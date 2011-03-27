@@ -3,6 +3,8 @@ Object *Eof        = new_object();
 Object *Read       = new_object();
 Object *BlockOpen  = new_object();
 Object *BlockClose = new_object();
+Object *ObjectOpen  = new_object();
+Object *ObjectClose = new_object();
 Object *GroupOpen  = new_object();
 Object *GroupClose = new_object();
 Object *ArrayOpen  = new_object();
@@ -196,7 +198,7 @@ Fixnum is_digit(char c) {
 
 Fixnum is_punct(char c) {
   return  (c == '-') || (c == '<')  || (c == '>') ||
-    (c == '+') || (c == '&')  || (c == '=');
+    (c == '+') || (c == '&')  || (c == '=') || (c == '.');
 }
 
 Fixnum is_operator_start(char c) {
@@ -204,7 +206,7 @@ Fixnum is_operator_start(char c) {
 }
 
 Fixnum is_operator_continue(char c) {
-  return is_punct(c);
+  return is_punct(c) || c == ':';
 }
 
 Fixnum is_ident_start(char c) {
@@ -249,8 +251,15 @@ Object *tokenize(Object *file) {
             scan_context_advance(sc);
             continue;
           case '(':
-            scan_context_push_token(sc, GroupOpen);
-            scan_context_advance(sc);
+            if ( scan_context_next(sc) == '|' ) {
+              scan_context_advance(sc);
+              scan_context_push_token(sc, ObjectOpen);
+              scan_context_advance(sc);
+            }
+            else {
+              scan_context_push_token(sc, GroupOpen);
+              scan_context_advance(sc);
+            }
             continue;
           case ')':
             scan_context_push_token(sc, GroupClose);
@@ -265,8 +274,15 @@ Object *tokenize(Object *file) {
             scan_context_advance(sc);
             continue;
           case '|':
-            scan_context_push_token(sc, Pipe);
-            scan_context_advance(sc);
+            if ( scan_context_next(sc) == ')' ) {
+              scan_context_advance(sc);
+              scan_context_push_token(sc, ObjectClose);
+              scan_context_advance(sc);
+            }
+            else {
+              scan_context_push_token(sc, Pipe);
+              scan_context_advance(sc);
+            }
             continue;
           case ';':
             scan_context_push_token(sc, Semi);
@@ -346,9 +362,12 @@ Object *tokenize(Object *file) {
           if ( ! (ch = scan_context_advance(sc)) ) break;
         }
         scan_context_push_token(sc, Operator);
+        detect_arg_ident(sc);
       }
     }
   }
+
+  scan_context_push_token(sc, Eof);
 
   return sc;
 }
@@ -369,6 +388,8 @@ void init_scanner_symbols() {
   add_sym(BlockClose,    "block_close");
   add_sym(GroupOpen,     "group_open");
   add_sym(GroupClose,    "group_close");
+  add_sym(ObjectOpen,    "object_open");
+  add_sym(ObjectClose,   "object_close");
   add_sym(ArrayOpen,     "array_open");
   add_sym(ArrayClose,    "array_close");
   add_sym(Pipe,          "pipe");

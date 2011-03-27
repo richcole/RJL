@@ -22,15 +22,20 @@ file rjl => [ debug ] + cpp_source + h_source do
 end
 
 def run_test(test_src, rjl)
-  target = "run_#{File.basename(test_src)}"
-  task target => [test_src, rjl] do
-    sh "#{rjl} #{test_src}"
+  test_basename = File.basename(test_src)
+  target = "run_#{test_basename}"
+  output_dir = "build/test-output"
+  test_output = output_dir / test_basename + ".out"
+  expected_output = "tests/expected" / test_basename + ".out"
+  directory output_dir
+  task target => [test_src, rjl, output_dir, expected_output] do
+    sh "#{rjl} #{test_src} > #{test_output}"
+    sh "diff #{expected_output} #{test_output}"
   end
   return target
 end
 
 tests = Dir.glob("tests/*.r").to_a.sort.map { |x| run_test(x, rjl) }
-puts "tests=" + tests.inspect
 
 task :tests => tests
 task :default => rjl

@@ -1,4 +1,6 @@
 Object* code_gen_block(Object *pc, Object *block);
+Object* code_gen_object_block(Object *pc, Object *block);
+
 void code_gen_group(Object *pc, Object *code, Object *block, Object *group);
 
 void code_gen_args(Object *pc, Object *code, Object *block) {
@@ -57,7 +59,8 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_self_send(code, sym(get(get(expr, "target"), "value")));
   }
   else {
-    abort();
+    code_push_block(code, code_gen_object_block(pc, expr));
+    code_send(code, sym("call"));
   }
 }
 
@@ -150,6 +153,15 @@ Object* code_gen_block(Object *pc, Object *block) {
   set(code, "is_block", True);
   code_gen_args(pc, code, block);
   code_gen_stmts(pc, code, block);
+  code_return(code);
+  return code;
+}
+
+Object* code_gen_object_block(Object *pc, Object *block) {
+  Object *code = new_block();
+  set(code, "is_block", True);
+  code_gen_stmts(pc, code, block);
+  code_self(code);
   code_return(code);
   return code;
 }

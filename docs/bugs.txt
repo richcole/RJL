@@ -1,2 +1,5 @@
+- test_006.r doesn't pass. I haven't checked the code generation portion at all yet.
 
+- literal object retain the lexical parent and is_local variables. They
+should not have those slots.
 

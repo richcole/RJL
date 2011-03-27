@@ -1,6 +1,7 @@
 
 Object* parse_block_expr(Object *pc);
 Object* parse_group_expr(Object *pc);
+Object* parse_object_expr(Object *pc);
 Object* parse_expr(Object *pc);
 
 Object *curr(Object *pc) {
@@ -11,7 +12,10 @@ Object *curr(Object *pc) {
 }
 
 void advance(Object *pc) {
-  set_fixnum(pc, "index", get_fixnum(pc, "index")+1);
+  Fixnum index = get_fixnum(pc, "index");
+  if ( index+1 < array_length(get(pc, "tokens")) ) {
+    set_fixnum(pc, "index", index+1);
+  }
 };
 
 Object *mark(Object *pc) {
@@ -109,6 +113,9 @@ Object* parse_expr(Object *pc) {
   else if ( have(pc, "group_open") ) {
     expr = parse_group_expr(pc);
   }
+  else if ( have(pc, "object_open") ) {
+    expr = parse_object_expr(pc);
+  }
   else if ( have(pc, "operator") ) {
     set(expr, "type", "operator_expr");
     set(expr, "op",   curr(pc));
@@ -189,6 +196,19 @@ Object* parse_block_expr(Object *pc) {
   return block;
 }
 
+Object* parse_object_expr(Object *pc) {
+  Object *object = new_object();
+  set(object, "type", "object_expr");
+
+  if ( ! mustbe(pc, ObjectOpen) ) return object;
+
+  while ( ! have_set(pc, "end_object") ) {
+    push_slot(object, "stmts", parse_stmt(pc));
+  }
+  mustbe(pc, "object_close");
+  return object;
+}
+
 Object* parse_group_expr(Object *pc) {
   Object *group = new_object();
   set(group, "type", "group");
@@ -203,6 +223,11 @@ void create_sets(Object *pc) {
   set(pc, "end_block", end_block);
   set(end_block, "block_close", "true");
   set(end_block, "eof", "true");
+
+  Object *end_object = new_object();
+  set(pc, "end_object", end_object);
+  set(end_object, "object_close", "true");
+  set(end_object, "eof", "true");
 
   Object *begin_expr = new_object();
   set(pc, "begin_expr", begin_expr);
