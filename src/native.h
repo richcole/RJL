@@ -35,6 +35,12 @@ Object* native_object_get(Object *frame, Object *self) {
   return frame;
 }
 
+Object* native_object_clone(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  push(stack, new_object(self));
+  return frame;
+}
+
 void dump(Object *obj, Fixnum indent, Object *visited) {
   Fixnum i;
 
@@ -282,6 +288,16 @@ Object *native_block_call(Object *frame, Object *self) {
   }
 }
 
+Object *native_block_call1(Object *frame, Object *self) {
+  if ( get(self, "is_block") == True ) {
+    return new_frame(get_self(frame), self, frame);
+  }
+  else {
+    push(get(frame, "stack"), Undefined);
+    return frame;
+  }
+}
+
 Object *native_if_else(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
   Object *cond = pop(stack);
@@ -307,9 +323,11 @@ void init_native_sys(Object *sys) {
 
   set(sys, sym("Object"), ObjectObject);
   set(ObjectObject, sym("get:"), new_func(native_object_get));
+  set(ObjectObject, sym("clone"), new_func(native_object_clone));
 
   set(sys, sym("Block"), BlockObject);
   set(BlockObject, sym("call"), new_func(native_block_call));
+  set(BlockObject, sym("call:"), new_func(native_block_call1));
 
   set(sys, String, StringObject);
   set(StringObject, sym("reserve:"), new_func(native_string_reserve));
