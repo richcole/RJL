@@ -21,12 +21,12 @@ Object* new_local() {
 
 Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   Object *frame = new_object();
-  Object *local = new_object();
+  Object *local = new_local();
 
   set(frame, Return,        ret_frame);
   set(frame, Code,          code);
   set(frame, Stack,         new_array());
-  set(frame, Local,         new_local());
+  set(frame, Local,         local);
   set(frame, Pc,            0);
   set(local, Self,          self);
 

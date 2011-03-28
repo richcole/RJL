@@ -59,8 +59,9 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_self_send(code, sym(get(get(expr, "target"), "value")));
   }
   else {
+    code_self_send(code, sym("self"));
     code_push_block(code, code_gen_object_block(pc, expr));
-    code_send(code, sym("call"));
+    code_send(code, sym("call:"));
   }
 }
 
@@ -105,6 +106,9 @@ void code_gen_expr_list_stmt(
     else if ( has_type(expr, "group") ) {
       code_gen_group(pc, code, block, expr);
     }
+    else if ( has_type(expr, "number_literal") ) {
+      code_push(code, get(expr, "value"));
+    }
     else {
       abort();
     }
@@ -127,8 +131,9 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     Fixnum jmp_offset = array_length(code)+1;
     push(code, JmpNotTrue);
     push(code, object(array_length(code)));
+    code_self_send(code, sym("self"));
     code_push_block(code, code_gen_block(pc, get(stmt, "while_block")));
-    code_send(code, sym("call"));
+    code_send(code, sym("call:"));
     push(code, Jmp);
     push(code, object(offset));
     set_at(code, jmp_offset, object(array_length(code)));

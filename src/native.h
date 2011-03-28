@@ -279,8 +279,10 @@ Object *native_boxed_int_minus(Object *frame, Object *self) {
 }
 
 Object *native_block_call(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  Object *arg_self = pop(stack);
   if ( get(self, "is_block") == True ) {
-    return new_frame(get_self(frame), self, frame);
+    return new_frame(arg_self, self, frame);
   }
   else {
     push(get(frame, "stack"), Undefined);
@@ -289,11 +291,14 @@ Object *native_block_call(Object *frame, Object *self) {
 }
 
 Object *native_block_call1(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  Object *arg_self = pop(stack);
   if ( get(self, "is_block") == True ) {
-    return new_frame(get_self(frame), self, frame);
+    return new_frame(arg_self, self, frame);
   }
   else {
-    push(get(frame, "stack"), Undefined);
+    pop(stack); // read the argument
+    push(stack, Undefined);
     return frame;
   }
 }
@@ -326,8 +331,8 @@ void init_native_sys(Object *sys) {
   set(ObjectObject, sym("clone"), new_func(native_object_clone));
 
   set(sys, sym("Block"), BlockObject);
-  set(BlockObject, sym("call"), new_func(native_block_call));
-  set(BlockObject, sym("call:"), new_func(native_block_call1));
+  set(BlockObject, sym("call:"), new_func(native_block_call));
+  set(BlockObject, sym("call:with:"), new_func(native_block_call1));
 
   set(sys, String, StringObject);
   set(StringObject, sym("reserve:"), new_func(native_string_reserve));

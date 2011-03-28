@@ -3,7 +3,5 @@
 - literal object retain the lexical parent and is_local variables. They
 should not have those slots.
 
-- there is no clone method on object
-
-
+- block call doesn't propogate the self pointer correctly or I presume the lexical closure
 

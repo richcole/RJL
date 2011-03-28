@@ -326,7 +326,7 @@ Object *tokenize(Object *file) {
             if ( ! (ch = scan_context_advance(sc)) ) break;
           }
         }
-        scan_context_push_token(sc, "number");
+        scan_context_push_token(sc, "number_literal");
         continue;
       }
       

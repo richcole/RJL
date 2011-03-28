@@ -9,16 +9,16 @@
       return result;
     };
 
-    each: { block |
-      i: self lower;
+    each:: { block |
+      i: (self lower);
       while ( i <= upper ) {
-        block call: i;
+        block call: #nil with: i;
         i: (i + 1);
       };
     };
   |);
 
-  BoxedInt ..: { upper |
+  BoxedInt ..:: { upper |
     return Range lower: self upper: upper;
   };
 

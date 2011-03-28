@@ -122,7 +122,7 @@ Object* parse_expr(Object *pc) {
     advance(pc);
     set(expr, "arg",  parse_expr(pc));
   }
-  else if ( have(pc, "number") ) {
+  else if ( have(pc, "number_literal") ) {
     set(expr, "type", "number_literal");
     set(expr, "value", string_to_boxed_number(get(curr(pc), "value")));
     advance(pc);
