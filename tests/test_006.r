@@ -11,7 +11,7 @@
 
     each:: { block |
       i: (self lower);
-      while ( i <= upper ) {
+      while ( i <= (self upper) ) {
         block call: #nil with: i;
         i: (i + 1);
       };

@@ -5,7 +5,7 @@ void code_gen_group(Object *pc, Object *code, Object *block, Object *group);
 
 void code_gen_args(Object *pc, Object *code, Object *block) {
   Object *args = get(block, sym("args"));
-  FOR_EACH_ARRAY(i, arg, args) {
+  FOR_EACH_ARRAY_REV(i, arg, args) {
     code_arg(code, sym(get(arg, sym("value"))));
   }
 }
