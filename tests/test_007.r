@@ -1,11 +1,11 @@
 { sys |
   a: (| 
     test: {
-      self do: { sys println: (self value) }; 
+      self do: { sys println: (self value); }; 
     };
     value: "Hello World"; 
     do:: { blk |
-      blk call;
+      blk call: self;
     };
   |);
   a test;
