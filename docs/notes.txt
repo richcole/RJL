@@ -1,13 +1,16 @@
-Added support for while loops.
+Made a number of fixes including adding closures. Worked mostly on object
+creation blocks. Currently no code generation is being done for the "(| |)"
+construct, but it is being simulated via "Object new: { ... }", next
+step is to make the "(| |)" work again.
 
-Lexical closures:
-  - currently local object of a frame has a parent pointer that is set
-    to the local object of the lexically closing frame
-    - creating a lexical closure hasn't yet been implemented
+I reworked processing of expression lists because they didn't work for
+expressions involving a list of more than two expressions.
 
-Exceptions:
-  - exceptions use a field in the frame called "catch" which is a stack
-    of pc locations to jump to
-  - a thin copy of the catch frame is constructed which holds the 
-    new pc value
+Next more tests around operators.
+
+Exceptions are currently not working or tested. The top level catch
+doesn't even work.
+
+The parser doesn't error out when there are errors this should be
+fixed.
 

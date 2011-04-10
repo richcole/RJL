@@ -49,7 +49,7 @@ Object* init_sys() {
 
 Object *top_level_frame(Object *sys) {
   Object *code       = new_array();
-  Object *frame      = new_frame(0, code, 0);
+  Object *frame      = new_frame(Undefined, code, Undefined);
   
   // set the lexical parent to be sys
   set_lexical_parent(frame, sys);

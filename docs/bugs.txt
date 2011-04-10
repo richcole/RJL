@@ -1,10 +1,1 @@
-- literal object retain the lexical parent and is_local variables. They
-should not have those slots.
-
-- block call doesn't propogate the self pointer correctly or I presume
-  the lexical closure
-  - test_007 is supposed to illuminate this, but block call currently takes
-    a self argument and it should not, when the block is created it should 
-    have it's self pointer set at that time
-
-
+see notes.txt

@@ -176,7 +176,7 @@ Object* parse_block_expr(Object *pc) {
 
   Object *begin_mark = mark(pc);
 
-  while ( have(pc, Ident) ) {
+  while ( have(pc, "ident") || have(pc, "arg_ident") ) {
     push_slot(block, "args", curr(pc));
     advance(pc);
   }

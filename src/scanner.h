@@ -211,7 +211,7 @@ Fixnum is_operator_continue(char c) {
 
 Fixnum is_ident_start(char c) {
   return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
-    c == '_';
+    c == '_' || ( c == '^' ) ;
 };
 
 Fixnum is_ident_continue(char c) {

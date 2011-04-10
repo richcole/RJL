@@ -1,12 +1,21 @@
 { sys |
-  a: (| 
-    test: {
-      self do: { sys println: (self value); }; 
+  sys Object new:: { block |
+    result: Object new;
+    ^block invoke: result;
+    return result;
+  };
+
+  b: (Object new: {
+    self do:: { blk |
+      ^blk call;
     };
-    value: "Hello World"; 
-    do:: { blk |
-      blk call: self;
+  });
+  a: (Object new: { 
+    self test:: { b | 
+      b do: { sys println: (self value); }; 
     };
-  |);
-  a test;
+    self value: "Hello World"; 
+    return self;
+  });
+  a test: b;
 };

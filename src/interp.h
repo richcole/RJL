@@ -1,7 +1,17 @@
 Object* send(Object *frame, Object *slot) {
   Object *stack  = get(frame, Stack);
   Object *target = pop(stack);
-  Object *value  = get(target, slot);
+  Object *value  = 0;
+
+  if ( is_nocall_slot(slot) ) {
+    value = get(target, get_nocall_slot(slot));
+    push(stack, value);
+    return frame;
+  }
+  else  {
+    value = get(target, slot);
+  };
+
   if ( is_block(value) ) {
     return new_frame(target, value, frame);
   }
@@ -64,8 +74,8 @@ void interp(Object *frame) {
     if ( instr == PushBlock ) {
       Object *stack = get(frame, Stack);
       Object *block = get_code(frame, pc+1);
-      set(block, "lexical_parent", get(frame, Local));
-      push(stack, block);
+      Object *closure = new_closure(block, get(frame, Local), get_self(frame));
+      push(stack, closure);
       pc += 2;
       set_fixnum(frame, Pc, pc);
       continue;

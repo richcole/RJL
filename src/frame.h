@@ -5,6 +5,13 @@ Object* new_frame() {
   return frame;
 }
 
+Object* new_closure(Object *block, Object *local, Object *self) {
+  Object* closure = new_object(block);
+  set(closure, "lexical_parent", local);
+  set(closure, "self", self);
+  return closure;
+}
+
 void set_lexical_parent(Object *frame, Object *parent) {
   set(get(frame, Local), Parent, parent);
 }
@@ -23,6 +30,10 @@ Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   Object *frame = new_object();
   Object *local = new_local();
 
+  if ( self == Undefined ) {
+    self = get(code, "self");
+  }
+
   set(frame, Return,        ret_frame);
   set(frame, Code,          code);
   set(frame, Stack,         new_array());
@@ -37,6 +48,7 @@ Object* new_frame(Object *self, Object *code, Object *ret_frame) {
   else {
     set_lexical_parent(frame, lexical_parent);
   }
+
   return frame;
 }
 

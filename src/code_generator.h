@@ -1,5 +1,4 @@
 Object* code_gen_block(Object *pc, Object *block);
-Object* code_gen_object_block(Object *pc, Object *block);
 
 void code_gen_group(Object *pc, Object *code, Object *block, Object *group);
 
@@ -59,65 +58,57 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_self_send(code, sym(get(get(expr, "target"), "value")));
   }
   else {
-    code_self_send(code, sym("self"));
-    code_push_block(code, code_gen_object_block(pc, expr));
-    code_send(code, sym("call:"));
+    abort();
   }
 }
 
 void code_gen_expr_list_stmt(
   Object* pc, Object* code, Object* block, Object *expr_list
 ) {
-  FOR_EACH_ARRAY(i, expr, expr_list) {
-
-    if ( i == 0 && has_type(expr, "send_arg_expr") ) {
-      Object *args = get(expr, "args");
-      FOR_EACH_ARRAY(j, arg, args) {
-        code_gen_expr(pc, code, block, arg);
-      }
-    }
-
-    if ( i == 0 && has_type(expr, "operator_expr") ) {
-      code_gen_expr(pc, code, block, get(expr, "arg"));
-    }
-
-    if ( i+1 < array_length(expr_list) ) {
-      Object *next_expr = get_at(expr_list, i+1);
-      if ( has_type(next_expr, "send_arg_expr") ) {
-        Object *args = get(next_expr, "args");
+  // first evaluate the arguments in reverse order
+  {
+    FOR_EACH_ARRAY_REV(i, expr, expr_list) {
+      if ( has_type(expr, "send_arg_expr") ) {
+        Object *args = get(expr, "args");
         FOR_EACH_ARRAY(j, arg, args) {
           code_gen_expr(pc, code, block, arg);
         }
       }
-      else if ( has_type(next_expr, "operator_expr") ) {
-        code_gen_expr(pc, code, block, get(next_expr, "arg"));
+      if ( has_type(expr, "operator_expr") ) {
+        code_gen_expr(pc, code, block, get(expr, "arg"));
       }
     }
+  }
 
-    if ( has_type(expr, "send_expr") ) {
-      code_depedent_send(code, i, get(get(expr, sym("target")), "value"));
-    }
-    else if ( has_type(expr, "send_arg_expr") ) {
-      code_depedent_send(code, i, join_strings(get(expr, "arg_names")));
-    }
-    else if ( has_type(expr, "operator_expr") ) {
-      code_depedent_send(code, i, string_concat(get(get(expr, "op"), "value"), sym(":")));
-    }
-    else if ( has_type(expr, "group") ) {
-      code_gen_group(pc, code, block, expr);
-    }
-    else if ( has_type(expr, "number_literal") ) {
-      code_push(code, get(expr, "value"));
-    }
-    else {
-      abort();
+  // next evaluate the sends in order
+  {
+    FOR_EACH_ARRAY(i, expr, expr_list) {
+      if ( has_type(expr, "send_expr") ) {
+        code_depedent_send(code, i, get(get(expr, sym("target")), "value"));
+      }
+      else if ( has_type(expr, "send_arg_expr") ) {
+        code_depedent_send(code, i, join_strings(get(expr, "arg_names")));
+      }
+      else if ( has_type(expr, "operator_expr") ) {
+        code_depedent_send(code, i, string_concat(get(get(expr, "op"), "value"), sym(":")));
+      }
+      else if ( has_type(expr, "group") ) {
+        code_gen_group(pc, code, block, expr);
+      }
+      else if ( has_type(expr, "number_literal") ) {
+        code_push(code, get(expr, "value"));
+      }
+      else {
+        abort();
+      }
     }
   }
 }
 
 void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
   if ( has_type(stmt, "expr_list") ) {
-    code_gen_expr_list_stmt(pc, code, block, get(stmt, sym("exprs")));
+    Object *exprs = get(stmt, sym("exprs"));
+    code_gen_expr_list_stmt(pc, code, block, exprs);
   }
   else if ( has_type(stmt, "if_stmt") ) {
     code_push_block(code, code_gen_block(pc, get(stmt, "true_block")));
@@ -131,15 +122,15 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     Fixnum jmp_offset = array_length(code)+1;
     push(code, JmpNotTrue);
     push(code, object(array_length(code)));
-    code_self_send(code, sym("self"));
     code_push_block(code, code_gen_block(pc, get(stmt, "while_block")));
-    code_send(code, sym("call:"));
+    code_send(code, sym("call"));
     push(code, Jmp);
     push(code, object(offset));
     set_at(code, jmp_offset, object(array_length(code)));
   }
   else if ( has_type(stmt, "return_stmt") ) {
-    code_gen_expr_list_stmt(pc, code, block, get(get(stmt, "expr"), "exprs"));
+    Object *exprs =  get(get(stmt, "expr"), "exprs");
+    code_gen_expr_list_stmt(pc, code, block, exprs);
   }
   else {
     abort();
@@ -162,17 +153,9 @@ Object* code_gen_block(Object *pc, Object *block) {
   return code;
 }
 
-Object* code_gen_object_block(Object *pc, Object *block) {
-  Object *code = new_block();
-  set(code, "is_block", True);
-  code_gen_stmts(pc, code, block);
-  code_self(code);
-  code_return(code);
-  return code;
-}
-
 void code_gen_group(Object *pc, Object *code, Object *block, Object *group) {
-  code_gen_expr_list_stmt(pc, code, block, get(get(group, "expr_list"), "exprs"));
+  Object *exprs = get(get(group, "expr_list"), "exprs");
+  code_gen_expr_list_stmt(pc, code, block, exprs);
 }
 
 Object* code_generator_generate(Object *pc) {

@@ -35,18 +35,22 @@ Object* native_object_get(Object *frame, Object *self) {
   return frame;
 }
 
-Object* native_object_clone(Object *frame, Object *self) {
+Object* native_object_new(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
   push(stack, new_object(self));
   return frame;
 }
 
-void dump(Object *obj, Fixnum indent, Object *visited) {
+void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
   Fixnum i;
 
   char indent_string[indent+1];
   memset(indent_string, ' ', indent);
   indent_string[indent] = 0;
+
+  if ( max_indent > 0 && indent > max_indent ) {
+    return;
+  };
 
   if ( obj == 0 ) {
     fprintf(stdout, "0\n");
@@ -75,11 +79,11 @@ void dump(Object *obj, Fixnum indent, Object *visited) {
         if ( key != 0 && key != Dirty ) {
           if ( is_string(key) ) {
             fprintf(stdout, "%s  %s: ", indent_string, get_string_buffer(key)->data);
-            dump(obj->table[i].value, indent+2, visited);
+            dump(obj->table[i].value, indent+2, visited, max_indent);
           }
           else {
             fprintf(stdout, "%s  %p: ", indent_string, key);
-            dump(obj->table[i].value, indent+2, visited);
+            dump(obj->table[i].value, indent+2, visited, max_indent);
           }
         }
       }
@@ -98,7 +102,7 @@ void dump(Object *obj, Fixnum indent, Object *visited) {
         }
         for(i=0;i<array_length(obj);++i) {
           fprintf(stdout, "%s    %03d: ", indent_string, (int)i);
-          dump(get_at(obj, i), indent+4, visited);
+          dump(get_at(obj, i), indent+4, visited, max_indent);
         }
         fprintf(stdout, "%s  ]\n%s}\n", indent_string, indent_string);
       }
@@ -123,7 +127,11 @@ void dump(Object *obj, Fixnum indent, Object *visited) {
 } 
 
 void dump(Object *obj) {
-  dump(obj, 0, new_object());
+  dump(obj, 0, new_object(), -1);
+}
+
+void dump(Object *obj, Fixnum max_indent) {
+  dump(obj, 0, new_object(), max_indent);
 }
 
 Object* native_dump(Object *frame, Object *self) {
@@ -279,10 +287,8 @@ Object *native_boxed_int_minus(Object *frame, Object *self) {
 }
 
 Object *native_block_call(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *arg_self = pop(stack);
   if ( get(self, "is_block") == True ) {
-    return new_frame(arg_self, self, frame);
+    return new_frame(Undefined, self, frame);
   }
   else {
     push(get(frame, "stack"), Undefined);
@@ -290,11 +296,22 @@ Object *native_block_call(Object *frame, Object *self) {
   }
 }
 
+Object *native_block_invoke(Object *frame, Object *block) {
+  Object *stack = get(frame, "stack");
+  Object *self = pop(stack);
+  if ( get(block, "is_block") == True ) {
+    return new_frame(self, block, frame);
+  }
+  else {
+    push(stack, Undefined);
+    return frame;
+  }
+}
+
 Object *native_block_call1(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
-  Object *arg_self = pop(stack);
   if ( get(self, "is_block") == True ) {
-    return new_frame(arg_self, self, frame);
+    return new_frame(Undefined, self, frame);
   }
   else {
     pop(stack); // read the argument
@@ -313,7 +330,7 @@ Object *native_if_else(Object *frame, Object *self) {
     block = false_block;
   }
   if ( get(block, "is_block") == True ) {
-    Object *ret_frame = new_frame(get_self(frame), block, frame);
+    Object *ret_frame = new_frame(Undefined, block, frame);
     return ret_frame;
   }
   else {
@@ -328,11 +345,12 @@ void init_native_sys(Object *sys) {
 
   set(sys, sym("Object"), ObjectObject);
   set(ObjectObject, sym("get:"), new_func(native_object_get));
-  set(ObjectObject, sym("clone"), new_func(native_object_clone));
+  set(ObjectObject, sym("new"), new_func(native_object_new));
 
   set(sys, sym("Block"), BlockObject);
-  set(BlockObject, sym("call:"), new_func(native_block_call));
-  set(BlockObject, sym("call:with:"), new_func(native_block_call1));
+  set(BlockObject, sym("call"), new_func(native_block_call));
+  set(BlockObject, sym("call:"), new_func(native_block_call1));
+  set(BlockObject, sym("invoke:"), new_func(native_block_invoke));
 
   set(sys, String, StringObject);
   set(StringObject, sym("reserve:"), new_func(native_string_reserve));
