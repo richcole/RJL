@@ -198,7 +198,7 @@ Fixnum is_digit(char c) {
 
 Fixnum is_punct(char c) {
   return  (c == '-') || (c == '<')  || (c == '>') ||
-    (c == '+') || (c == '&')  || (c == '=') || (c == '.');
+    (c == '+') || (c == '&')  || (c == '=') || (c == '.') || (c == '*') || (c == '/');
 }
 
 Fixnum is_operator_start(char c) {

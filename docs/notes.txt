@@ -1,3 +1,5 @@
+Non local returns are currently not implemented and so don't work.
+
 Made a number of fixes including adding closures. Worked mostly on object
 creation blocks. Currently no code generation is being done for the "(| |)"
 construct, but it is being simulated via "Object new: { ... }", next

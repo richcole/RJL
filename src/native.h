@@ -21,6 +21,9 @@ Object* native_print(Object *frame, Object *self) {
       return new_exception(frame, "Couldn't interpret boxed int in println");
     }
   }
+  else if ( arg == 0 ) {
+      fprintf(stdout, "0x0\n");
+  } 
   else {
     return new_exception(frame, "Couldn't interpret object in println");
   }
@@ -338,6 +341,21 @@ Object *native_if_else(Object *frame, Object *self) {
   }
 };
 
+Object* native_object_new1() {
+  Object *code = new_block();
+  code_arg(code, "block");
+  code_self_send(code, "self");
+  code_send(code, "new");
+  code_self_send(code, "result:");
+  code_self_send(code, "result");
+  code_self_send(code, "^block");
+  code_send(code, "invoke:");
+  code_self_send(code, "result");
+  code_return(code);
+
+  return code;
+};
+
 void init_native_sys(Object *sys) {
   set(sys, sym("println:"), new_func(native_print));
   set(sys, sym("dump:"), new_func(native_dump));
@@ -346,6 +364,7 @@ void init_native_sys(Object *sys) {
   set(sys, sym("Object"), ObjectObject);
   set(ObjectObject, sym("get:"), new_func(native_object_get));
   set(ObjectObject, sym("new"), new_func(native_object_new));
+  set(ObjectObject, sym("new:"), native_object_new1());
 
   set(sys, sym("Block"), BlockObject);
   set(BlockObject, sym("call"), new_func(native_block_call));

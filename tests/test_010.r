@@ -1,9 +1,4 @@
 { sys |
-  sys Object new:: { block |
-    result: Object new;
-    ^block invoke: result;
-    return result;
-  };
 
   BoxedInt: (sys BoxedInt);
 

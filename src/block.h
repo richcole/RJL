@@ -11,13 +11,6 @@ Object* new_block() {
   return block;
 }
 
-Object* new_closure(Object *parent, Object *code) {
-  Object *block = new_object();
-  set(block, "code", code);
-  set(block, "parent", parent);
-  return block;
-}
-
 void init_block_symbols() {
 };
 

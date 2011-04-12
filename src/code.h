@@ -13,10 +13,18 @@ void code_send(Object *code, Object *slot) {
   push(code, slot);
 }
 
+void code_send(Object *code, char const* slot) {
+  code_send(code, sym(slot));
+}
+
 void code_self_send(Object *code, Object *slot) {
   push(code, Self);
   push(code, Send);
   push(code, slot);
+}
+
+void code_self_send(Object *code, char const* slot) {
+  code_self_send(code, sym(slot));
 }
 
 void code_self(Object *code) {
@@ -36,3 +44,6 @@ void code_arg(Object *code, Object *arg_name) {
   push(code, arg_name);
 }
 
+void code_arg(Object *code, char const* arg_name) {
+  return code_arg(code, sym(arg_name));
+}

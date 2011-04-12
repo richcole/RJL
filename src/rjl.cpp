@@ -12,6 +12,7 @@
 #include "func.h"
 #include "block.h"
 #include "boxed.h"
+#include "code.h"
 #include "native.h"
 
 #include "file.h"
@@ -19,7 +20,6 @@
 #include "scanner.h"
 #include "parser.h"
 #include "foreach.h"
-#include "code.h"
 #include "code_generator.h"
 
 #include "interp.h"
@@ -66,8 +66,6 @@ Object *top_level_frame(Object *sys) {
   code_self_send(code, sym("CodeGenerator"));
   code_send(code, sym("generate:"));
   code_self_send(code, sym("context:"));
-  //  code_self_send(code, sym("context"));
-  //  code_self_send(code, sym("dump:"));
   code_push(code, sys);
   code_self_send(code, sym("context"));
   code_send(code, sym("code:"));

@@ -57,8 +57,10 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
   else if ( has_type(expr, "send_expr") ) {
     code_self_send(code, sym(get(get(expr, "target"), "value")));
   }
-  else {
-    abort();
+  else if ( has_type(expr, "object_expr") ) {
+    code_push_block(code, code_gen_block(pc, expr));
+    code_self_send(code, "Object");
+    code_send(code, "new:");
   }
 }
 
@@ -146,7 +148,6 @@ void code_gen_stmts(Object *pc, Object *code, Object *block) {
 
 Object* code_gen_block(Object *pc, Object *block) {
   Object *code = new_block();
-  set(code, "is_block", True);
   code_gen_args(pc, code, block);
   code_gen_stmts(pc, code, block);
   code_return(code);
