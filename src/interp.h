@@ -43,7 +43,26 @@ Object* send(Object *frame, Object *slot) {
   }
 };
 
+Fixnum is_local_frame(Object *frame) {
+  return get(get(frame, "code"), "is_local") == True;
+}
+
 Object* ret(Object *frame) {
+  Object *stack        = get(frame, Stack);
+  Object *ret_value    = pop(stack);
+  Object *return_frame = get(frame, Return);
+  while ( exists(return_frame) && is_local_frame(frame) ) {
+    frame = return_frame;
+    return_frame = get(frame, Return);
+  }
+  if ( exists(return_frame) ) {
+    Object *return_stack = get(return_frame, Stack);
+    push(return_stack, ret_value);
+  }
+  return return_frame;
+}
+
+Object* local_ret(Object *frame) {
   Object *stack        = get(frame, Stack);
   Object *ret_value    = pop(stack);
   Object *return_frame = get(frame, Return);
@@ -142,6 +161,11 @@ void interp(Object *frame) {
 
     if ( instr == Return ) {
       frame = ret(frame);
+      continue;
+    }
+
+    if ( instr == LocalReturn ) {
+      frame = local_ret(frame);
       continue;
     }
 

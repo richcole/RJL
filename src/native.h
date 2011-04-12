@@ -219,6 +219,36 @@ Object *native_boxed_int_leq(Object *frame, Object *self) {
   return frame;
 }
 
+Object *native_boxed_int_geq(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  Object *other = pop(stack);
+  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
+  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
+  if ( self_buf == 0 ) {
+      return new_exception(frame, "expected boxed int as self");
+  };
+  if ( is_fixnum(other) ) {
+    if ( self_buf->value >= fixnum(other) ) {
+      push(stack, True);
+    }
+    else {
+      push(stack, False);
+    }
+  }
+  else if ( other_buf == 0 ) {
+    return new_exception(frame, "expected boxed int as argument");
+  }
+  else {
+    if ( self_buf->value >= other_buf->value ) {
+      push(stack, True);
+    }
+    else {
+      push(stack, False);
+    }
+  }
+  return frame;
+}
+
 Object *native_boxed_int_gt(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
   Object *other = pop(stack);
@@ -265,6 +295,26 @@ Object *native_boxed_int_plus(Object *frame, Object *self) {
   }
   else {
     push(stack, new_boxed_int(self_buf->value + other_buf->value));
+  }
+  return frame;
+}
+
+Object *native_boxed_int_times(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  Object *other = pop(stack);
+  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
+  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
+  if ( self_buf == 0 ) {
+      return new_exception(frame, "expected boxed int as self");
+  };
+  if ( is_fixnum(other) ) {
+    push(stack, new_boxed_int(self_buf->value + fixnum(other)));
+  }
+  else if ( other_buf == 0 ) {
+    return new_exception(frame, "expected boxed int as argument");
+  }
+  else {
+    push(stack, new_boxed_int(self_buf->value * other_buf->value));
   }
   return frame;
 }
@@ -382,7 +432,9 @@ void init_native_sys(Object *sys) {
   
   set(sys, "BoxedInt", BoxedIntObject);
   set(BoxedIntObject, "<=:", new_func(native_boxed_int_leq));
+  set(BoxedIntObject, ">=:", new_func(native_boxed_int_geq));
   set(BoxedIntObject, ">:",  new_func(native_boxed_int_gt));
   set(BoxedIntObject, "+:",  new_func(native_boxed_int_plus));
   set(BoxedIntObject, "-:",  new_func(native_boxed_int_minus));
+  set(BoxedIntObject, "*:",  new_func(native_boxed_int_times));
 };

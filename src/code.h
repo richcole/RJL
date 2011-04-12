@@ -35,6 +35,10 @@ void code_return(Object *code) {
   push(code, Return);
 }
 
+void code_local_return(Object *code) {
+  push(code, LocalReturn);
+}
+
 void code_term(Object *code) {
   push(code, Term);
 }

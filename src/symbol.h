@@ -11,6 +11,7 @@ SYM(JmpNotTrue);
 SYM(Code);
 SYM(Stack);
 SYM(Return);
+SYM(LocalReturn);
 SYM(Term);
 SYM(Block);
 SYM(Frame);
@@ -34,6 +35,7 @@ void init_general_symbols() {
   add_sym(Code,    "code");
   add_sym(Stack,   "stack");
   add_sym(Return,  "return");
+  add_sym(LocalReturn,  "local_return");
   add_sym(Term,    "term");
   add_sym(Block,   "block");
   add_sym(Frame,   "frame");

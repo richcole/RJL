@@ -1,4 +1,6 @@
-Non local returns are currently not implemented and so don't work.
+Non local returns work by marking blocks created for if and while statements
+as local blocks. Non local returns then jump back up until they find a block
+that is not local to return from.
 
 Made a number of fixes including adding closures. Worked mostly on object
 creation blocks. Currently no code generation is being done for the "(| |)"

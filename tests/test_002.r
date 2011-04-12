@@ -1,4 +1,5 @@
 { sys |
+
   fib:: { x | 
     if ( x <= 1 ) {
       return x;
@@ -8,5 +9,5 @@
     };
   };
       
-  sys println: (fib: 10);
+  println: (fib: 10);
 }

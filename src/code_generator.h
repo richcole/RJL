@@ -1,4 +1,4 @@
-Object* code_gen_block(Object *pc, Object *block);
+Object* code_gen_block(Object *pc, Object *block, Object *is_local);
 
 void code_gen_group(Object *pc, Object *code, Object *block, Object *group);
 
@@ -43,7 +43,7 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_push(code, get(expr, "value"));
   }
   else if ( has_type(expr, "block_expr") ) {
-    code_push_block(code, code_gen_block(pc, expr));
+    code_push_block(code, code_gen_block(pc, expr, False));
   }
   else if ( has_type(expr, "group") ) {
     code_gen_group(pc, code, block, expr);
@@ -58,7 +58,7 @@ void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
     code_self_send(code, sym(get(get(expr, "target"), "value")));
   }
   else if ( has_type(expr, "object_expr") ) {
-    code_push_block(code, code_gen_block(pc, expr));
+    code_push_block(code, code_gen_block(pc, expr, False));
     code_self_send(code, "Object");
     code_send(code, "new:");
   }
@@ -113,8 +113,8 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     code_gen_expr_list_stmt(pc, code, block, exprs);
   }
   else if ( has_type(stmt, "if_stmt") ) {
-    code_push_block(code, code_gen_block(pc, get(stmt, "true_block")));
-    code_push_block(code, code_gen_block(pc, get(stmt, "false_block")));
+    code_push_block(code, code_gen_block(pc, get(stmt, "true_block"), True));
+    code_push_block(code, code_gen_block(pc, get(stmt, "false_block"), True));
     code_gen_group(pc, code, block, get(stmt, "cond"));
     code_self_send(code, sym("if:else:"));
   }
@@ -124,7 +124,7 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
     Fixnum jmp_offset = array_length(code)+1;
     push(code, JmpNotTrue);
     push(code, object(array_length(code)));
-    code_push_block(code, code_gen_block(pc, get(stmt, "while_block")));
+    code_push_block(code, code_gen_block(pc, get(stmt, "while_block"), True));
     code_send(code, sym("call"));
     push(code, Jmp);
     push(code, object(offset));
@@ -133,6 +133,7 @@ void code_gen_stmt(Object* pc, Object* code, Object* block, Object *stmt) {
   else if ( has_type(stmt, "return_stmt") ) {
     Object *exprs =  get(get(stmt, "expr"), "exprs");
     code_gen_expr_list_stmt(pc, code, block, exprs);
+    code_return(code);
   }
   else {
     abort();
@@ -146,11 +147,14 @@ void code_gen_stmts(Object *pc, Object *code, Object *block) {
   }
 }
 
-Object* code_gen_block(Object *pc, Object *block) {
+Object* code_gen_block(Object *pc, Object *block, Object* is_local) {
   Object *code = new_block();
+  if ( is_local == True ) {
+    set(code, "is_local", True);
+  }
   code_gen_args(pc, code, block);
   code_gen_stmts(pc, code, block);
-  code_return(code);
+  code_local_return(code);
   return code;
 }
 
@@ -161,7 +165,7 @@ void code_gen_group(Object *pc, Object *code, Object *block, Object *group) {
 
 Object* code_generator_generate(Object *pc) {
   Object *block = get(pc, sym("block"));
-  set(pc, sym("code:"), code_gen_block(pc, block));
+  set(pc, sym("code:"), code_gen_block(pc, block, False));
   return pc;
 }
 
