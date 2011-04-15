@@ -2,6 +2,7 @@
   Object *const name = new_object();
 
 SYM(Push);
+SYM(PushFrame);
 SYM(PushBlock);
 SYM(Pc);
 SYM(Send);
@@ -26,6 +27,7 @@ Object *False = new_object();
 
 void init_general_symbols() {
   add_sym(Push,      "push");
+  add_sym(PushFrame, "push_frame");
   add_sym(PushBlock, "push_block");
   add_sym(Pc,        "pc");
   add_sym(Send,    "send");

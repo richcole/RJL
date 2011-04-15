@@ -43,18 +43,10 @@ Object* send(Object *frame, Object *slot) {
   }
 };
 
-Fixnum is_local_frame(Object *frame) {
-  return get(get(frame, "code"), "is_local") == True;
-}
-
-Object* ret(Object *frame) {
+Object* ret(Object *frame, Object *ret_slot) {
   Object *stack        = get(frame, Stack);
   Object *ret_value    = pop(stack);
-  Object *return_frame = get(frame, Return);
-  while ( exists(return_frame) && is_local_frame(frame) ) {
-    frame = return_frame;
-    return_frame = get(frame, Return);
-  }
+  Object *return_frame = get(frame, ret_slot);
   if ( exists(return_frame) ) {
     Object *return_stack = get(return_frame, Stack);
     push(return_stack, ret_value);
@@ -62,16 +54,17 @@ Object* ret(Object *frame) {
   return return_frame;
 }
 
-Object* local_ret(Object *frame) {
-  Object *stack        = get(frame, Stack);
-  Object *ret_value    = pop(stack);
-  Object *return_frame = get(frame, Return);
-  if ( exists(return_frame) ) {
-    Object *return_stack = get(return_frame, Stack);
-    push(return_stack, ret_value);
-  }
-  return return_frame;
-}
+Object *new_push_block(Object *frame, Object *stack, Fixnum pc) {
+  Object *block = get_code(frame, pc+1);
+  Object *closure = new_closure(block, get(frame, Local), get_self(frame));
+  set(closure, "non_local_return", pop(stack));
+  return closure;
+};
+
+void advance_pc(Object *frame, Fixnum pc, Fixnum incr) {
+  pc += incr;
+  set_fixnum(frame, Pc, pc);
+};
 
 void interp(Object *frame) {
   Fixnum pc     = 0;
@@ -85,32 +78,33 @@ void interp(Object *frame) {
 
     if ( instr == Push ) {
       push(get(frame, Stack), get_code(frame, pc+1));
-      pc += 2;
-      set_fixnum(frame, Pc, pc);
+      advance_pc(frame, pc, 2);
+      continue;
+    }
+
+    if ( instr == PushFrame ) {
+      push(get(frame, Stack), frame);
+      advance_pc(frame, pc, 1);
       continue;
     }
 
     if ( instr == PushBlock ) {
-      Object *stack = get(frame, Stack);
-      Object *block = get_code(frame, pc+1);
-      Object *closure = new_closure(block, get(frame, Local), get_self(frame));
-      push(stack, closure);
-      pc += 2;
-      set_fixnum(frame, Pc, pc);
+      Object *stack = get(frame, "stack");
+      push(stack, new_push_block(frame, stack, pc));
+      advance_pc(frame, pc, 2);
       continue;
     }
 
     if ( instr == Arg ) {
-      set(get(frame, Local), get_code(frame, pc+1), pop(get(get(frame, Return), Stack)));
-      pc += 2;
-      set_fixnum(frame, Pc, pc);
+      set(get(frame, Local), 
+          get_code(frame, pc+1), pop(get(get(frame, Return), Stack)));
+      advance_pc(frame, pc, 2);
       continue;
     }
 
     if ( instr == Self ) {
       push(get(frame, Stack), get(frame, Local));
-      pc += 1;
-      set_fixnum(frame, Pc, pc);
+      advance_pc(frame, pc, 1);
       continue;
     }
 
@@ -120,12 +114,10 @@ void interp(Object *frame) {
         frame = new_exception_frame(frame, new_frame);
       }
       else if ( new_frame == frame ) {
-        pc += 2;
-        set_fixnum(frame, Pc, pc);
+        advance_pc(frame, pc, 2);
       }
       else {
-        pc += 2;
-        set_fixnum(frame, Pc, pc);
+        advance_pc(frame, pc, 2);
         frame = new_frame;
       }
       continue;
@@ -140,32 +132,32 @@ void interp(Object *frame) {
     if ( instr == JmpTrue ) {
       if ( pop(get(frame, Stack)) == True ) {
         pc = get_code_fixnum(frame, pc+1);
+        set_fixnum(frame, Pc, pc);
       }
       else {
-        pc += 2;
+        advance_pc(frame, pc, 2);
       }
-      set_fixnum(frame, Pc, pc);
       continue;
     }
 
     if ( instr == JmpNotTrue ) {
       if ( pop(get(frame, Stack)) != True ) {
         pc = get_code_fixnum(frame, pc+1);
+        set_fixnum(frame, Pc, pc);
       }
       else {
-        pc += 2;
+        advance_pc(frame, pc, 2);
       }
-      set_fixnum(frame, Pc, pc);
       continue;
     }
 
     if ( instr == Return ) {
-      frame = ret(frame);
+      frame = ret(frame, sym("non_local_return"));
       continue;
     }
 
     if ( instr == LocalReturn ) {
-      frame = local_ret(frame);
+      frame = ret(frame, sym("return"));
       continue;
     }
 

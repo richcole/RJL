@@ -49,6 +49,14 @@ Object* new_frame(Object *self, Object *code, Object *ret_frame) {
     set_lexical_parent(frame, lexical_parent);
   }
 
+  Object *non_local_return = get(code, "non_local_return");
+  if ( non_local_return != Undefined ) {
+    set(frame, "non_local_return", non_local_return);
+  }
+  else {
+    set(frame, "non_local_return", get(frame, "return"));
+  }
+
   return frame;
 }
 

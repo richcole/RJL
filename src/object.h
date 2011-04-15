@@ -77,7 +77,7 @@ void set(Object *obj, Object *key, Object *value) {
 }
 
 Object *get_plain(Object *obj, Object *key) {
-  if ( obj == 0 ) {
+  if ( obj == 0 || ! is_object(obj) ) {
     return 0;
   }
   Fixnum cand = hash(key, obj->length);

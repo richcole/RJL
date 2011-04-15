@@ -61,7 +61,7 @@ def_get_buffer(String, string);
 def_set_buffer(String, string);
 
 Fixnum is_string(Object *obj) {
-  if ( obj && obj->buffer && obj->buffer->type == String ) {
+  if ( obj != 0 && is_object(obj) && obj->buffer && obj->buffer->type == String ) {
     return 1;
   }
   return 0;

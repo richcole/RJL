@@ -1,7 +1,52 @@
 
 #include <stdio.h>
 
-Object* native_print(Object *frame, Object *self) {
+Object *to_long(Object *frame, Object *obj, long *num) {
+  if ( is_fixnum(obj) ) {
+    *num = fixnum(obj);
+    return 0;
+  }
+  else {
+    BoxedIntBuffer *obj_buf  = get_boxed_int_buffer(obj);
+    if ( obj != 0 ) {
+      *num = obj_buf->value;
+      return 0;
+    }
+    else {
+      return new_exception(frame, "expected fixnum or boxed_int");
+    }
+  }
+}
+
+#define TO_LONG(frame, var, value)                    \
+  long var;                                           \
+  {                                                   \
+    Object *ex = to_long(frame, value, &var);         \
+    if ( ex != 0 ) {                                  \
+      return ex;                                      \
+    };                                                \
+  };                                                  \
+
+#define INT_INT_OP(frame, self, op)                     \
+  Object *stack = get(frame, Stack);                    \
+  TO_LONG(frame, self_long,  self);                     \
+  TO_LONG(frame, other_long, pop(stack));               \
+  push(stack, new_boxed_int(self_long op other_long));  \
+  return frame;                                         \
+
+#define INT_BOOL_OP(frame, self, op)                  \
+  Object *stack = get(frame, Stack);                  \
+  TO_LONG(frame, self_long,  self);                   \
+  TO_LONG(frame, other_long, pop(stack));             \
+  if ( self_long op other_long ) {                    \
+    push(stack, True);                                \
+  }                                                   \
+  else {                                              \
+    push(stack, False);                               \
+  }                                                   \
+  return frame;                                       \
+
+Object* native_println(Object *frame, Object *self) {
   Object *arg = pop(get(frame, Stack));
   if ( is_string(arg) ) {
     StringBuffer *buf = get_string_buffer(arg);
@@ -11,6 +56,9 @@ Object* native_print(Object *frame, Object *self) {
     else {
       return new_exception(frame, "Couldn't interpret string in println");
     }
+  }
+  else if ( is_fixnum(arg) ) {
+    fprintf(stdout, "%ld\n", fixnum(arg));
   }
   else if ( is_boxed_int(arg) ) {
     BoxedIntBuffer *buf = get_boxed_int_buffer(arg);
@@ -179,8 +227,16 @@ Object *native_array_pop(Object *frame, Object *self) {
 }
 
 Object *native_array_push(Object *frame, Object *self) {
-  push(self, pop(get(frame, Stack)));
-  push(get(frame, Stack), Nil);
+  Object *stack = get(frame, Stack);
+  push(self, pop(stack));
+  push(stack, Nil);
+  return frame;
+}
+
+Object *native_array_at(Object *frame, Object *self) {
+  Object *stack = get(frame, Stack);
+  TO_LONG(frame, other_long, pop(stack));
+  push(stack, get_at(self, other_long));
   return frame;
 }
 
@@ -189,154 +245,40 @@ Object *native_array_length(Object *frame, Object *self) {
   return frame;
 }
 
-Object *native_boxed_int_leq(Object *frame, Object *self) {
+Object *native_array_new(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    if ( self_buf->value <= fixnum(other) ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    if ( self_buf->value <= other_buf->value ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
+  Object *array = new_object(self);
+  array->buffer = (Buffer *) new_array_buffer(10);
+  push(stack, array);
   return frame;
+}
+
+Object *native_boxed_int_leq(Object *frame, Object *self) {
+  INT_BOOL_OP(frame, self, <=);
 }
 
 Object *native_boxed_int_geq(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    if ( self_buf->value >= fixnum(other) ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    if ( self_buf->value >= other_buf->value ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
-  return frame;
+  INT_BOOL_OP(frame, self, >=);
 }
 
 Object *native_boxed_int_gt(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    if ( self_buf->value > fixnum(other) ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    if ( self_buf->value > other_buf->value ) {
-      push(stack, True);
-    }
-    else {
-      push(stack, False);
-    }
-  }
-  return frame;
+  INT_BOOL_OP(frame, self, >);
+}
+
+Object *native_boxed_int_le(Object *frame, Object *self) {
+  INT_BOOL_OP(frame, self, <);
 }
 
 Object *native_boxed_int_plus(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    push(stack, new_boxed_int(self_buf->value + fixnum(other)));
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    push(stack, new_boxed_int(self_buf->value + other_buf->value));
-  }
-  return frame;
+  INT_INT_OP(frame, self, +);
 }
 
 Object *native_boxed_int_times(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    push(stack, new_boxed_int(self_buf->value + fixnum(other)));
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    push(stack, new_boxed_int(self_buf->value * other_buf->value));
-  }
-  return frame;
+  INT_INT_OP(frame, self, *);
 }
 
 Object *native_boxed_int_minus(Object *frame, Object *self) {
-  Object *stack = get(frame, Stack);
-  Object *other = pop(stack);
-  BoxedIntBuffer *self_buf   = get_boxed_int_buffer(self);
-  BoxedIntBuffer *other_buf  = get_boxed_int_buffer(other);
-  if ( self_buf == 0 ) {
-      return new_exception(frame, "expected boxed int as self");
-  };
-  if ( is_fixnum(other) ) {
-    push(stack, new_boxed_int(self_buf->value - fixnum(other)));
-  }
-  else if ( other_buf == 0 ) {
-    return new_exception(frame, "expected boxed int as argument");
-  }
-  else {
-    push(stack, new_boxed_int(self_buf->value - other_buf->value));
-  }
-  return frame;
+  INT_INT_OP(frame, self, -);
 }
 
 Object *native_block_call(Object *frame, Object *self) {
@@ -407,7 +349,7 @@ Object* native_object_new1() {
 };
 
 void init_native_sys(Object *sys) {
-  set(sys, sym("println:"), new_func(native_print));
+  set(sys, sym("println:"), new_func(native_println));
   set(sys, sym("dump:"), new_func(native_dump));
   set(sys, sym("if:else:"), new_func(native_if_else));
 
@@ -428,12 +370,15 @@ void init_native_sys(Object *sys) {
   set(sys, Array, ArrayObject);
   set(ArrayObject, sym("pop"), new_func(native_array_pop));
   set(ArrayObject, sym("push:"), new_func(native_array_push));
+  set(ArrayObject, sym("at:"), new_func(native_array_at));
   set(ArrayObject, sym("length"), new_func(native_array_length));
+  set(ArrayObject, sym("new"), new_func(native_array_new));
   
   set(sys, "BoxedInt", BoxedIntObject);
   set(BoxedIntObject, "<=:", new_func(native_boxed_int_leq));
   set(BoxedIntObject, ">=:", new_func(native_boxed_int_geq));
   set(BoxedIntObject, ">:",  new_func(native_boxed_int_gt));
+  set(BoxedIntObject, "<:",  new_func(native_boxed_int_le));
   set(BoxedIntObject, "+:",  new_func(native_boxed_int_plus));
   set(BoxedIntObject, "-:",  new_func(native_boxed_int_minus));
   set(BoxedIntObject, "*:",  new_func(native_boxed_int_times));

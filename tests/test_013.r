@@ -6,7 +6,7 @@
       if ( x >= 3 ) {
         return x;
       };
-    }
+    };
     return 1;
   };
   println: (test: 0);

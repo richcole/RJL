@@ -1,14 +1,63 @@
+
+-- Notes file
+
+This file is organized as a set of notes. I generally add notes at the
+top of file. I also revise and prune older notes when they're no
+longer valid.
+
+-- First steps towards GC
+
+There is an excellent survey on garbage collection techniques called
+"Uniprocessor garbage collection techniques" by Paul R Wilson. It
+explains that generational garbage collectors must keep track of dirty
+bits when performing pointer assignment in order to keep track of
+which objects in the new generation are supported by references from
+objects in the old generation.
+
+The first attempt at a GC that I will write will be a simple mark and
+sweek garbage collector. I'm going to start simple because writing and
+testing a GC is not easy and mark and sweep will likely work for the 
+
+-- Non local returns
+
 Non local returns work by marking blocks created for if and while statements
 as local blocks. Non local returns then jump back up until they find a block
 that is not local to return from.
 
-Made a number of fixes including adding closures. Worked mostly on object
-creation blocks. Currently no code generation is being done for the "(| |)"
-construct, but it is being simulated via "Object new: { ... }", next
-step is to make the "(| |)" work again.
+In smalltalk it appears that non-local returns occur even in blocks
+that are create that are not method blocks, but RJL has no way to
+distinguish method from non method blocks since assignment is a method
+call.
 
-I reworked processing of expression lists because they didn't work for
-expressions involving a list of more than two expressions.
+So for example in RJL
+
+  xs each { x | return x; };
+
+This is effectively a local return. The reason is that it isn't clear
+to where blocks should return when they are nested.
+
+We might similarly be defining a function
+
+  xs x: { return self x; };
+
+which we would expect to return. Also with nested structures
+
+  xs x: {
+    if ( x > 1 ) {
+      if ( x > 2 ) {
+        return 3;
+      }
+    }
+  }
+
+What if we make the non-local return site the enclosing scope and have
+it be inherrited for if and while constructs.
+
+  first: { self each { x | return x } }
+
+
+
+-- Needed features
 
 Next more tests around operators.
 
