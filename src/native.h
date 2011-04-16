@@ -48,13 +48,13 @@ Object *to_long(Object *frame, Object *obj, long *num) {
 
 Object* native_println(Object *frame, Object *self) {
   Object *arg = pop(get(frame, Stack));
-  if ( is_string(arg) ) {
-    StringBuffer *buf = get_string_buffer(arg);
+  if ( is_char_array(arg) ) {
+    CharArrayBuffer *buf = get_char_array_buffer(arg);
     if ( buf != 0 ) {
       fprintf(stdout, "%s\n", buf->data);
     }
     else {
-      return new_exception(frame, "Couldn't interpret string in println");
+      return new_exception(frame, "Couldn't interpret char_array in println");
     }
   }
   else if ( is_fixnum(arg) ) {
@@ -95,9 +95,9 @@ Object* native_object_new(Object *frame, Object *self) {
 void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
   Fixnum i;
 
-  char indent_string[indent+1];
-  memset(indent_string, ' ', indent);
-  indent_string[indent] = 0;
+  char indent_char_array[indent+1];
+  memset(indent_char_array, ' ', indent);
+  indent_char_array[indent] = 0;
 
   if ( max_indent > 0 && indent > max_indent ) {
     return;
@@ -109,8 +109,8 @@ void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
   else if ( is_fixnum(obj) ) {
     fprintf(stdout, "%ld\n", fixnum(obj));
   }
-  else if ( is_string(obj) ) {
-    fprintf(stdout, "\"%s\"\n", get_string_buffer(obj)->data);
+  else if ( is_char_array(obj) ) {
+    fprintf(stdout, "\"%s\"\n", get_char_array_buffer(obj)->data);
   }
   else if ( is_func(obj) ) {
     fprintf(stdout, "FUNC: %p\n", get_func_buffer(obj)->func);
@@ -128,12 +128,12 @@ void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
       for(i=0;i<obj->length;++i) {
         Object *key = obj->table[i].key;
         if ( key != 0 && key != Dirty ) {
-          if ( is_string(key) ) {
-            fprintf(stdout, "%s  %s: ", indent_string, get_string_buffer(key)->data);
+          if ( is_char_array(key) ) {
+            fprintf(stdout, "%s  %s: ", indent_char_array, get_char_array_buffer(key)->data);
             dump(obj->table[i].value, indent+2, visited, max_indent);
           }
           else {
-            fprintf(stdout, "%s  %p: ", indent_string, key);
+            fprintf(stdout, "%s  %p: ", indent_char_array, key);
             dump(obj->table[i].value, indent+2, visited, max_indent);
           }
         }
@@ -146,20 +146,20 @@ void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
     if ( is_array(obj) ) {
       if ( array_length(obj) > 0 ) {
         if ( obj->occupied > 0 ) {
-          fprintf(stdout, "%s  [\n", indent_string);
+          fprintf(stdout, "%s  [\n", indent_char_array);
         }
         else {
           fprintf(stdout, " [\n");
         }
         for(i=0;i<array_length(obj);++i) {
-          fprintf(stdout, "%s    %03d: ", indent_string, (int)i);
+          fprintf(stdout, "%s    %03d: ", indent_char_array, (int)i);
           dump(get_at(obj, i), indent+4, visited, max_indent);
         }
-        fprintf(stdout, "%s  ]\n%s}\n", indent_string, indent_string);
+        fprintf(stdout, "%s  ]\n%s}\n", indent_char_array, indent_char_array);
       }
       else {
         if ( obj->occupied > 0 ) {
-          fprintf(stdout, "%s  []\n%s}\n", indent_string, indent_string);
+          fprintf(stdout, "%s  []\n%s}\n", indent_char_array, indent_char_array);
         }
         else {
           fprintf(stdout, " [] }\n");
@@ -168,7 +168,7 @@ void dump(Object *obj, Fixnum indent, Object *visited, Fixnum max_indent) {
     }
     else {
       if ( obj->occupied > 0 ) {
-        fprintf(stdout, "%s}\n", indent_string);
+        fprintf(stdout, "%s}\n", indent_char_array);
       }
       else {
         fprintf(stdout, "}\n");
@@ -192,31 +192,31 @@ Object* native_dump(Object *frame, Object *self) {
   return frame;
 }
 
-Object *native_string_reserve(Object *frame, Object *self) {
+Object *native_char_array_reserve(Object *frame, Object *self) {
   Object *stack = get(frame, Stack);
   Object* new_size = pop(stack);
   if ( ! is_fixnum(new_size) ) {
     return new_exception(frame, "Expected fixnum argument");
   }
-  string_set_reserve(self, fixnum(new_size));
+  char_array_set_reserve(self, fixnum(new_size));
   push(stack, Nil);
   return frame;
 }
 
-Object *native_string_shift(Object *frame, Object *self) {
+Object *native_char_array_shift(Object *frame, Object *self) {
   Fixnum offset = fixnum(pop(get(frame, Stack)));
-  StringBuffer *buf = get_string_buffer(self);
+  CharArrayBuffer *buf = get_char_array_buffer(self);
   if ( buf != 0 ) {
     if ( offset < buf->length ) {
       rjl_memcpy(buf->data, buf->data + offset, buf->length - offset);
-      string_truncate_buffer(self, buf->length - offset);
+      char_array_truncate_buffer(self, buf->length - offset);
     }
     else {
-      return new_exception(frame, "offset is larger than string length");
+      return new_exception(frame, "offset is larger than char_array length");
     }
   }
   else {
-    return new_exception(frame, "expected self to be a string");
+    return new_exception(frame, "expected self to be a char_array");
   }
   return frame;
 };
@@ -363,9 +363,9 @@ void init_native_sys(Object *sys) {
   set(BlockObject, sym("call:"), new_func(native_block_call1));
   set(BlockObject, sym("invoke:"), new_func(native_block_invoke));
 
-  set(sys, String, StringObject);
-  set(StringObject, sym("reserve:"), new_func(native_string_reserve));
-  set(StringObject, sym("shift:"), new_func(native_string_shift));
+  set(sys, CharArray, CharArrayObject);
+  set(CharArrayObject, sym("reserve:"), new_func(native_char_array_reserve));
+  set(CharArrayObject, sym("shift:"), new_func(native_char_array_shift));
 
   set(sys, Array, ArrayObject);
   set(ArrayObject, sym("pop"), new_func(native_array_pop));

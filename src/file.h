@@ -38,13 +38,13 @@ Fixnum is_file(Object *obj) {
 
 Object* native_file_open_mode(Object *frame, Object *self) {
 	Object *stack = get(frame, Stack);
-	StringBuffer *file_mode_buf = get_string_buffer(pop(stack));
-	StringBuffer *file_name_buf = get_string_buffer(pop(stack));
+	CharArrayBuffer *file_mode_buf = get_char_array_buffer(pop(stack));
+	CharArrayBuffer *file_name_buf = get_char_array_buffer(pop(stack));
 	if ( file_name_buf == 0 ) {
-		return new_exception(frame, "Expected a string as first argument");
+		return new_exception(frame, "Expected a char_array as first argument");
 	}
 	if ( file_mode_buf == 0 ) {
-		return new_exception(frame, "Expected a string as second argument");
+		return new_exception(frame, "Expected a char_array as second argument");
 	}
   Object *file_object = new_file(fopen(file_name_buf->data, file_mode_buf->data));
   set(file_object, Parent, self);
@@ -54,13 +54,13 @@ Object* native_file_open_mode(Object *frame, Object *self) {
 
 Object* native_file_open(Object *frame, Object *self) {
 	Object *stack = get(frame, Stack);
-  push(stack, new_string("r"));
+  push(stack, new_char_array("r"));
   return native_file_open_mode(frame, self);
 }
 
 Object *new_errno_exception(Object *frame, char const* message) {
   Object *ex = new_exception(frame, message);
-  set(ex, Errno, new_string(strerror(errno)));
+  set(ex, Errno, new_char_array(strerror(errno)));
   return ex;
 };
 
@@ -99,15 +99,15 @@ Object* native_file_read_into_offset_length(Object *frame, Object *self) {
 	FileBuffer *file_buf = get_file_buffer(self);
   Object *length_obj   = pop(stack);
   Object *offset_obj   = pop(stack);
-  Object *string       = pop(stack);
+  Object *char_array       = pop(stack);
 
   if ( file_buf == 0 ) {
   	return new_exception(frame, "Expected a file as self argument");
   }
 
-  StringBuffer *string_buf = get_string_buffer(string);
-  if ( string_buf == 0 ) {
-  	return new_exception(frame, "Expected a string as first argument");
+  CharArrayBuffer *char_array_buf = get_char_array_buffer(char_array);
+  if ( char_array_buf == 0 ) {
+  	return new_exception(frame, "Expected a char_array as first argument");
   }
 
   if ( ! is_fixnum(offset_obj) ) {
@@ -120,13 +120,13 @@ Object* native_file_read_into_offset_length(Object *frame, Object *self) {
   }
   Fixnum length = fixnum(length_obj);
 
-  if ( offset + length > string_buf->reserved ) {
-  	return new_exception(frame, "Offset + length exceeds string length");
+  if ( offset + length > char_array_buf->reserved ) {
+  	return new_exception(frame, "Offset + length exceeds char_array length");
   }
   
-  int num_read = fread(string_buf->data + offset, 1, length, file_buf->file);
+  int num_read = fread(char_array_buf->data + offset, 1, length, file_buf->file);
   if ( num_read >= 0 ) {
-    string_truncate_buffer(string, offset + num_read);
+    char_array_truncate_buffer(char_array, offset + num_read);
     return frame;
   }
   else {

@@ -22,24 +22,24 @@ void code_depedent_send(Object *code, Fixnum i, Object *slot) {
   }
 }
 
-Object *join_strings(Object *strs) {
+Object *join_char_arrays(Object *strs) {
   Fixnum total_length = 0;
   {
     FOR_EACH_ARRAY(i, str, strs) {
-      total_length += string_length(get(str, "value"));
+      total_length += char_array_length(get(str, "value"));
     }
   }
-  Object *result = new_string(total_length);
+  Object *result = new_char_array(total_length);
   {
     FOR_EACH_ARRAY(i, str, strs) {
-      string_append(result, get(str, "value"));
+      char_array_append(result, get(str, "value"));
     }
   }
   return result;
 }
 
 void code_gen_expr(Object* pc, Object* code, Object* block, Object *expr) {
-  if ( has_type(expr, "string_literal") ) {
+  if ( has_type(expr, "char_array_literal") ) {
     code_push(code, get(expr, "value"));
   }
   else if ( has_type(expr, "block_expr") ) {
@@ -91,10 +91,10 @@ void code_gen_expr_list_stmt(
         code_depedent_send(code, i, get(get(expr, sym("target")), "value"));
       }
       else if ( has_type(expr, "send_arg_expr") ) {
-        code_depedent_send(code, i, join_strings(get(expr, "arg_names")));
+        code_depedent_send(code, i, join_char_arrays(get(expr, "arg_names")));
       }
       else if ( has_type(expr, "operator_expr") ) {
-        code_depedent_send(code, i, string_concat(get(get(expr, "op"), "value"), sym(":")));
+        code_depedent_send(code, i, char_array_concat(get(get(expr, "op"), "value"), sym(":")));
       }
       else if ( has_type(expr, "group") ) {
         code_gen_group(pc, code, block, expr);

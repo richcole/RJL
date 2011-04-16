@@ -43,7 +43,7 @@ Fixnum have(Object *pc, char const* token_type) {
 Object *new_parse_error(char const* str, Object *type, Object *curr) {
   Object *error = new_object();
   set(error, "expected_type", type);
-  set(error, "message", new_string(str));
+  set(error, "message", new_char_array(str));
   set(error, "found", curr);
   return error;
 }
@@ -102,8 +102,8 @@ Object* parse_expr(Object *pc) {
       push_slot(expr, "args", parse_expr(pc));
     }
   }
-  else if ( have(pc, "string") ) {
-    set(expr, "type", "string_literal");
+  else if ( have(pc, "char_array") ) {
+    set(expr, "type", "char_array_literal");
     set(expr, "value", get(curr(pc), "value"));
     advance(pc);
   }
@@ -124,7 +124,7 @@ Object* parse_expr(Object *pc) {
   }
   else if ( have(pc, "number_literal") ) {
     set(expr, "type", "number_literal");
-    set(expr, "value", string_to_boxed_number(get(curr(pc), "value")));
+    set(expr, "value", char_array_to_boxed_number(get(curr(pc), "value")));
     advance(pc);
   }
   else if ( have(pc, "symbol") ) {
@@ -233,7 +233,7 @@ void create_sets(Object *pc) {
   set(pc, "begin_expr", begin_expr);
   set(begin_expr, "ident", "true");
   set(begin_expr, "arg_ident", "true");
-  set(begin_expr, "string", "true");
+  set(begin_expr, "char_array", "true");
   set(begin_expr, "operator", "true");
   set(begin_expr, "number_literal", "true");
   set(begin_expr, "symbol_literal", "true");

@@ -23,7 +23,7 @@ void scan_context_push_token(Object *sc, Object *type, Fixnum offset) {
   set(token, "char_number", object(token_start - line_start));
   set(token, "type",        type);
   set(token, "value",       
-      string_substring(get(sc, "line"), 
+      char_array_subchar_array(get(sc, "line"), 
 		       fixnum(get(sc, "token_start")) + offset, 
 		       fixnum(get(sc, "token_end"))
     )
@@ -39,7 +39,7 @@ void scan_context_push_token(Object *sc, char const* type) {
   scan_context_push_token(sc, sym(type));
 }
 
-void scan_context_push_string_token(Object *sc, Object *type) {
+void scan_context_push_char_array_token(Object *sc, Object *type) {
   Object *token = new_object();
   Fixnum token_start = fixnum(get(sc, "token_start"));
   Fixnum line_start  = fixnum(get(sc, "line_start"));
@@ -47,7 +47,7 @@ void scan_context_push_string_token(Object *sc, Object *type) {
   set(token, "char_number", object(token_start - line_start));
   set(token, "type",        type);
   set(token, "value",       
-      string_substring(get(sc, "line"), 
+      char_array_subchar_array(get(sc, "line"), 
 		       fixnum(get(sc, "token_start"))+1, 
 		       fixnum(get(sc, "token_end"))-1
     )
@@ -95,7 +95,7 @@ void detect_reserved_word(Object *sc) {
 Object *new_scan_context(Object *file) {
   Object *sc = new_object();
   set(sc, "file",        file);
-  set(sc, "line",        new_string(1024));
+  set(sc, "line",        new_char_array(1024));
   set(sc, "line_number", object(0));
   set(sc, "line_start", object(0));
   set(sc, "char_number", object(0));
@@ -126,15 +126,15 @@ void scan_context_read_line(Object *sc) {
   native_call(line, "shift:", get(sc, "index"));
   set(sc, "index", object(0));
   native_call(file, "read:into:offset:length:", 
-    line, object(string_length(line)), 
-    object(string_reserve(line) - string_length(line))
+    line, object(char_array_length(line)), 
+    object(char_array_reserve(line) - char_array_length(line))
   );
   set(sc, "line_number", object(fixnum(get(sc, "line_number"))+1));
   set(sc, "char_number", object(0));
 };
 
 Fixnum scan_context_line_is_exhausted(Object *sc) {
-  StringBuffer *buf = get_string_buffer(get(sc, "line"));
+  CharArrayBuffer *buf = get_char_array_buffer(get(sc, "line"));
   if ( buf != 0 && buf->length > fixnum(get(sc, "index")) ) {
     return 0;
   }
@@ -146,19 +146,19 @@ Fixnum scan_context_line_is_exhausted(Object *sc) {
 char scan_context_curr(Object *sc) {
   Object *line  = get(sc, "line");
   Fixnum  index = fixnum(get(sc, "index"));
-  return string_get_at(line, index);
+  return char_array_get_at(line, index);
 }
 
 char scan_context_next(Object *sc) {
   Object *line  = get(sc, "line");
   Fixnum  index = fixnum(get(sc, "index"))+1;
-  return string_get_at(line, index);
+  return char_array_get_at(line, index);
 }
 
 Fixnum scan_context_has_next(Object *sc) {
   Object *line  = get(sc, "line");
   Fixnum  index = fixnum(get(sc, "index"));
-  if (  index+1 < string_length(line) ) {
+  if (  index+1 < char_array_length(line) ) {
     return 1;
   }
   else {
@@ -299,7 +299,7 @@ Object *tokenize(Object *file) {
           ch = scan_context_advance(sc);
         }            
         scan_context_advance(sc);
-        scan_context_push_string_token(sc, sym("string"));
+        scan_context_push_char_array_token(sc, sym("char_array"));
         continue;
       }
 

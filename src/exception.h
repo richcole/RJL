@@ -33,7 +33,7 @@ Object *new_exception(Object *frame, char const* reason) {
   Object *ex = new_object();
   set(ex, Parent, Exception);
   set(ex, Frame,  frame);
-  set(ex, Reason, new_string(reason));
+  set(ex, Reason, new_char_array(reason));
 
   return ex;
 }

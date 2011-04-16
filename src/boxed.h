@@ -37,10 +37,10 @@ Fixnum is_boxed_int(Object *boxed_int) {
   return 0;
 }
 
-Object *string_to_boxed_number(Object *str) {
+Object *char_array_to_boxed_number(Object *str) {
   Object *boxed_int = new_boxed_int();
   BoxedIntBuffer *int_buf = get_boxed_int_buffer(boxed_int);
-  StringBuffer   *str_buf = get_string_buffer(str);
+  CharArrayBuffer   *str_buf = get_char_array_buffer(str);
   Fixnum sign = 1;
   Fixnum i = 0;
 

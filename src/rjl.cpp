@@ -3,7 +3,7 @@
 #include "mem.h"
 #include "object.h"
 #include "buffer.h"
-#include "string.h"
+#include "char_array.h"
 #include "symbol_table.h"
 #include "array.h"
 #include "symbol.h"
@@ -25,7 +25,7 @@
 #include "interp.h"
 
 void init_symbols() {
-  init_string_symbols();
+  init_char_array_symbols();
   init_symbol_table_symbols();
   init_array_symbols();
   init_func_symbols();
@@ -74,7 +74,7 @@ Object *top_level_frame(Object *sys) {
   // parent catch block
   push_slot(frame, Catch, object(array_length(code)));
   code_arg(code, sym("ex"));
-  code_push(code, new_string("Exception raised."));
+  code_push(code, new_char_array("Exception raised."));
   code_self_send(code, sym("println:"));
   code_self_send(code, sym("ex"));
   code_send(code, Reason);
@@ -87,7 +87,7 @@ Object *top_level_frame(Object *sys) {
 Object* parse_arguments(int argc, char **argv) {
   Object *args = new_array();
   for(int i=1;i<argc; ++i) {
-    push(args, new_string(argv[i]));
+    push(args, new_char_array(argv[i]));
   }
   return args;
 }

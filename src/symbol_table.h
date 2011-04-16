@@ -42,7 +42,7 @@ SymbolTableBuffer *grow_symbol_table(Object *symbol_table) {
 }
 
 Fixnum symbol_table_hash(Object *symbol) {
-  StringBuffer *sb = get_string_buffer(symbol);
+  CharArrayBuffer *sb = get_char_array_buffer(symbol);
   Fixnum hash = 0;
   for(Fixnum i=0;i<sb->length;++i) {
     hash ^= ( sb->data[i] << ((i % 4) * 8) );
@@ -68,7 +68,7 @@ Object* symbol_table_add(SymbolTableBuffer *stb, Object *symbol) {
  
   Fixnum cand = symbol_table_hash(symbol) % stb->length;
   while( stb->data[cand] != 0 ) {
-    if ( string_equals(stb->data[cand], symbol) ) {
+    if ( char_array_equals(stb->data[cand], symbol) ) {
       return stb->data[cand];
     }
     cand = (cand + 1) % stb->length;
@@ -84,13 +84,13 @@ Object* symbol_table_add(SymbolTableBuffer *stb, char const* str) {
 	}
 	Fixnum cand = symbol_table_hash(str) % stb->length;
 	while( stb->data[cand] != 0 ) {
-		if ( string_equals(stb->data[cand], str) ) {
+		if ( char_array_equals(stb->data[cand], str) ) {
 			return stb->data[cand];
 		}
 		cand = (cand + 1) % stb->length;
 	}
 	stb->occupied++;
-	stb->data[cand] = new_string(str);
+	stb->data[cand] = new_char_array(str);
 	return stb->data[cand];
 }
 
@@ -105,7 +105,7 @@ Object *sym(Object *str) {
 }
 
 void add_sym(Object *obj, char const* str) {
-	obj->buffer = (Buffer *) new_string_buffer(str);
+	obj->buffer = (Buffer *) new_char_array_buffer(str);
 	symbol_table_add(grow_symbol_table(global_symbol_table), obj);
 }
 
