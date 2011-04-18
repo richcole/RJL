@@ -4,7 +4,7 @@
 #include "object.h"
 
 struct ArrayBuffer {
-  Object  *type;
+  Fixnum  type;
   Fixnum  length;
   Fixnum  tail;
   Object  *data[0];

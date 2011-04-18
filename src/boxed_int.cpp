@@ -22,11 +22,11 @@ Object *new_boxed_int(Object *cxt, long value) {
   return boxed_int;
 }
 
-def_get_buffer(BoxedInt, boxed_int);
-def_set_buffer(BoxedInt, boxed_int);
+def_get_buffer(BoxedInt, boxed_int, BoxedIntTypeTag);
+def_set_buffer(BoxedInt, boxed_int, BoxedIntTypeTag);
 
 Fixnum is_boxed_int(Object *cxt, Object *boxed_int) {
-  if ( get_boxed_int_buffer(cxt, boxed_int) != 0 ) {
+  if ( get_boxed_int_buffer(boxed_int) != 0 ) {
     return 1;
   }
   return 0;
@@ -34,8 +34,8 @@ Fixnum is_boxed_int(Object *cxt, Object *boxed_int) {
 
 Object *char_array_to_boxed_int(Object *cxt, Object *str) {
   Object *boxed_int = new_boxed_int(cxt);
-  BoxedIntBuffer  *int_buf = get_boxed_int_buffer(cxt, boxed_int);
-  CharArrayBuffer *str_buf = get_char_array_buffer(cxt, str);
+  BoxedIntBuffer  *int_buf = get_boxed_int_buffer(boxed_int);
+  CharArrayBuffer *str_buf = get_char_array_buffer(str);
   Fixnum sign = 1;
   Fixnum i = 0;
 
@@ -57,7 +57,7 @@ Object *char_array_to_boxed_int(Object *cxt, Object *str) {
 }
 
 Fixnum boxed_int_to_fixnum(Object *cxt, Object *boxed_int) {
-  BoxedIntBuffer *buf = get_boxed_int_buffer(cxt, boxed_int);
+  BoxedIntBuffer *buf = get_boxed_int_buffer(boxed_int);
   if ( buf != 0 ) {
     return buf->value;
   }

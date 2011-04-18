@@ -2,11 +2,11 @@
 #include "context.h"
 #include "mem.h"
 #include "sym.h"
-#include "buffer.cpp"
+#include "type_tags.h"
 
-CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len) {
+CharArrayBuffer *new_char_array_buffer(Fixnum len) {
   CharArrayBuffer *buf = (CharArrayBuffer *)mem_alloc(sizeof(CharArrayBuffer)+len+1);
-  buf->type      = sym(cxt, "CharArray");
+  buf->type      = CharArrayTypeTag;
   buf->length    = 0;
   buf->reserved  = len;
   return buf;
@@ -34,25 +34,28 @@ Object *new_char_array(Object *cxt, char const* s) {
   return obj;
 }
 
+Object *new_char_array(char const* s) {
+  Object *obj = new_object(0);
+  obj->buffer = (Buffer *) new_char_array_buffer(0, s);
+  return obj;
+}
+
 Object *new_char_array(Object *cxt, Fixnum reserved) {
   Object *obj = new_object(cxt, char_array(cxt));
   obj->buffer = (Buffer *) new_char_array_buffer(cxt, reserved);
   return obj;
 }
 
-def_get_buffer(CharArray, char_array);
-def_set_buffer(CharArray, char_array);
+def_get_buffer(CharArray, char_array, BoxedIntTypeTag);
+def_set_buffer(CharArray, char_array, BoxedIntTypeTag);
 
 Fixnum is_char_array(Object *cxt, Object *obj) {
-  if ( has_buffer_type(cxt, obj, "CharArray") ) {
-    return 1;
-  }
-  return 0;
+  return get_char_array_buffer(obj) != 0; 
 }
 
-Fixnum char_array_equals(Object *cxt, Object *s1, Object *s2) {
-  CharArrayBuffer *sb1 = get_char_array_buffer(cxt, s1);
-  CharArrayBuffer *sb2 = get_char_array_buffer(cxt, s2);
+Fixnum char_array_equals(Object *s1, Object *s2) {
+  CharArrayBuffer *sb1 = get_char_array_buffer(s1);
+  CharArrayBuffer *sb2 = get_char_array_buffer(s2);
 	
 	if ( sb1 == 0 || sb2 == 0 ) {
 		return 0;
@@ -68,8 +71,8 @@ Fixnum char_array_equals(Object *cxt, Object *s1, Object *s2) {
 	return 1;
 }
 
-Fixnum char_array_equals(Object *cxt, Object *s1, char const* s2) {
-  CharArrayBuffer *sb1 = get_char_array_buffer(cxt, s1);
+Fixnum char_array_equals(Object *s1, char const* s2) {
+  CharArrayBuffer *sb1 = get_char_array_buffer(s1);
 
   if ( sb1 == 0 || s2 == 0 ) {
     return 0;
@@ -90,7 +93,7 @@ Fixnum char_array_equals(Object *cxt, Object *s1, char const* s2) {
 }
 
 void char_array_truncate_buffer(Object *cxt, Object *str, Fixnum len) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, str);
+  CharArrayBuffer *buf = get_char_array_buffer(str);
   if ( buf != 0 && len <= buf->reserved ) {
     buf->length = len;
     buf->data[buf->length] = 0;
@@ -98,7 +101,7 @@ void char_array_truncate_buffer(Object *cxt, Object *str, Fixnum len) {
 }
 
 void char_array_set_reserve(Object *cxt, Object *str, Fixnum new_size) {
-  CharArrayBuffer *cb = get_char_array_buffer(cxt, str);
+  CharArrayBuffer *cb = get_char_array_buffer(str);
   CharArrayBuffer *nb = new_char_array_buffer(cxt, new_size);
   Fixnum len = new_size;
 
@@ -110,12 +113,12 @@ void char_array_set_reserve(Object *cxt, Object *str, Fixnum new_size) {
   nb->length = len;
   nb->data[nb->length] = 0;
 
-  set_char_array_buffer(cxt, str, nb);
+  set_char_array_buffer(str, nb);
   mem_free(cb);
 }
 
 Fixnum char_array_length(Object *cxt, Object *str) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, str);
+  CharArrayBuffer *buf = get_char_array_buffer(str);
   if ( buf != 0 ) {
     return buf->length;
   }
@@ -125,7 +128,7 @@ Fixnum char_array_length(Object *cxt, Object *str) {
 }
 
 char char_array_get_at(Object *cxt, Object *str, Fixnum index) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, str);
+  CharArrayBuffer *buf = get_char_array_buffer(str);
   if ( buf != 0 && index < buf->length ) {
     return buf->data[index];
   }
@@ -135,7 +138,7 @@ char char_array_get_at(Object *cxt, Object *str, Fixnum index) {
 };
 
 Fixnum char_array_reserve(Object *cxt, Object *str) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, str);
+  CharArrayBuffer *buf = get_char_array_buffer(str);
   if ( buf != 0 ) {
     return buf->reserved;
   }
@@ -145,10 +148,10 @@ Fixnum char_array_reserve(Object *cxt, Object *str) {
 }
 
 Object *char_array_subchar_array(Object *cxt, Object *char_array, Fixnum start, Fixnum end) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, char_array);
+  CharArrayBuffer *buf = get_char_array_buffer(char_array);
   if ( buf != 0 && start < buf->length && end <= buf->length ) {
     Object *ret = new_char_array(cxt, end - start);
-    CharArrayBuffer *ret_buf = get_char_array_buffer(cxt, ret);
+    CharArrayBuffer *ret_buf = get_char_array_buffer(ret);
     rjl_memcpy(ret_buf->data, buf->data + start, end - start);
     ret_buf->length = end - start;
     return ret;
@@ -157,15 +160,15 @@ Object *char_array_subchar_array(Object *cxt, Object *char_array, Fixnum start, 
 }
 
 void char_array_append(Object *cxt, Object *str, Object *arg) {
-  CharArrayBuffer *str_buf = get_char_array_buffer(cxt, str);
-  CharArrayBuffer *arg_buf = get_char_array_buffer(cxt, arg);
+  CharArrayBuffer *str_buf = get_char_array_buffer(str);
+  CharArrayBuffer *arg_buf = get_char_array_buffer(arg);
   if ( arg_buf == 0 || str_buf == 0 ) {
     return;
   }
   Fixnum new_length = str_buf->length + arg_buf->length;
   if ( new_length > str_buf->reserved ) {
     char_array_set_reserve(cxt, str, new_length);
-    str_buf = get_char_array_buffer(cxt, str);
+    str_buf = get_char_array_buffer(str);
   }
   rjl_memcpy(str_buf->data + str_buf->length, arg_buf->data, arg_buf->length);
   str_buf->length = new_length;
@@ -175,9 +178,9 @@ void char_array_append(Object *cxt, Object *str, Object *arg) {
 Object* char_array_concat(Object *cxt, Object *str, Object *arg) {
   Fixnum len = char_array_length(cxt, str) + char_array_length(cxt, arg);
   Object *ret = new_char_array(cxt, len);
-  CharArrayBuffer *ret_buf = get_char_array_buffer(cxt, ret);
-  CharArrayBuffer *str_buf = get_char_array_buffer(cxt, str);
-  CharArrayBuffer *arg_buf = get_char_array_buffer(cxt, arg);
+  CharArrayBuffer *ret_buf = get_char_array_buffer(ret);
+  CharArrayBuffer *str_buf = get_char_array_buffer(str);
+  CharArrayBuffer *arg_buf = get_char_array_buffer(arg);
   if ( ret_buf == 0 || arg_buf == 0 || str_buf == 0 ) {
     return 0;
   }

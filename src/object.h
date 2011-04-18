@@ -14,7 +14,7 @@ struct ObjectPair {
 };
 
 struct Buffer {
-  Object     *type;
+  Fixnum type;
 };
 
 struct Object {
@@ -34,7 +34,5 @@ Object *get_plain(Object *target, Object *slot);
 
 Object* get_parent(Object *cxt, Object *obj);
 Fixnum  exists(Object *cxt, Object *obj);
-
-Fixnum  has_buffer_type(Object *cxt, Object *obj, char const* slot);
 
 #endif

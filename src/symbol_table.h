@@ -4,7 +4,7 @@
 #include "object.h"
 
 struct SymbolTableBuffer {
-  Object  *type;
+  Fixnum  type;
   Fixnum  length;
   Fixnum  occupied;
   Object  *data[0];

@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
-  BoxedIntBuffer *obj_buf  = get_boxed_int_buffer(cxt, obj);
+  BoxedIntBuffer *obj_buf  = get_boxed_int_buffer(obj);
   if ( obj != 0 ) {
     *num = obj_buf->value;
     return 0;
@@ -55,7 +55,7 @@ Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
 Object* native_println(Object *cxt, Object *frame, Object *self) {
   Object *arg = pop(cxt, get_stack(cxt, frame));
   if ( is_char_array(cxt, arg) ) {
-    CharArrayBuffer *buf = get_char_array_buffer(cxt, arg);
+    CharArrayBuffer *buf = get_char_array_buffer(arg);
     if ( buf != 0 ) {
       fprintf(stdout, "%s\n", buf->data);
     }
@@ -64,7 +64,7 @@ Object* native_println(Object *cxt, Object *frame, Object *self) {
     }
   }
   else if ( is_boxed_int(cxt, arg) ) {
-    BoxedIntBuffer *buf = get_boxed_int_buffer(cxt, arg);
+    BoxedIntBuffer *buf = get_boxed_int_buffer(arg);
     if ( buf != 0 ) {
       fprintf(stdout, "%ld\n", buf->value);
     }
@@ -113,13 +113,13 @@ void dump(
     fprintf(stdout, "0\n");
   }
   else if ( is_char_array(cxt, obj) ) {
-    fprintf(stdout, "\"%s\"\n", get_char_array_buffer(cxt, obj)->data);
+    fprintf(stdout, "\"%s\"\n", get_char_array_buffer(obj)->data);
   }
   else if ( is_func(cxt, obj) ) {
-    fprintf(stdout, "FUNC: %p\n", get_func_buffer(cxt, obj)->func);
+    fprintf(stdout, "FUNC: %p\n", get_func_buffer(obj)->func);
   }    
   else if ( is_boxed_int(cxt, obj) ) {
-    fprintf(stdout, "BOXED_INT: %ld\n", get_boxed_int_buffer(cxt, obj)->value);
+    fprintf(stdout, "BOXED_INT: %ld\n", get_boxed_int_buffer(obj)->value);
   }    
   else if ( is_true(cxt, get(cxt, visited, obj)) ) {
     fprintf(stdout, "^%p\n", obj);
@@ -133,7 +133,7 @@ void dump(
         if ( key != 0 ) {
           if ( is_char_array(cxt, key) ) {
             fprintf(stdout, "%s  %s: ", indent_char_array, 
-                    get_char_array_buffer(cxt, key)->data);
+                    get_char_array_buffer(key)->data);
             dump(cxt, obj->table[i].value, indent+2, visited, max_indent);
           }
           else {
@@ -207,7 +207,7 @@ Object *native_char_array_reserve(Object *cxt, Object *frame, Object *self) {
 
 Object *native_char_array_shift(Object *cxt, Object *frame, Object *self) {
   Fixnum offset = boxed_int_to_fixnum(cxt, pop(cxt, get_stack(cxt, frame)));
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, self);
+  CharArrayBuffer *buf = get_char_array_buffer(self);
   if ( buf != 0 ) {
     if ( offset < buf->length ) {
       rjl_memcpy(buf->data, buf->data + offset, buf->length - offset);

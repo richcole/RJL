@@ -2,9 +2,10 @@
 #define CHAR_ARRAY_H
 
 #include "object.h"
+#include "type_tags.h"
 
 struct CharArrayBuffer {
-  Object *type;
+  Fixnum type;
   Fixnum reserved;
   Fixnum length;
   char   data[0];
@@ -13,8 +14,8 @@ struct CharArrayBuffer {
 Object *new_char_array(Object *cxt, char const* s);
 Object *new_char_array(Object *cxt, Fixnum reserved);
 Fixnum  is_char_array(Object *cxt, Object *obj);
-Fixnum  char_array_equals(Object *cxt, Object *s1, Object *s2);
-Fixnum  char_array_equals(Object *cxt, Object *s1, char const* s2);
+Fixnum  char_array_equals(Object *s1, Object *s2);
+Fixnum  char_array_equals(Object *s1, char const* s2);
 void    char_array_truncate_buffer(Object *cxt, Object *str, Fixnum len);
 void    char_array_set_reserve(Object *cxt, Object *str, Fixnum new_size);
 Fixnum  char_array_length(Object *cxt, Object *str);
@@ -25,7 +26,8 @@ Object* char_array_subchar_array(Object *cxt, Object *char_array, Fixnum start, 
 char    char_array_get_at(Object *cxt, Object *str, Fixnum index);
 CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len);
 CharArrayBuffer *new_char_array_buffer(Object *cxt, char const* s);
+Object *new_char_array(char const* s);
 
-decl_get_buffer(CharArray, char_array);
+decl_get_buffer(CharArray, char_array, CharArrayTypeTag);
 
 #endif

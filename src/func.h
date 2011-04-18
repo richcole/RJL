@@ -2,11 +2,12 @@
 #define FUNC_H
 
 #include "object.h"
+#include "type_tags.h"
 
 typedef Object* (*FuncPtr)(Object *cxt, Object *frame, Object *target);
 
 struct FuncBuffer {
-  Object *type;
+  Fixnum  type;
   FuncPtr func;
 };
 
@@ -15,7 +16,7 @@ Object *new_func(Object *cxt, FuncPtr func_ptr);
 Object *call_func(Object *cxt, Object *target, Object *func, Object *frame);
 Object *native_call(Object *cxt, Object *self, Object *slot);
 
-decl_get_buffer(Func, func);
-decl_set_buffer(Func, func);
+decl_get_buffer(Func, func, FuncTypeTag);
+decl_set_buffer(Func, func, FuncTypeTag);
 
 #endif

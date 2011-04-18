@@ -2,14 +2,15 @@
 #define BOXED_INT_H
 
 #include "object.h"
+#include "type_tags.h"
 
 struct BoxedIntBuffer {
   Object *type;
   long   value;
 };
 
-decl_get_buffer(BoxedInt, boxed_int);
-decl_set_buffer(BoxedInt, boxed_int);
+decl_get_buffer(BoxedInt, boxed_int, BoxedIntTypeTag);
+decl_set_buffer(BoxedInt, boxed_int, BoxedIntTypeTag);
 
 Object *new_boxed_int(Object *cxt);
 Object *new_boxed_int(Object *cxt, long value);

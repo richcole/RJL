@@ -28,7 +28,7 @@ Object *get_undefined(Object *cxt) {
   return context_get(cxt, "undefined");
 }
 
-void push_sym(Object *cxt, Object *stack, char const* v) {
+void push(Object *cxt, Object *stack, char const* v) {
   push(cxt, stack, sym(cxt, v));
 }
 
@@ -48,11 +48,11 @@ Object* get_false(Object *cxt) {
   return context_get(cxt, "false");
 };
 
-void set_slot_true(Object *cxt, Object *obj, Object *slot) {
+void set_true(Object *cxt, Object *obj, Object *slot) {
   set(obj, slot, get_true(cxt));
 };
 
-void set_slot_true(Object *cxt, Object *obj, char const* slot) {
+void set_true(Object *cxt, Object *obj, char const* slot) {
   set(obj, sym(cxt, slot), get_true(cxt));
 };
 

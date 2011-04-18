@@ -1,4 +1,5 @@
 #include "file.h"
+#include "type_tags.h"
 #include "std.h"
 
 #include <stdio.h>
@@ -6,25 +7,29 @@
 #include <string.h>
 
 struct FileBuffer {
-	Object *type;
+	Fixnum type;
 	FILE   *file;
 };
 
-def_new_buffer(File, file, FILE *, file);
-def_get_buffer(File, file);
-def_set_buffer(File, file);
-def_is_buffer(File, file);
+def_new_buffer(File, file, FileTypeTag, FILE *, file);
+def_get_buffer(File, file, FileTypeTag);
+def_set_buffer(File, file, FileTypeTag);
+def_is_buffer(File, file, FileTypeTag);
 
 Object *new_file(Object *cxt, FILE *file) {
   Object *obj = new_object(cxt);
-  obj->buffer = (Buffer *) new_file_buffer(cxt, file);
+  obj->buffer = (Buffer *) new_file_buffer(file);
   return obj;
+}
+
+Fixnum is_file(Object *cxt, Object *obj) {
+  return get_file_buffer(obj) != 0;
 }
 
 Object* native_file_open_mode(Object *cxt, Object *frame, Object *self) {
   Object *stack = get(cxt, frame, "stack");
-  CharArrayBuffer *file_mode_buf = get_char_array_buffer(cxt, pop(cxt, stack));
-  CharArrayBuffer *file_name_buf = get_char_array_buffer(cxt, pop(cxt, stack));
+  CharArrayBuffer *file_mode_buf = get_char_array_buffer(pop(cxt, stack));
+  CharArrayBuffer *file_name_buf = get_char_array_buffer(pop(cxt, stack));
   if ( file_name_buf == 0 ) {
     return new_exception(cxt, frame, "Expected a char_array as first argument");
   }
@@ -50,7 +55,7 @@ Object *new_errno_exception(Object *cxt, Object *frame, char const* message) {
 };
 
 Object* native_file_close(Object *cxt, Object *frame, Object *self) {
-  FileBuffer *file_buf = get_file_buffer(cxt, self);
+  FileBuffer *file_buf = get_file_buffer(self);
   if ( file_buf == 0 ) {
     return new_exception(cxt, frame, "Expected a file as first argument");
   }
@@ -66,7 +71,7 @@ Object* native_file_close(Object *cxt, Object *frame, Object *self) {
 
 Object* native_file_eof(Object *cxt, Object *frame, Object *self) {
   Object *stack = get(cxt, frame, "stack");
-  FileBuffer *file_buf = get_file_buffer(cxt, self);
+  FileBuffer *file_buf = get_file_buffer(self);
   if ( file_buf == 0 ) {
   	return new_exception(cxt, frame, "Expected a file as first argument");
   }
@@ -82,7 +87,7 @@ Object* native_file_eof(Object *cxt, Object *frame, Object *self) {
 Object* native_file_read_into_offset_length(Object *cxt, Object *frame, Object *self) {
   Object *stack = get_stack(cxt, frame);
   
-  FileBuffer *file_buf = get_file_buffer(cxt, self);
+  FileBuffer *file_buf = get_file_buffer(self);
   Object *length_obj   = pop(cxt, stack);
   Object *offset_obj   = pop(cxt, stack);
   Object *char_array   = pop(cxt, stack);
@@ -91,7 +96,7 @@ Object* native_file_read_into_offset_length(Object *cxt, Object *frame, Object *
   	return new_exception(cxt, frame, "Expected a file as self argument");
   }
 
-  CharArrayBuffer *char_array_buf = get_char_array_buffer(cxt, char_array);
+  CharArrayBuffer *char_array_buf = get_char_array_buffer(char_array);
   if ( char_array_buf == 0 ) {
   	return new_exception(cxt, frame, "Expected a char_array as first argument");
   }

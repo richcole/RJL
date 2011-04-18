@@ -119,7 +119,7 @@ void scan_context_read_line(Object *cxt, Object *sc) {
 };
 
 Fixnum scan_context_line_is_exhausted(Object *cxt, Object *sc) {
-  CharArrayBuffer *buf = get_char_array_buffer(cxt, get(cxt, sc, "line"));
+  CharArrayBuffer *buf = get_char_array_buffer(get(cxt, sc, "line"));
   if ( buf != 0 && buf->length > boxed_int_to_fixnum(cxt, get(cxt, sc, "index")) ) {
     return 0;
   }

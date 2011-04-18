@@ -117,15 +117,6 @@ Object* get_parent(Object *cxt, Object *obj) {
   return get(cxt, obj, "parent");
 };
 
-Fixnum  has_buffer_type(Object *cxt, Object *obj, char const* slot) {
-  if ( obj && obj->buffer && obj->buffer->type == sym(cxt, slot) ) {
-    return 1;
-  }
-  else {
-    return 0;
-  }
-}
-
 Object* new_object(Object *cxt, char const* parent_name) {
   return new_object(cxt, context_get(cxt, parent_name));
 }
