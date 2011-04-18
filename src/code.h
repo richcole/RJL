@@ -1,57 +1,20 @@
-void code_push(Object *code, Object *val) {
-  push(code, Push);
-  push(code, val);
-}
+#ifndef CODE_H
+#define CODE_H
 
-void code_push_frame(Object *code) {
-  push(code, PushFrame);
-}
+#include "object.h"
 
-void code_push_block(Object *code, Object *block) {
-  push(code, PushBlock);
-  push(code, block);
-}
+void code_push(Object *cxt, Object *code, Object *val);
+void code_push_frame(Object *cxt, Object *code);
+void code_push_block(Object *cxt, Object *code, Object *block);
+void code_send(Object *cxt, Object *code, Object *slot);
+void code_send(Object *cxt, Object *code, char const* slot);
+void code_self_send(Object *cxt, Object *code, Object *slot);
+void code_self_send(Object *cxt, Object *code, char const* slot);
+void code_self(Object *cxt, Object *code);
+void code_return(Object *cxt, Object *code);
+void code_local_return(Object *cxt, Object *code);
+void code_term(Object *cxt, Object *code);
+void code_arg(Object *cxt, Object *code, Object *arg_name);
+void code_arg(Object *cxt, Object *code, char const* arg_name);
 
-void code_send(Object *code, Object *slot) {
-  push(code, Send);
-  push(code, slot);
-}
-
-void code_send(Object *code, char const* slot) {
-  code_send(code, sym(slot));
-}
-
-void code_self_send(Object *code, Object *slot) {
-  push(code, Self);
-  push(code, Send);
-  push(code, slot);
-}
-
-void code_self_send(Object *code, char const* slot) {
-  code_self_send(code, sym(slot));
-}
-
-void code_self(Object *code) {
-  push(code, Self);
-}
-
-void code_return(Object *code) {
-  push(code, Return);
-}
-
-void code_local_return(Object *code) {
-  push(code, LocalReturn);
-}
-
-void code_term(Object *code) {
-  push(code, Term);
-}
-
-void code_arg(Object *code, Object *arg_name) {
-  push(code, Arg);
-  push(code, arg_name);
-}
-
-void code_arg(Object *code, char const* arg_name) {
-  return code_arg(code, sym(arg_name));
-}
+#endif

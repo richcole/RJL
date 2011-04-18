@@ -1,101 +1,63 @@
 
-#include "fixnum.h"
-#include "mem.h"
-#include "object.h"
-#include "buffer.h"
-#include "char_array.h"
-#include "symbol_table.h"
-#include "array.h"
-#include "symbol.h"
-#include "exception.h"
-#include "frame.h"
-#include "func.h"
-#include "block.h"
-#include "boxed.h"
-#include "code.h"
-#include "native.h"
+#include "std.h"
 
 #include "file.h"
+#include "frame.h"
 #include "setter.h"
 #include "scanner.h"
 #include "parser.h"
-#include "foreach.h"
 #include "code_generator.h"
+#include "code.h"
 
 #include "interp.h"
 
-void init_symbols() {
-  init_char_array_symbols();
-  init_symbol_table_symbols();
-  init_array_symbols();
-  init_func_symbols();
-  init_file_symbols();
-  init_exception_symbols();
-  init_general_symbols();
-  init_scanner_symbols();
-  init_parser_symbols();
-  init_code_generator_symbols();
-}
-
-Object* init_sys() {
-  Object *sys = new_object();
-  init_file_sys(sys);
-  init_native_sys(sys);
-  init_scanner_sys(sys);
-  init_parser_sys(sys);
-  init_code_generator_sys(sys);
-  return sys;
-}
-
-Object *top_level_frame(Object *sys) {
-  Object *code       = new_array();
-  Object *frame      = new_frame(Undefined, code, Undefined);
+Object *top_level_frame(Object *cxt) {
+  Object *code       = new_array(cxt);
+  Object *frame      = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
   
   // set the lexical parent to be sys
-  set_lexical_parent(frame, sys);
+  set_lexical_parent(cxt, frame, cxt);
 
   // main parent code
-  code_self_send(code, sym("args"));
-  code_send(code, sym("pop"));
-  code_self_send(code, File);
-  code_send(code, sym("open:"));
-  code_self_send(code, sym("Scanner"));
-  code_send(code, sym("tokenize:"));
-  code_self_send(code, sym("Parser"));
-  code_send(code, sym("parse:"));
-  code_self_send(code, sym("CodeGenerator"));
-  code_send(code, sym("generate:"));
-  code_self_send(code, sym("context:"));
-  code_push(code, sys);
-  code_self_send(code, sym("context"));
-  code_send(code, sym("code:"));
-  code_term(code);
+  code_self_send(cxt, code, "args");
+  code_send(cxt, code, "pop");
+  code_self_send(cxt, code, "file");
+  code_send(cxt, code, "open:");
+  code_self_send(cxt, code, "Scanner");
+  code_send(cxt, code, "tokenize:");
+  code_self_send(cxt, code, "Parser");
+  code_send(cxt, code, "parse:");
+  code_self_send(cxt, code, "CodeGenerator");
+  code_send(cxt, code, "generate:");
+  code_self_send(cxt, code, "context:");
+  code_push(cxt, code, cxt);
+  code_self_send(cxt, code, "context");
+  code_send(cxt, code, "code:");
+  code_term(cxt, code);
 
   // parent catch block
-  push_slot(frame, Catch, object(array_length(code)));
-  code_arg(code, sym("ex"));
-  code_push(code, new_char_array("Exception raised."));
-  code_self_send(code, sym("println:"));
-  code_self_send(code, sym("ex"));
-  code_send(code, Reason);
-  code_self_send(code, sym("println:"));
-  push(code, Return);
+  push_slot(cxt, frame, "catch", new_boxed_int(cxt, array_length(cxt, code)));
+  code_arg(cxt, code, "ex");
+  code_push(cxt, code, new_char_array(cxt, "Exception raised."));
+  code_self_send(cxt, code, "println:");
+  code_self_send(cxt, code, "ex");
+  code_send(cxt, code, "reason");
+  code_self_send(cxt, code, sym(cxt, "println:"));
+  code_return(cxt, code);
 
   return frame;
 }
 
-Object* parse_arguments(int argc, char **argv) {
-  Object *args = new_array();
+Object* parse_arguments(Object *cxt, int argc, char **argv) {
+  Object *args = new_array(cxt);
   for(int i=1;i<argc; ++i) {
-    push(args, new_char_array(argv[i]));
+    push(cxt, args, new_char_array(cxt, argv[i]));
   }
   return args;
 }
 
 int main(int argc, char **argv) {
-  init_symbols();
-  Object *sys = init_sys();
-  set(sys, sym("args"), parse_arguments(argc, argv));
-
-  interp(top_level_frame(sys));
+  Object *cxt = new_context();
+  context_set(cxt, "args", parse_arguments(cxt, argc, argv));
+  interp(cxt, top_level_frame(cxt));
 };

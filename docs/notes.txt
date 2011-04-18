@@ -5,6 +5,21 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Global Variables
+
+Currently the interpreter has a number of global variables and global
+functions. Can we get rid of these global functions and global
+variables?
+
+For this to occur the symbol table needs to be passed on the stack to
+pretty much all functions.
+
+I also want to get rid of fixnums. They just complicate the current
+design and should wait for jit. For the time being all numbers should
+be boxed.
+
+As part of introducing contexts I'm also making head and cpp files.
+
 -- First steps towards GC
 
 There is an excellent survey on garbage collection techniques called

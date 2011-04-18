@@ -1,19 +1,9 @@
-Object *BlockObject = new_object();
+#ifndef BLOCK_H
+#define BLOCK_H
 
-Fixnum is_block(Object *obj) {
-  return get(obj, "is_block") == True;
-}
+#include "object.h"
 
-Object* new_block() {
-  Object *block = new_array();
-  set(block, "parent", BlockObject);
-  set(block, "is_block", True);
-  return block;
-}
+Fixnum is_block(Object *cxt, Object *block);
+Object* new_block(Object *cxt);
 
-void init_block_symbols() {
-};
-
-void init_block_sys(Object *sys) {
-};
-
+#endif

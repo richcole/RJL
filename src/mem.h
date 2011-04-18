@@ -1,19 +1,15 @@
-#include <stdlib.h>
+#ifndef MEM_H
+#define MEM_H
 
-void memset(void *ptr, char val, Fixnum length) {
-  char *p = (char *)ptr;
-  char *q = p + length;
-  while(p != q) {
-    *p++ = val;
-  }
-}
+#include "fixnum.h"
 
-void* mem_alloc(Fixnum length) {
-  void *ptr = malloc(length);
-  memset(ptr, 0, length);
-  return ptr;
-};
+void  memset(void *ptr, char val, Fixnum length);
+void* mem_alloc(Fixnum length);
+void  mem_free(void *ptr);
 
-void mem_free(void *ptr) {
-  free(ptr);
-}
+void   rjl_memcpy(void *dst, void const* src, int len);
+Fixnum rjl_strlen(char const* s);
+void   rjl_memset(char *dst, char val, int len);
+
+#endif
+

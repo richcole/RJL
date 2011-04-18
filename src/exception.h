@@ -1,43 +1,12 @@
+#ifndef EXCEPTION_H
+#define EXCEPTION_H
 
-Object *Exception = new_object();
+#include "object.h"
 
-Object *find_catch_frame(Object *frame) {
-  while( exists(frame) ) {
-    if ( array_length(get(frame, Catch)) != 0 ) {
-      return frame;
-    }
-    frame = get(frame, Parent);
-  }
-  return Nil;
-}
+Object *new_exception(Object *cxt, Object *frame, char const* reason);
+Fixnum is_exception(Object *cxt, Object *ex);
+Object *new_exception_frame(Object *cxt, Object *frame, Object *ex);
 
-Fixnum is_exception(Object *ex) {
-  Object *parent = get(ex, Parent);
-  if ( parent != Undefined ) {
-    if ( parent == Exception ) {
-      return 1;
-    }
-    parent = get(ex, Parent);
-  }
-  return 0;
-}
 
-Object *new_exception_frame(Object *frame, Object *ex) {
-  Object *catch_frame = new_object(find_catch_frame(frame));
-  push(get(catch_frame, Stack), ex);
-  set(catch_frame, Pc, pop(get(catch_frame, Catch)));
-  return catch_frame;
-}
+#endif
 
-Object *new_exception(Object *frame, char const* reason) {
-  Object *ex = new_object();
-  set(ex, Parent, Exception);
-  set(ex, Frame,  frame);
-  set(ex, Reason, new_char_array(reason));
-
-  return ex;
-}
-
-void init_exception_symbols() {
-	add_sym(Exception, "Exception");
-}
