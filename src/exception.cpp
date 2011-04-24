@@ -32,8 +32,7 @@ Object *new_exception_frame(Object *cxt, Object *frame, Object *ex) {
 }
 
 Object *new_exception(Object *cxt, Object *frame, char const* reason) {
-  Object *ex = new_object(cxt);
-  set(cxt, ex, "parent", context_get(cxt, "Exception"));
+  Object *ex = new_object(cxt, context_get(cxt, "Exception"));
   set(cxt, ex, "frame",  frame);
   set(cxt, ex, "reason", new_char_array(cxt, reason));
   return ex;

@@ -17,7 +17,7 @@ def_set_buffer(File, file, FileTypeTag);
 def_is_buffer(File, file, FileTypeTag);
 
 Object *new_file(Object *cxt, FILE *file) {
-  Object *obj = new_object(cxt);
+  Object *obj = new_object(cxt, context_get(cxt, "File"));
   obj->buffer = (Buffer *) new_file_buffer(file);
   return obj;
 }
@@ -76,10 +76,10 @@ Object* native_file_eof(Object *cxt, Object *frame, Object *self) {
   	return new_exception(cxt, frame, "Expected a file as first argument");
   }
   if ( feof(file_buf->file) ) {
-    push(cxt, stack, "true");
+    push(cxt, stack, get_true(cxt));
   }
   else {
-    push(cxt, stack, "false");
+    push(cxt, stack, get_false(cxt));
   }
   return frame;
 };

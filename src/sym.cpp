@@ -25,7 +25,7 @@ Object *get(Object *cxt, Object *target, char const* s) {
 }
 
 Object *get_undefined(Object *cxt) {
-  return context_get(cxt, "undefined");
+  return get_plain(cxt, sym(cxt, "undefined"));
 }
 
 void push(Object *cxt, Object *stack, char const* v) {

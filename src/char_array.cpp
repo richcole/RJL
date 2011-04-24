@@ -4,7 +4,7 @@
 #include "sym.h"
 #include "type_tags.h"
 
-CharArrayBuffer *new_char_array_buffer(Fixnum len) {
+CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len) {
   CharArrayBuffer *buf = (CharArrayBuffer *)mem_alloc(sizeof(CharArrayBuffer)+len+1);
   buf->type      = CharArrayTypeTag;
   buf->length    = 0;
@@ -46,8 +46,8 @@ Object *new_char_array(Object *cxt, Fixnum reserved) {
   return obj;
 }
 
-def_get_buffer(CharArray, char_array, BoxedIntTypeTag);
-def_set_buffer(CharArray, char_array, BoxedIntTypeTag);
+def_get_buffer(CharArray, char_array, CharArrayTypeTag);
+def_set_buffer(CharArray, char_array, CharArrayTypeTag);
 
 Fixnum is_char_array(Object *cxt, Object *obj) {
   return get_char_array_buffer(obj) != 0; 

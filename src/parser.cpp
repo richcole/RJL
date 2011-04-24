@@ -43,7 +43,7 @@ Fixnum have(Object* cxt, Object *pc, char const* token_type) {
 };
 
 Object *new_parse_error(Object* cxt, char const* str, Object *type, Object *curr) {
-  Object *error = new_object(cxt);
+  Object *error = new_object(cxt, "Object");
   set(cxt, error, "expected_type", type);
   set(cxt, error, "message", new_char_array(cxt, str));
   set(cxt, error, "found", curr);
@@ -76,7 +76,7 @@ Fixnum have_set(Object* cxt, Object *pc, char const* set_name) {
 }
 
 Object* parse_expr_list(Object* cxt, Object *pc) {
-  Object *expr = new_object(cxt);
+  Object *expr = new_object(cxt, "Object");
   set(cxt, expr, "type", "expr_list");
   while (have_set(cxt, pc, "begin_expr")) {
     push_slot(cxt, expr, "exprs", parse_expr(cxt, pc));
@@ -85,7 +85,7 @@ Object* parse_expr_list(Object* cxt, Object *pc) {
 }
 
 Object* parse_expr(Object* cxt, Object *pc) {
-  Object *expr = new_object(cxt);
+  Object *expr = new_object(cxt, "Object");
   if ( have(cxt, pc, "ident") ) {
     set(cxt, expr, "type", "send_expr");
     set(cxt, expr, "target", curr(cxt, pc));
@@ -139,7 +139,7 @@ Object* parse_stmt(Object* cxt, Object *pc) {
   }
   else if ( have(cxt, pc, "if") ) {
     mustbe(cxt, pc, "if");
-    stmt = new_object(cxt);
+    stmt = new_object(cxt, "Object");
     set(cxt, stmt, "type", "if_stmt");
     set(cxt, stmt, "cond", parse_group_expr(cxt, pc));
     set(cxt, stmt, "true_block", parse_block_expr(cxt, pc));
@@ -150,13 +150,13 @@ Object* parse_stmt(Object* cxt, Object *pc) {
   }
   else if ( have(cxt, pc, "while") ) {
     mustbe(cxt, pc, "while");
-    stmt = new_object(cxt);
+    stmt = new_object(cxt, "Object");
     set(cxt, stmt, "type", "while_stmt");
     set(cxt, stmt, "cond", parse_group_expr(cxt, pc));
     set(cxt, stmt, "while_block", parse_block_expr(cxt, pc));
   }
   else if ( have(cxt, pc, "return") ) {
-    stmt = new_object(cxt);
+    stmt = new_object(cxt, "Object");
     set(cxt, stmt, "type", "return_stmt");
     advance(cxt, pc);
     set(cxt, stmt, "expr", parse_expr_list(cxt, pc));
@@ -166,7 +166,7 @@ Object* parse_stmt(Object* cxt, Object *pc) {
 }
 
 Object* parse_block_expr(Object* cxt, Object *pc) {
-  Object *block = new_object(cxt);
+  Object *block = new_object(cxt, "Object");
   set(cxt, block, "type", "block_expr");
 
   if ( ! mustbe(cxt, pc, "block_open") ) return block;
@@ -194,7 +194,7 @@ Object* parse_block_expr(Object* cxt, Object *pc) {
 }
 
 Object* parse_object_expr(Object* cxt, Object *pc) {
-  Object *object = new_object(cxt);
+  Object *object = new_object(cxt, "Object");
   set(cxt, object, "type", "object_expr");
 
   if ( ! mustbe(cxt, pc, "object_open") ) return object;
@@ -207,7 +207,7 @@ Object* parse_object_expr(Object* cxt, Object *pc) {
 }
 
 Object* parse_group_expr(Object* cxt, Object *pc) {
-  Object *group = new_object(cxt);
+  Object *group = new_object(cxt, "Object");
   set(cxt, group, "type", "group");
   if ( ! mustbe(cxt, pc, "group_open") ) return group;
   set(cxt, group, "expr_list", parse_expr_list(cxt, pc));
@@ -216,17 +216,17 @@ Object* parse_group_expr(Object* cxt, Object *pc) {
 }
 
 void create_sets(Object* cxt, Object *pc) {
-  Object *end_block = new_object(cxt);
+  Object *end_block = new_object(cxt, "Object");
   set(cxt, pc, "end_block", end_block);
   set(cxt, end_block, "block_close", "true");
   set(cxt, end_block, "eof", "true");
 
-  Object *end_object = new_object(cxt);
+  Object *end_object = new_object(cxt, "Object");
   set(cxt, pc, "end_object", end_object);
   set(cxt, end_object, "object_close", "true");
   set(cxt, end_object, "eof", "true");
 
-  Object *begin_expr = new_object(cxt);
+  Object *begin_expr = new_object(cxt, "Object");
   set(cxt, pc, "begin_expr", begin_expr);
   set(cxt, begin_expr, "ident", "true");
   set(cxt, begin_expr, "arg_ident", "true");
@@ -238,7 +238,7 @@ void create_sets(Object* cxt, Object *pc) {
 };
 
 Object *parse(Object* cxt, Object *sc) {
-  Object *pc = new_object(cxt);
+  Object *pc = new_object(cxt, "Object");
   set(cxt, pc, "scan_context", sc);
   set(cxt, pc, "tokens", get(cxt, sc, "tokens"));
   set(cxt, pc, "index", new_boxed_int(cxt, 0));

@@ -5,7 +5,7 @@
 #include "file.h"
 
 void scan_context_push_token(Object *cxt, Object *sc, char const* type, Fixnum offset) {
-  Object *token = new_object(cxt);
+  Object *token = new_object(cxt, "Object");
   Fixnum token_start = boxed_int_to_fixnum(cxt, get(cxt, sc, "token_start"));
   Fixnum line_start  = boxed_int_to_fixnum(cxt, get(cxt, sc, "line_start"));
   set(cxt, token, "line_number", get(cxt, sc, "line_number"));
@@ -25,7 +25,7 @@ void scan_context_push_token(Object *cxt, Object *sc, char const* type) {
 };
 
 void scan_context_push_char_array_token(Object *cxt, Object *sc, Object *type) {
-  Object *token = new_object(cxt);
+  Object *token = new_object(cxt, "Object");
   Fixnum token_start = boxed_int_to_fixnum(cxt, get(cxt, sc, "token_start"));
   Fixnum line_start  = boxed_int_to_fixnum(cxt, get(cxt, sc, "line_start"));
   set(cxt, token, "line_number", get(cxt, sc, "line_number"));
@@ -78,7 +78,7 @@ void detect_reserved_word(Object *cxt, Object *sc) {
 }
 
 Object *new_scan_context(Object *cxt, Object *file) {
-  Object *sc = new_object(cxt);
+  Object *sc = new_object(cxt, "Object");
   set(cxt, sc, "file",        file);
   set(cxt, sc, "line",        new_char_array(cxt, 1024));
   set(cxt, sc, "line_number", new_boxed_int(cxt, 0));
@@ -89,7 +89,7 @@ Object *new_scan_context(Object *cxt, Object *file) {
   set(cxt, sc, "token_end",     new_boxed_int(cxt, 0));
   set(cxt, sc, "tokens",      new_array(cxt));
 
-  Object *rw = new_object(cxt);
+  Object *rw = new_object(cxt, "Object");
   set(cxt, sc, "reserved_words", rw);
   set(cxt, rw, "parent", get_undefined(cxt));
   set(cxt, rw, "if", "if");

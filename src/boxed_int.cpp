@@ -2,10 +2,11 @@
 #include "mem.h"
 #include "sym.h"
 #include "char_array.h"
+#include "type_tags.h"
 
 BoxedIntBuffer *new_boxed_int_buffer(Object *cxt, long value) {
   BoxedIntBuffer *buf = (BoxedIntBuffer *)mem_alloc(sizeof(BoxedIntBuffer));
-  buf->type   = sym(cxt, "BoxedInt");
+  buf->type   = BoxedIntTypeTag;
   buf->value  = value;
   return buf;
 }
