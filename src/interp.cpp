@@ -149,7 +149,7 @@ void interp(Object *cxt, Object *frame) {
     }
 
     if ( instr == sym(cxt, "jmp_not_true") ) {
-      if ( is_true(cxt, pop(cxt, get_stack(cxt, frame))) ) {
+      if ( ! is_true(cxt, pop(cxt, get_stack(cxt, frame))) ) {
         pc = get_code_fixnum(cxt, frame, pc+1);
         set_fixnum(cxt, frame, "pc", pc);
       }

@@ -3,9 +3,6 @@ struct BoxedIntBuffer {
   long   value;
 };
 
-Object* BoxedInt = new_object();
-Object* BoxedIntObject = new_object();
-
 BoxedIntBuffer *new_boxed_int_buffer(long value) {
   BoxedIntBuffer *buf = (BoxedIntBuffer *)mem_alloc(sizeof(BoxedIntBuffer));
   buf->type   = BoxedInt;
@@ -13,8 +10,8 @@ BoxedIntBuffer *new_boxed_int_buffer(long value) {
   return buf;
 }
 
-Object *new_boxed_int() {
-  Object *boxed_int = new_object();
+Object *new_boxed_int(Object ) {
+  Object *boxed_int = new_object(cxt );
   boxed_int->buffer = (Buffer *) new_boxed_int_buffer(0);
   set(boxed_int, Parent, BoxedIntObject);
   return boxed_int;

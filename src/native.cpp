@@ -45,10 +45,10 @@ Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
   TO_LONG(cxt, frame, self_long,  self);               \
   TO_LONG(cxt, frame, other_long, pop(cxt, stack));    \
   if ( self_long op other_long ) {                     \
-    push(cxt, stack, "true");                          \
+    push(cxt, stack, get_true(cxt));                   \
   }                                                    \
   else {                                               \
-    push(cxt, stack, "false");                         \
+    push(cxt, stack, get_false(cxt));                  \
   }                                                    \
   return frame;                                        \
 

@@ -5,7 +5,7 @@
 #include "boxed_int.h"
 
 Object* new_frame(Object *cxt) {
-  Object *frame = new_object(cxt);
+  Object *frame = new_object(cxt, "Frame");
   set(cxt, frame, "stack", new_array(cxt));
   return frame;
 }
@@ -26,13 +26,13 @@ Object* get_lexical_parent(Object *cxt, Object *frame) {
 }
 
 Object* new_local(Object *cxt) {
-  Object *local = new_object(cxt);
-  set(cxt, local, "is_local", context_get(cxt, "true"));
+  Object *local = new_object(cxt, "Object");
+  set(cxt, local, "is_local", get_true(cxt));
   return local;
 }
 
 Object* new_frame(Object *cxt, Object *self, Object *code, Object *ret_frame) {
-  Object *frame = new_object(cxt);
+  Object *frame = new_object(cxt, "Frame");
   Object *local = new_local(cxt);
 
   if ( ! exists(cxt, self) ) {

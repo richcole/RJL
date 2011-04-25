@@ -9,7 +9,7 @@
 
 #define def_get_buffer(typeName, lcName, type_tag)                         \
   typeName##Buffer *get_##lcName##_buffer(Object *obj) {                   \
-    if ( obj->buffer != 0 && obj->buffer->type == type_tag) {              \
+    if ( obj != 0 && obj->buffer != 0 && obj->buffer->type == type_tag) {              \
       return (typeName##Buffer *) obj->buffer;                             \
     };                                                                     \
     return 0;                                                              \

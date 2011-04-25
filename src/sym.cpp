@@ -25,7 +25,7 @@ Object *get(Object *cxt, Object *target, char const* s) {
 }
 
 Object *get_undefined(Object *cxt) {
-  return context_get(cxt, "undefined");
+  return get_plain(cxt, sym(cxt, "undefined"));
 }
 
 void push(Object *cxt, Object *stack, char const* v) {
@@ -33,11 +33,11 @@ void push(Object *cxt, Object *stack, char const* v) {
 }
 
 Fixnum is_true(Object *cxt, Object *obj) {
-  return obj == context_get(cxt, "true");
+  return obj == get_true(cxt);
 }
 
 Fixnum is_false(Object *cxt, Object *obj) {
-  return obj == context_get(cxt, "false");
+  return obj == get_false(cxt);
 }
 
 Object* get_true(Object *cxt) {

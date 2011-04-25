@@ -9,6 +9,9 @@
 
 Object* new_context() {
   Object *cxt = new_symbol_table(0);
+  Object *undefined_sym = sym(cxt, "undefined");
+  set(cxt, undefined_sym, undefined_sym);
+
   Object *object = new_object(cxt);
   context_set(cxt, "Object", object);
   context_set(cxt, "parent", object);
@@ -24,7 +27,7 @@ Object* new_context() {
 Object* context_get(Object *cxt, char const* slot) {
   Object *obj = get(cxt, cxt, slot);
   if ( is_undefined(cxt, obj) ) {
-    context_set(cxt, slot, obj = new_object(cxt));
+    context_set(cxt, slot, obj = new_object(cxt, "Object"));
   }
   return obj;
 };

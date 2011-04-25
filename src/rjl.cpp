@@ -21,7 +21,7 @@ Object *top_level_frame(Object *cxt) {
   // main parent code
   code_self_send(cxt, code, "args");
   code_send(cxt, code, "pop");
-  code_self_send(cxt, code, "file");
+  code_self_send(cxt, code, "File");
   code_send(cxt, code, "open:");
   code_self_send(cxt, code, "Scanner");
   code_send(cxt, code, "tokenize:");

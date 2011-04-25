@@ -5,7 +5,7 @@
 #include "type_tags.h"
 
 struct BoxedIntBuffer {
-  Object *type;
+  Fixnum type;
   long   value;
 };
 

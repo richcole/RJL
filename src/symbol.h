@@ -1,4 +1,4 @@
-#define SYM(name) \
+#define SYM(name) \a
   Object *const name = new_object();
 
 SYM(Push);

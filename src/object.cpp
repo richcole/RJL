@@ -11,9 +11,6 @@ Object* new_object(Object *cxt) {
   obj->occupied = 0;
   obj->table  = (ObjectPair *) mem_alloc(sizeof(ObjectPair)*obj->length);
   obj->buffer = 0;
-  if ( cxt != 0 ) {
-    set(cxt, obj, "parent", context_get(cxt, "Object"));
-  }
   return obj;
 };
 
