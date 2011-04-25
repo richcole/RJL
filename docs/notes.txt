@@ -5,6 +5,11 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- The program compiles again
+
+The program compiles again and even runs a few tests after a massive
+refactor that removes the use of global variables from the program.
+
 -- Global Variables
 
 Currently the interpreter has a number of global variables and global

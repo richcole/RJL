@@ -14,7 +14,6 @@ Object* new_context() {
 
   Object *object = new_object(cxt);
   context_set(cxt, "Object", object);
-  context_set(cxt, "parent", object);
 
   init_file_sys(cxt);
   init_native_sys(cxt);
