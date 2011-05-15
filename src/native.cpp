@@ -359,7 +359,15 @@ void init_native_sys(Object *cxt) {
   set(cxt, object, "new",  new_func(cxt, native_object_new));
   set(cxt, object, "new:", native_object_new1(cxt));
 
+  Object *array = context_get(cxt, "Array");
+  set(cxt, array, "pop",    new_func(cxt, native_array_pop));
+  set(cxt, array, "push:",  new_func(cxt, native_array_push));
+  set(cxt, array, "at:",    new_func(cxt, native_array_at));
+  set(cxt, array, "length", new_func(cxt, native_array_length));
+  set(cxt, array, "new",    new_func(cxt, native_array_new));
+  
   Object *block = context_get(cxt, "Block");
+  set(cxt, block, "parent", array);
   set(cxt, block, "call", new_func(cxt, native_block_call));
   set(cxt, block, "call:", new_func(cxt, native_block_call1));
   set(cxt, block, "invoke:", new_func(cxt, native_block_invoke));
@@ -368,13 +376,6 @@ void init_native_sys(Object *cxt) {
   set(cxt, char_array, "reserve:", new_func(cxt, native_char_array_reserve));
   set(cxt, char_array, "shift:", new_func(cxt, native_char_array_shift));
 
-  Object *array = context_get(cxt, "Array");
-  set(cxt, array, "pop",    new_func(cxt, native_array_pop));
-  set(cxt, array, "push:",  new_func(cxt, native_array_push));
-  set(cxt, array, "at:",    new_func(cxt, native_array_at));
-  set(cxt, array, "length", new_func(cxt, native_array_length));
-  set(cxt, array, "new",    new_func(cxt, native_array_new));
-  
   Object *boxed_int = context_get(cxt, "BoxedInt");
   set(cxt, boxed_int, "<=:", new_func(cxt, native_boxed_int_leq));
   set(cxt, boxed_int, ">=:", new_func(cxt, native_boxed_int_geq));
