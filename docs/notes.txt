@@ -5,6 +5,14 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Added a mark and sweep garbage collector
+
+All tests passing with valgrind. Added a mark and sweep gc which is run every
+100 instructions from the interp loop at present. Seems to work ok.
+
+Next step is to write some slightly longer test programs and perhaps some support 
+for a basic debugger.
+
 -- The program compiles again
 
 The program compiles again and even runs a few tests after a massive

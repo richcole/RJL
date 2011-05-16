@@ -13,4 +13,6 @@ void context_free_buffer(Object *cxt, void *buffer);
 void context_register_object(Object *cxt, Object *obj);
 void context_unregister_object(Object *cxt, Object *obj);
 
+Fixnum context_mark_and_sweep(Object *cxt, Object *frame);
+
 #endif

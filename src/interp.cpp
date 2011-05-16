@@ -78,11 +78,18 @@ void interp(Object *cxt, Object *frame) {
   Fixnum pc     = 0;
   Object *instr = 0;
   Object *new_frame = 0;
+  Fixnum instr_count = 0;
 
   while(frame != 0) {
 
     pc    = get_fixnum(cxt, frame, "pc");
     instr = get_code(cxt, frame, pc);
+
+    ++instr_count;
+    if ( instr_count > 100 ) {
+      context_mark_and_sweep(cxt, frame);
+      instr_count = 0;
+    }
 
     if ( instr == sym(cxt, "push") ) {
       push(cxt, get_stack(cxt, frame), get_code(cxt, frame, pc+1));

@@ -83,11 +83,7 @@ Object* native_println(Object *cxt, Object *frame, Object *self) {
 }
 
 Object* native_object_dispose(Object *cxt, Object *frame, Object *self) {
-  if ( self->buffer != 0 ) {
-    context_free_buffer(cxt, self->buffer);
-  }
-  context_free_buffer(cxt, self->table);
-  context_free_buffer(cxt, self);
+  object_dispose(cxt, self);
   return return_undefined(cxt, frame);
 }
 
@@ -139,7 +135,7 @@ void dump(
       fprintf(stdout, "{ %p \n", obj);
       for(i=0;i<obj->length;++i) {
         Object *key = obj->table[i].key;
-        if ( key != 0 && key != (Object *)1 ) {
+        if ( key != 0 && key != DirtyKey ) {
           if ( is_char_array(cxt, key) ) {
             fprintf(stdout, "%s  %s: ", indent_char_array, 
                     get_char_array_buffer(key)->data);

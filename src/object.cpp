@@ -12,7 +12,7 @@ Object* new_object_no_register() {
   Object *obj = (Object *) context_alloc_buffer(0, sizeof(Object));
   obj->length = 4;
   obj->occupied = 0;
-  obj->flags = 0;
+  obj->mark = 0;
   obj->table  = (ObjectPair *) context_alloc_buffer(0, sizeof(ObjectPair)*obj->length);
   obj->buffer = 0;
   return obj;
@@ -82,6 +82,7 @@ Object *get_plain(Object *obj, Object *key) {
 void grow(Object *cxt, Object *obj) {
   Object tmp;
   tmp.occupied = 0;
+  tmp.mark = 0;
   tmp.length = obj->length*2;
   tmp.table = (ObjectPair *) context_alloc_buffer(cxt, sizeof(ObjectPair)*tmp.length);
   for(Fixnum i=0;i<obj->length; ++i) {
@@ -91,7 +92,6 @@ void grow(Object *cxt, Object *obj) {
   }
   context_free_buffer(cxt, obj->table);
   obj->occupied = tmp.occupied;
-  obj->flags = tmp.flags;
   obj->length = tmp.length;
   obj->table = tmp.table;
 }
@@ -129,5 +129,13 @@ Object* get_parent(Object *cxt, Object *obj) {
 
 Object* new_object(Object *cxt, char const* parent_name) {
   return new_object(cxt, context_get(cxt, parent_name));
+}
+
+void object_dispose(Object *cxt, Object *obj) {
+  if ( obj->buffer != 0 ) {
+    context_free_buffer(cxt, obj->buffer);
+  }
+  context_free_buffer(cxt, obj->table);
+  context_free_buffer(cxt, obj);
 }
 

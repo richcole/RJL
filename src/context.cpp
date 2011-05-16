@@ -89,4 +89,47 @@ void context_unregister_object(Object *cxt, Object *obj) {
   unset(cxt, objects, obj);
 }
 
+void context_mark(Object *cxt, Object *obj, Object *mark, Object *objects) 
+{
+  if ( obj == 0 ) return;
+  if ( obj->mark == mark ) return;
+  if ( obj == objects ) return;
+  obj->mark = mark;
+  for(Fixnum i=0;i<obj->length; ++i) {
+    if ( obj->table[i].key != 0 && obj->table[i].key != DirtyKey ) {
+      context_mark(cxt, obj->table[i].key, mark, objects);
+      context_mark(cxt, obj->table[i].value, mark, objects);
+    }
+  }
+  if ( is_array(cxt, obj) ) {
+    Fixnum len = array_length(cxt, obj);
+    for(Fixnum i=0;i<len; ++i) {
+      context_mark(cxt, get_at(cxt, obj, i), mark, objects);
+    }
+  }
+  SymbolTableBuffer *stb = get_symbol_table_buffer(obj);
+  if ( stb != 0 ) {
+    for(Fixnum i=0;i<stb->length;++i) {
+      context_mark(cxt, stb->data[i], mark, objects);
+    }
+  }
+}
 
+Fixnum context_mark_and_sweep(Object *cxt, Object *frame) {
+  Object *mark = new_object(cxt);
+  Object *objects = context_get(cxt, "objects");
+  context_mark(cxt, cxt, mark, objects);
+  context_mark(cxt, frame, mark, objects);
+  Fixnum objects_released = 0;
+  for(Fixnum i=0;i<objects->length; ++i) {
+    Object *key = objects->table[i].key;
+    if ( key != 0 && key != DirtyKey && key != objects && key != mark && key->mark != mark) {
+      object_dispose(cxt, key);
+      objects->table[i].key = DirtyKey;
+      objects->table[i].value = 0;
+      objects->occupied--;
+      ++objects_released;
+    }
+  }
+  return objects_released;
+}

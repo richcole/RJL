@@ -17,5 +17,8 @@ Object* symbol_table_add(SymbolTableBuffer *stb, Object *symbol);
 Object* symbol_table_add(Object *cxt, SymbolTableBuffer *stb, char const* str);
 void add_sym(Object *cxt, Object *sym);
 
+decl_get_buffer(SymbolTable, symbol_table, SymbolTableTypeTag);
+
+
 #endif
 

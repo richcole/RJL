@@ -60,4 +60,5 @@ int main(int argc, char **argv) {
   Object *cxt = new_context();
   context_set(cxt, "args", parse_arguments(cxt, argc, argv));
   interp(cxt, top_level_frame(cxt));
+  context_mark_and_sweep(cxt, 0);
 };
