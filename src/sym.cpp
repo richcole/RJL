@@ -5,19 +5,19 @@
 #include "boxed_int.h"
 
 Object *sym(Object *cxt, char const* str) {
-  return symbol_table_add(grow_symbol_table(get_symbol_table(cxt)), str); 
+  return symbol_table_add(cxt, grow_symbol_table(cxt, get_symbol_table(cxt)), str); 
 }
 
 Object *sym(Object *cxt, Object *str) {
-	return symbol_table_add(grow_symbol_table(get_symbol_table(cxt)), str); 
+  return symbol_table_add(grow_symbol_table(cxt, get_symbol_table(cxt)), str); 
 }
 
 void set(Object *cxt, Object *target, char const* s, Object *value) {
-  set(target, sym(cxt, s), value);
+  set(cxt, target, sym(cxt, s), value);
 }
 
 void set(Object *cxt, Object *target, char const* s, char const *v) {
-  set(target, sym(cxt, s), sym(cxt, v));
+  set(cxt, target, sym(cxt, s), sym(cxt, v));
 }
 
 Object *get(Object *cxt, Object *target, char const* s) {
@@ -49,11 +49,11 @@ Object* get_false(Object *cxt) {
 };
 
 void set_true(Object *cxt, Object *obj, Object *slot) {
-  set(obj, slot, get_true(cxt));
+  set(cxt, obj, slot, get_true(cxt));
 };
 
 void set_true(Object *cxt, Object *obj, char const* slot) {
-  set(obj, sym(cxt, slot), get_true(cxt));
+  set(cxt, obj, sym(cxt, slot), get_true(cxt));
 };
 
 Fixnum is_slot_true(Object *cxt, Object *obj, char const* slot) {

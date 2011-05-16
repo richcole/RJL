@@ -20,6 +20,7 @@ struct Buffer {
 struct Object {
   Fixnum      length;
   Fixnum      occupied;
+  Fixnum      flags;
   ObjectPair *table;
   Buffer     *buffer;
 };
@@ -27,8 +28,10 @@ struct Object {
 Object* new_object(Object *cxt);
 Object* new_object(Object *cxt, Object *parent);
 Object* new_object(Object *cxt, char const* parent_name);
+Object* new_object_no_register();
 
-void    set(Object *obj, Object *key, Object *value);
+void    set(Object *cxt, Object *obj, Object *key, Object *value);
+void    unset(Object *cxt, Object *obj, Object *key);
 Object *get(Object *cxt, Object *target, Object *slot);
 Object *get_plain(Object *target, Object *slot);
 

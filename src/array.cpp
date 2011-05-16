@@ -18,6 +18,12 @@ Object* new_array(Object *cxt) {
   return array;
 }
 
+Object* new_array_no_register(Object *cxt) {
+  Object *array = new_object_no_register();
+  array->buffer = (Buffer *) new_array_buffer(cxt, 10);
+  return array;
+}
+
 def_get_buffer(Array, array, ArrayTypeTag);
 def_set_buffer(Array, array, ArrayTypeTag);
 
@@ -75,7 +81,7 @@ void grow_array(Object *cxt, Object *array) {
     );
     new_buffer->tail = array_buffer->tail;
     set_array_buffer(array, new_buffer);
-    mem_free(array_buffer);
+    context_free_buffer(cxt, array_buffer);
   }
 }
 
@@ -114,7 +120,7 @@ void push_slot(Object *cxt, Object *obj, Object *slot, Object *val) {
   Object *stack = get(cxt, obj, slot);
   if ( ! exists(cxt, stack) ) {
     stack = new_array(cxt);
-    set(obj, slot, stack);
+    set(cxt, obj, slot, stack);
   }
   push(cxt, stack, val);
 }

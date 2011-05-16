@@ -2,64 +2,76 @@
 #include "sym.h"
 #include "mem.h"
 #include "context.h"
+#include "abort.h"
 
-void grow(Object *obj);
+Object *const DirtyKey = (Object *)0x1;
 
-Object* new_object(Object *cxt) {
-  Object *obj = (Object *) mem_alloc(sizeof(Object));
+void grow(Object *cxt, Object *obj);
+
+Object* new_object_no_register() {
+  Object *obj = (Object *) context_alloc_buffer(0, sizeof(Object));
   obj->length = 4;
   obj->occupied = 0;
-  obj->table  = (ObjectPair *) mem_alloc(sizeof(ObjectPair)*obj->length);
+  obj->flags = 0;
+  obj->table  = (ObjectPair *) context_alloc_buffer(0, sizeof(ObjectPair)*obj->length);
   obj->buffer = 0;
   return obj;
 };
 
-Fixnum fixnum(Object *obj) {
-  Fixnum sign_bit = (Fixnum)obj & (0x1L << ((sizeof(Fixnum) * 8) - 1));
-  return ((Fixnum)obj >> 2) | sign_bit;
-}
-
-Object *object(Fixnum fixnum) {
-    Fixnum sign_bit = (Fixnum)fixnum & (0x1L << ((sizeof(Fixnum) * 8) - 1));
-    return (Object *)(((Fixnum)fixnum << 2) | sign_bit | 0x1);
-}
-
-bool is_fixnum(Object *obj) {
-    return ((Fixnum)obj & 0x1) == 0x1;
-}
-
-bool is_object(Object *obj) {
-    return obj != 0 && ((Fixnum)obj & 0x3) == 0;
-}
+Object* new_object(Object *cxt) {
+  Object *obj = new_object_no_register();
+  context_register_object(cxt, obj);
+  return obj;
+};
 
 Fixnum hash(Object *key, Fixnum length) {
   return ((Fixnum)key >> 2) % length;
 }
 
-void set(Object *obj, Object *key, Object *value) {
+void set(Object *cxt, Object *obj, Object *key, Object *value) {
   if ( obj->occupied * 4 >= obj->length * 3 ) {
-    grow(obj);
+    grow(cxt, obj);
   }
   Fixnum cand = hash(key, obj->length);
-  while(obj->table[cand].key != key && obj->table[cand].key != 0) {
+  Fixnum dirty_cand = -1;
+  Object *cand_key = obj->table[cand].key;
+  while(cand_key != key && cand_key != 0) {
+    if ( cand_key == DirtyKey && dirty_cand == -1 ) {
+      dirty_cand = cand;
+    }
     cand = (cand + 1) % obj->length;
+    cand_key = obj->table[cand].key;
   }
-  if ( obj->table[cand].key != key ) {
+  if ( cand_key != key ) {
     obj->occupied++;
+    if ( dirty_cand != -1 ) {
+      cand = dirty_cand;
+    }
   }
   obj->table[cand].key = key;
   obj->table[cand].value = value;
 }
 
+void unset(Object *cxt, Object *obj, Object *key) {
+  Fixnum cand = hash(key, obj->length);
+  while(obj->table[cand].key != key && obj->table[cand].key != 0 ) {
+    cand = (cand + 1) % obj->length;
+  }
+  if ( obj->table[cand].key == key ) {
+    obj->table[cand].key = DirtyKey;
+    obj->table[cand].value = 0;
+  }
+}
+
 Object *get_plain(Object *obj, Object *key) {
-  if ( obj == 0 || ! is_object(obj) ) {
-    return 0;
+  if ( obj == 0  ) {
+    abort();
   }
   Fixnum cand = hash(key, obj->length);
   while(obj->table[cand].key != key && obj->table[cand].key != 0) {
     cand = (cand + 1) % obj->length;
   }
-  if ( obj->table[cand].key == 0 ) {
+  if (obj->table[cand].key == 0) {
     return 0;
   }
   else {
@@ -67,18 +79,19 @@ Object *get_plain(Object *obj, Object *key) {
   }
 }
 
-void grow(Object *obj) {
+void grow(Object *cxt, Object *obj) {
   Object tmp;
   tmp.occupied = 0;
   tmp.length = obj->length*2;
-  tmp.table = (ObjectPair *) mem_alloc(sizeof(ObjectPair)*tmp.length);
+  tmp.table = (ObjectPair *) context_alloc_buffer(cxt, sizeof(ObjectPair)*tmp.length);
   for(Fixnum i=0;i<obj->length; ++i) {
-    if ( obj->table[i].key != 0 ) {
-      set(&tmp, obj->table[i].key, obj->table[i].value);
+    if ( obj->table[i].key != 0 && obj->table[i].key != DirtyKey ) {
+      set(cxt, &tmp, obj->table[i].key, obj->table[i].value);
     }
   }
-  mem_free(obj->table);
+  context_free_buffer(cxt, obj->table);
   obj->occupied = tmp.occupied;
+  obj->flags = tmp.flags;
   obj->length = tmp.length;
   obj->table = tmp.table;
 }
@@ -101,12 +114,12 @@ Object *get(Object *cxt, Object *target, Object *slot) {
 };
 
 void copy(Object *cxt, Object *dst, Object *src, Object *slot) {
-  set(dst, slot, get(cxt, src, slot));
+  set(cxt, dst, slot, get(cxt, src, slot));
 }
 
 Object* new_object(Object *cxt, Object *parent) {
   Object *obj = new_object(cxt);
-  set(obj, sym(cxt, "parent"), parent);
+  set(cxt, obj, sym(cxt, "parent"), parent);
   return obj;
 };
 

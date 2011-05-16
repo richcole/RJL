@@ -12,6 +12,7 @@ struct CharArrayBuffer {
 };
 
 Object *new_char_array(Object *cxt, char const* s);
+Object *new_char_array_no_register(Object *cxt, char const* s);
 Object *new_char_array(Object *cxt, Fixnum reserved);
 Fixnum  is_char_array(Object *cxt, Object *obj);
 Fixnum  char_array_equals(Object *s1, Object *s2);

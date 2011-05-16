@@ -18,7 +18,7 @@ def_is_buffer(File, file, FileTypeTag);
 
 Object *new_file(Object *cxt, FILE *file) {
   Object *obj = new_object(cxt, context_get(cxt, "File"));
-  obj->buffer = (Buffer *) new_file_buffer(file);
+  obj->buffer = (Buffer *) new_file_buffer(cxt, file);
   return obj;
 }
 

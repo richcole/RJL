@@ -82,6 +82,15 @@ Object* native_println(Object *cxt, Object *frame, Object *self) {
   return frame;
 }
 
+Object* native_object_dispose(Object *cxt, Object *frame, Object *self) {
+  if ( self->buffer != 0 ) {
+    context_free_buffer(cxt, self->buffer);
+  }
+  context_free_buffer(cxt, self->table);
+  context_free_buffer(cxt, self);
+  return return_undefined(cxt, frame);
+}
+
 Object* native_object_get(Object *cxt, Object *frame, Object *self) {
   Object *stack = get_stack(cxt, frame);
   Object *arg = pop(cxt, stack);
@@ -130,7 +139,7 @@ void dump(
       fprintf(stdout, "{ %p \n", obj);
       for(i=0;i<obj->length;++i) {
         Object *key = obj->table[i].key;
-        if ( key != 0 ) {
+        if ( key != 0 && key != (Object *)1 ) {
           if ( is_char_array(cxt, key) ) {
             fprintf(stdout, "%s  %s: ", indent_char_array, 
                     get_char_array_buffer(key)->data);
@@ -355,26 +364,27 @@ void init_native_sys(Object *cxt) {
   context_set(cxt, "if:else:", new_func(cxt, native_if_else));
 
   Object *object = context_get(cxt, "Object");
-  set(cxt, object, "get:", new_func(cxt, native_object_get));
-  set(cxt, object, "new",  new_func(cxt, native_object_new));
-  set(cxt, object, "new:", native_object_new1(cxt));
+  set(cxt, object, "get:",    new_func(cxt, native_object_get));
+  set(cxt, object, "new",     new_func(cxt, native_object_new));
+  set(cxt, object, "new:",    native_object_new1(cxt));
+  set(cxt, object, "dispose", new_func(cxt, native_object_dispose));
 
   Object *array = context_get(cxt, "Array");
-  set(cxt, array, "pop",    new_func(cxt, native_array_pop));
-  set(cxt, array, "push:",  new_func(cxt, native_array_push));
-  set(cxt, array, "at:",    new_func(cxt, native_array_at));
-  set(cxt, array, "length", new_func(cxt, native_array_length));
-  set(cxt, array, "new",    new_func(cxt, native_array_new));
+  set(cxt, array, "pop",      new_func(cxt, native_array_pop));
+  set(cxt, array, "push:",    new_func(cxt, native_array_push));
+  set(cxt, array, "at:",      new_func(cxt, native_array_at));
+  set(cxt, array, "length",   new_func(cxt, native_array_length));
+  set(cxt, array, "new",      new_func(cxt, native_array_new));
   
   Object *block = context_get(cxt, "Block");
   set(cxt, block, "parent", array);
-  set(cxt, block, "call", new_func(cxt, native_block_call));
-  set(cxt, block, "call:", new_func(cxt, native_block_call1));
+  set(cxt, block, "call",    new_func(cxt, native_block_call));
+  set(cxt, block, "call:",   new_func(cxt, native_block_call1));
   set(cxt, block, "invoke:", new_func(cxt, native_block_invoke));
 
   Object *char_array = context_get(cxt, "CharArray");
   set(cxt, char_array, "reserve:", new_func(cxt, native_char_array_reserve));
-  set(cxt, char_array, "shift:", new_func(cxt, native_char_array_shift));
+  set(cxt, char_array, "shift:",   new_func(cxt, native_char_array_shift));
 
   Object *boxed_int = context_get(cxt, "BoxedInt");
   set(cxt, boxed_int, "<=:", new_func(cxt, native_boxed_int_leq));

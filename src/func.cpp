@@ -5,9 +5,10 @@
 #include "frame.h"
 #include "array.h"
 #include "type_tags.h"
+#include "context.h"
 
 FuncBuffer* new_func_buffer(Object *cxt, FuncPtr func_ptr) {
-  FuncBuffer *buf = (FuncBuffer *)mem_alloc(sizeof(FuncBuffer));
+  FuncBuffer *buf = (FuncBuffer *)context_alloc_buffer(cxt, sizeof(FuncBuffer));
   buf->type = FuncTypeTag;
   buf->func = func_ptr;
   return buf;

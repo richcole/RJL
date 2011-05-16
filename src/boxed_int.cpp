@@ -3,9 +3,10 @@
 #include "sym.h"
 #include "char_array.h"
 #include "type_tags.h"
+#include "context.h"
 
 BoxedIntBuffer *new_boxed_int_buffer(Object *cxt, long value) {
-  BoxedIntBuffer *buf = (BoxedIntBuffer *)mem_alloc(sizeof(BoxedIntBuffer));
+  BoxedIntBuffer *buf = (BoxedIntBuffer *)context_alloc_buffer(cxt, sizeof(BoxedIntBuffer));
   buf->type   = BoxedIntTypeTag;
   buf->value  = value;
   return buf;

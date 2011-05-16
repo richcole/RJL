@@ -11,9 +11,11 @@ struct SymbolTableBuffer {
 };
 
 Object* new_symbol_table(Object *cxt);
-SymbolTableBuffer *grow_symbol_table(Object *symbol_table);
+Object* new_symbol_table_no_register();
+SymbolTableBuffer *grow_symbol_table(Object *cxt, Object *symbol_table);
 Object* symbol_table_add(SymbolTableBuffer *stb, Object *symbol);
-Object* symbol_table_add(SymbolTableBuffer *stb, char const* str);
+Object* symbol_table_add(Object *cxt, SymbolTableBuffer *stb, char const* str);
+void add_sym(Object *cxt, Object *sym);
 
 #endif
 

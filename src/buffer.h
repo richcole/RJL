@@ -24,18 +24,18 @@
 
 #define create_new_buffer(typeName, lcName, type_tag, extra_mem)                \
   Fixnum mem_size  = sizeof(typeName##Buffer)+(extra_mem);                      \
-  typeName##Buffer *buf = (typeName##Buffer *)mem_alloc(mem_size);              \
+  typeName##Buffer *buf = (typeName##Buffer *)context_alloc_buffer(cxt, mem_size);     \
   buf->type = type_tag;                                                         \
 
 #define def_new_buffer(typeName, lcName, type_tag, fieldType, fieldName)        \
-  typeName##Buffer *new_##lcName##_buffer(fieldType fieldName) {                \
+  typeName##Buffer *new_##lcName##_buffer(Object *cxt, fieldType fieldName) {   \
     create_new_buffer(typeName, lcName, type_tag, 0);                           \
     buf->fieldName = fieldName;                                                 \
     return buf;                                                                 \
   }                                                                             \
 
 #define decl_new_buffer(typeName, lcName, type_tag, fieldType, fieldName)       \
-  typeName##Buffer *new_##lcName##_buffer(fieldType fieldName);    
+  typeName##Buffer *new_##lcName##_buffer(Object *cxt, fieldType fieldName);    
 
 #define def_is_buffer(typeName, lcName, type_tag)         \
   Fixnum is_##lcName(Object *obj) {                       \

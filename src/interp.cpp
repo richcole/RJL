@@ -34,14 +34,14 @@ Object* send(Object *cxt, Object *frame, Object *slot) {
         parent = get(cxt, parent, "parent");
       }
       if ( is_slot_true(cxt, parent, "is_local") ) {
-        set(parent, field, pop(cxt, stack));
+        set(cxt, parent, field, pop(cxt, stack));
       }
       else {
-        set(target, field, pop(cxt, stack));
+        set(cxt, target, field, pop(cxt, stack));
       }
     }
     else {
-      set(target, field, pop(cxt, stack));
+      set(cxt, target, field, pop(cxt, stack));
     }
     return frame;
   }
@@ -105,7 +105,7 @@ void interp(Object *cxt, Object *frame) {
 
     if ( instr == sym(cxt, "arg") ) {
       Object *value = pop(cxt, get(cxt, get(cxt, frame, "return"), "stack"));
-      set(get(cxt, frame, "local"), get_code(cxt, frame, pc+1), value);
+      set(cxt, get(cxt, frame, "local"), get_code(cxt, frame, pc+1), value);
       advance_pc(cxt, frame, pc, 2);
       continue;
     }

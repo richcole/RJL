@@ -11,6 +11,7 @@ struct ArrayBuffer {
 };
 
 Object* new_array(Object *cxt);
+Object* new_array_no_register(Object *cxt);
 Fixnum array_length(Object *cxt, Object *array);
 void push(Object *cxt, Object *array, Object *value);
 Object *pop(Object *cxt, Object *array);

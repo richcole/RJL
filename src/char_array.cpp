@@ -5,7 +5,7 @@
 #include "type_tags.h"
 
 CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len) {
-  CharArrayBuffer *buf = (CharArrayBuffer *)mem_alloc(sizeof(CharArrayBuffer)+len+1);
+  CharArrayBuffer *buf = (CharArrayBuffer *)context_alloc_buffer(cxt, sizeof(CharArrayBuffer)+len+1);
   buf->type      = CharArrayTypeTag;
   buf->length    = 0;
   buf->reserved  = len;
@@ -34,9 +34,9 @@ Object *new_char_array(Object *cxt, char const* s) {
   return obj;
 }
 
-Object *new_char_array(char const* s) {
-  Object *obj = new_object(0);
-  obj->buffer = (Buffer *) new_char_array_buffer(0, s);
+Object *new_char_array_no_register(Object *cxt, char const* s) {
+  Object *obj = new_object_no_register();
+  obj->buffer = (Buffer *) new_char_array_buffer(cxt, s);
   return obj;
 }
 
@@ -114,7 +114,7 @@ void char_array_set_reserve(Object *cxt, Object *str, Fixnum new_size) {
   nb->data[nb->length] = 0;
 
   set_char_array_buffer(str, nb);
-  mem_free(cb);
+  context_free_buffer(cxt, cb);
 }
 
 Fixnum char_array_length(Object *cxt, Object *str) {
