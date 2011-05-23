@@ -1,6 +1,7 @@
 #include "code.h"
 #include "array.h"
 #include "sym.h"
+#include "boxed_int.h"
 
 void code_push(Object *cxt, Object *code, Object *val) {
   push(cxt, code, "push");
@@ -58,4 +59,18 @@ void code_arg(Object *cxt, Object *code, Object *arg_name) {
 
 void code_arg(Object *cxt, Object *code, char const* arg_name) {
   return code_arg(cxt, code, sym(cxt, arg_name));
+}
+
+Fixnum code_jmp_not_true(Object *cxt, Object *code, Fixnum jmp_location) {
+  push(cxt, code, "jmp_not_true");
+  Fixnum pos = array_length(cxt, code);
+  push(cxt, code, new_boxed_int(cxt, jmp_location));
+  return pos;
+}
+
+Fixnum code_jmp_true(Object *cxt, Object *code, Fixnum jmp_location) {
+  push(cxt, code, "jmp_true");
+  Fixnum pos = array_length(cxt, code);
+  push(cxt, code, new_boxed_int(cxt, jmp_location));
+  return pos;
 }

@@ -1,0 +1,3 @@
+{ sys |
+  raise: "An exception";
+}

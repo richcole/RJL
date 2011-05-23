@@ -13,7 +13,8 @@
 
 Object *top_level_frame(Object *cxt) {
   Object *code       = new_array(cxt);
-  Object *frame      = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
+  Object *ret_frame  = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
+  Object *frame      = new_frame(cxt, get_undefined(cxt), code, ret_frame);
   
   // set the lexical parent to be sys
   set_lexical_parent(cxt, frame, cxt);
@@ -27,6 +28,17 @@ Object *top_level_frame(Object *cxt) {
   code_send(cxt, code, "tokenize:");
   code_self_send(cxt, code, "Parser");
   code_send(cxt, code, "parse:");
+  code_self_send(cxt, code, "parse_cxt:");
+
+  code_push(cxt, code, new_boxed_int(cxt, 0));
+  code_self_send(cxt, code, "parse_cxt");
+  code_send(cxt, code, "errors");
+  code_send(cxt, code, "length");
+  code_send(cxt, code, ">:");
+
+  Fixnum errors_label = code_jmp_true(cxt, code, 0);
+
+  code_self_send(cxt, code, "parse_cxt");
   code_self_send(cxt, code, "CodeGenerator");
   code_send(cxt, code, "generate:");
   code_self_send(cxt, code, "context:");
@@ -35,15 +47,22 @@ Object *top_level_frame(Object *cxt) {
   code_send(cxt, code, "code:");
   code_term(cxt, code);
 
-  // parent catch block
-  push_slot(cxt, frame, "catch", new_boxed_int(cxt, array_length(cxt, code)));
-  code_arg(cxt, code, "ex");
-  code_push(cxt, code, new_char_array(cxt, "Exception raised."));
-  code_self_send(cxt, code, "println:");
-  code_self_send(cxt, code, "ex");
-  code_send(cxt, code, "reason");
-  code_self_send(cxt, code, sym(cxt, "println:"));
-  code_return(cxt, code);
+  set_at(cxt, code, errors_label, new_boxed_int(cxt, array_length(cxt, code)));
+  code_self_send(cxt, code, "parse_cxt");
+  code_send(cxt, code, "errors");
+  code_self_send(cxt, code, "dump:");
+  code_term(cxt, code);
+
+  // catch block
+  Object *catch_code = new_array(cxt);
+  set(cxt, code, "catch", catch_code);
+  code_arg(cxt, catch_code, "ex");
+  code_push(cxt, catch_code, new_char_array(cxt, "Exception raised."));
+  code_self_send(cxt, catch_code, "println:");
+  code_self_send(cxt, catch_code, "ex");
+  code_send(cxt, catch_code, "reason");
+  code_self_send(cxt, catch_code, sym(cxt, "println:"));
+  code_return(cxt, catch_code);
 
   return frame;
 }

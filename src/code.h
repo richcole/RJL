@@ -16,5 +16,7 @@ void code_local_return(Object *cxt, Object *code);
 void code_term(Object *cxt, Object *code);
 void code_arg(Object *cxt, Object *code, Object *arg_name);
 void code_arg(Object *cxt, Object *code, char const* arg_name);
+Fixnum code_jmp_not_true(Object *cxt, Object *code, Fixnum jmp_location);
+Fixnum code_jmp_true(Object *cxt, Object *code, Fixnum jmp_location);
 
 #endif

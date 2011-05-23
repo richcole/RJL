@@ -92,10 +92,12 @@ Object *new_scan_context(Object *cxt, Object *file) {
   Object *rw = new_object(cxt, "Object");
   set(cxt, sc, "reserved_words", rw);
   set(cxt, rw, "parent", get_undefined(cxt));
-  set(cxt, rw, "if", "if");
-  set(cxt, rw, "else", "else");
-  set(cxt, rw, "while", "while");
+  set(cxt, rw, "if",     "if");
+  set(cxt, rw, "else",   "else");
+  set(cxt, rw, "while",  "while");
   set(cxt, rw, "return", "return");
+  set(cxt, rw, "try",    "try");
+  set(cxt, rw, "catch",  "catch");
   
   return sc;
 };

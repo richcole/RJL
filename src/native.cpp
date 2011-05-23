@@ -15,7 +15,7 @@
 
 Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
   BoxedIntBuffer *obj_buf  = get_boxed_int_buffer(obj);
-  if ( obj != 0 ) {
+  if ( obj_buf != 0 ) {
     *num = obj_buf->value;
     return 0;
   }
@@ -98,6 +98,10 @@ Object* native_object_new(Object *cxt, Object *frame, Object *self) {
   Object *stack = get_stack(cxt, frame);
   push(cxt, stack, new_object(cxt, self));
   return frame;
+}
+
+Object* native_raise(Object *cxt, Object *frame, Object *self) {
+  return new_exception(cxt, frame, pop(cxt, get(cxt, frame, "stack")));
 }
 
 void dump(
@@ -335,7 +339,20 @@ Object *native_if_else(Object *cxt, Object *frame, Object *self) {
     return ret_frame;
   }
   else {
+    return new_exception(cxt, frame, "Expected block arguments");
+  }
+};
+
+Object *native_if(Object *cxt, Object *frame, Object *self) {
+  Object *stack = get_stack(cxt, frame);
+  Object *cond = pop(cxt, stack);
+  Object *true_block = pop(cxt, stack);
+  if ( ! is_true(cxt, cond) ) {
+    pop(cxt, stack); // read the return location from the stack
     return frame;
+  }
+  else {
+    return new_frame(cxt, get_undefined(cxt), true_block, frame);
   }
 };
 
@@ -358,6 +375,8 @@ void init_native_sys(Object *cxt) {
   context_set(cxt, "println:", new_func(cxt, native_println));
   context_set(cxt, "dump:",    new_func(cxt, native_dump));
   context_set(cxt, "if:else:", new_func(cxt, native_if_else));
+  context_set(cxt, "if:",      new_func(cxt, native_if));
+  context_set(cxt, "raise:",   new_func(cxt, native_raise));
 
   Object *object = context_get(cxt, "Object");
   set(cxt, object, "get:",    new_func(cxt, native_object_get));

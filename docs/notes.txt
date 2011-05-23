@@ -1,9 +1,35 @@
 
--- Notes file
+-- Notes on this file
 
 This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
+
+-- Work on exceptions
+
+Currently arguments are read from the return point stack. The top
+level frame previously didn't have a return frame and so it wasn't
+possible to push onto it. So I added a parent frame to the top level
+frame to allow this.
+
+Adding support for try catch blocks in the parser.
+
+Added support for detecting parse errors, fixed an error in test_012.r
+and now the test fails because the second return statement jumps out
+too many levels.
+
+Some later tests are also broken. They previously worked but had
+parse errors when the code was parsed.
+
+-- Thoughts on argument passing
+
+Currently argument passing is destructive to the calling frames
+stack. That seems a bit unsafe. If there is disagreement between the
+number of items passed then the callers stack frame will be messed
+with.
+
+An alternative is to construct an argument array for every method call
+and to pass that during construction of the child frame.
 
 -- Added a mark and sweep garbage collector
 

@@ -161,6 +161,16 @@ Object* parse_stmt(Object* cxt, Object *pc) {
     advance(cxt, pc);
     set(cxt, stmt, "expr", parse_expr_list(cxt, pc));
   }
+  else if ( have(cxt, pc, "try") ) {
+    mustbe(cxt, pc, "try");
+    stmt = new_object(cxt, "Object");
+    set(cxt, stmt, "type", "try_stmt");
+    set(cxt, stmt, "try_block", parse_block_expr(cxt, pc));
+    if ( have(cxt, pc, "catch") ) {
+      mustbe(cxt, pc, "catch");
+      set(cxt, stmt, "catch_block", parse_block_expr(cxt, pc));
+    }
+  }
   mustbe(cxt, pc, "semi");
   return stmt;
 }

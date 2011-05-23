@@ -47,6 +47,7 @@ Object* new_context() {
   set(cxt, objects,        "parent", context_get(cxt, "Array"));
   set(cxt, cxt,            "parent", object);
 
+  init_exception_sys(cxt);
   init_file_sys(cxt);
   init_native_sys(cxt);
   init_scanner_sys(cxt);
