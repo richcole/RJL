@@ -190,6 +190,99 @@ void dump(
   }
 } 
 
+Fixnum is_dot_value(Object *cxt, Object *value) {
+  return is_char_array(cxt, value) 
+    || is_func(cxt, value) 
+    || is_boxed_int(cxt, value) 
+    || is_true(cxt, value) 
+    || is_false(cxt, value)
+    || is_undefined(cxt, value);
+}
+
+void dump_dot_value(FILE *fp, Object *cxt, Object *value) {
+  if ( is_char_array(cxt, value) ) {
+    fprintf(fp, "'%s' ", get_char_array_buffer(value)->data);
+  }
+  else if ( is_func(cxt, value) ) {
+    fprintf(fp, "FUNC:%p ", get_func_buffer(value)->func);
+  }
+  else if ( is_boxed_int(cxt, value) ) {
+    fprintf(fp, "%ld ", get_boxed_int_buffer(value)->value);
+  }
+  else if ( is_true(cxt, value) ) {
+    fprintf(fp, "true ");
+  }
+  else if ( is_false(cxt, value) ) {
+    fprintf(fp, "false ");
+  }
+  else if ( is_undefined(cxt, value) ) {
+    fprintf(fp, "undefined ");
+  }
+}
+
+void dump_dot_object(FILE *fp, Object *cxt, Object *obj) 
+{
+  Fixnum i;
+  Object *key, *value;
+  
+  fprintf(fp, "\"obj%p\" [\n");
+  fprintf(fp, "label = \"%p ");
+  for(i=0;i<obj->length;++i) {
+    key = obj->table[i].key;
+    if ( key != 0 && key != DirtyKey ) {
+      value = obj->table[i].value;
+      fprintf(fp, "| <f%d> ", i);
+      if ( is_char_array(cxt, key) ) {
+        fprintf(fp, "%s: ", get_char_array_buffer(key)->data);
+      }
+      else {
+        fprintf(fp, "%p: ", obj);
+      }
+      dump_dot_value(cxt, value);
+    }
+  }
+  if ( is_array(cxt, obj) ) {
+    for(i=0;i<array_length(cxt, obj);++i) {
+      value = array_at(cxt, obj, i);
+      fprintf(fp, "| <g%d> %d: ", i, i);
+      dump_dot_value(cxt, value);
+    }
+  }
+  fprintf(fp, "\"");
+  fprintf(fp, "];\n");
+
+  for(i=0;i<obj->length;++i) {
+    Object *key = obj->table[i].key;
+    if ( key != 0 && key != DirtyKey ) {
+      Object *value = obj->table[i].value;
+      if ( ! is_dot_value(cxt, value) ) {
+        fprintf(fp, "\"obj%p\":f%d -> \"obj%p\";\n", obj, i, value);
+      }
+    }
+  }
+
+  if ( is_array(cxt, obj) ) {
+    for(i=0;i<array_length(cxt, obj);++i) {
+      value = array_at(cxt, obj, i);
+      if ( ! is_dot_value(cxt, value) ) {
+        fprintf(fp, "\"obj%p\":g%d -> \"obj%p\";\n", obj, i, value);
+      }
+    }
+  }
+} 
+
+void dump_dot(Object *cxt) {
+  Fixnum i;
+  FILE *fp = fopen("tmp/objects.dot", "w");
+  Object *objects = context_get(cxt, "objects");
+  fprintf(fp, "digraph g {\ngraph [\nrankdir = \"LR\"\n];\n");
+  for(i=0;i<array_length(objects);++i) {
+    dump_dot_object(fp, cxt, get_at(cxt, objects, i));
+  }
+  fprintf(fp, "}");
+  fclose(fp);
+}
+
 void dump(Object *cxt, Object *obj) {
   dump(cxt, obj, 0, new_object(cxt), -1);
 }

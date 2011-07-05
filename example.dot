@@ -1,0 +1,16 @@
+digraph g {
+graph [
+rankdir = "LR"
+];
+"node0" [
+label = "<f0> object1 | <f1>"
+shape = "record"
+];
+"node1" [
+label = "<f0> object2 | <f1>"
+shape = "record"
+];
+"node0":f1 -> "node1" [
+];
+}
+

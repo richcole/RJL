@@ -72,43 +72,116 @@ The first attempt at a GC that I will write will be a simple mark and
 sweek garbage collector. I'm going to start simple because writing and
 testing a GC is not easy and mark and sweep will likely work for the 
 
--- Non local returns
+-- Non-local returns
 
-Non local returns work by marking blocks created for if and while statements
-as local blocks. Non local returns then jump back up until they find a block
-that is not local to return from.
+A non-local return is a return inside a block that returns to the
+lexical scope of the block.
 
-In smalltalk it appears that non-local returns occur even in blocks
-that are create that are not method blocks, but RJL has no way to
-distinguish method from non method blocks since assignment is a method
-call.
-
-So for example in RJL
-
-  xs each { x | return x; };
-
-This is effectively a local return. The reason is that it isn't clear
-to where blocks should return when they are nested.
-
-We might similarly be defining a function
-
-  xs x: { return self x; };
-
-which we would expect to return. Also with nested structures
-
-  xs x: {
-    if ( x > 1 ) {
-      if ( x > 2 ) {
-        return 3;
-      }
+  fib:: { x |
+    if ( x <= 1 ) {
+      return 1;
     }
+    return (fib: (x-1)) + (fib: (x-2));
   }
 
-What if we make the non-local return site the enclosing scope and have
-it be inherrited for if and while constructs.
+The first return is non local because it returns from the function not
+the if statement.
 
-  first: { self each { x | return x } }
+If one doesn't support non-local returns then one cannot write code
+like the above, instead one has to be more turn oriented and do
+something like:
 
+  fib:: { x |
+    if ( x <= 1 ) {
+      1;
+    }
+    else {
+      (fib: (x-1)) + (fib: (x-2));
+    };
+  };
+
+Here I am assuming that a block returns the top of the stack upon
+return. Another place that one wants non-local returns is in iterators
+
+  first:: { is_match: |
+    self each: { x | 
+      if ( is_match: x ) {
+        return x;
+      };
+    };
+  };
+
+This is even more pathalogical because it is the first function that
+one wants to return from. Thus one needs some way to specify that a
+function is a non-local return site or not. One could do that
+syntactically.
+
+  first:: {| is_match: |
+    self each: { x | 
+      if ( is_match: x ) {
+        return x;
+      };
+    };
+  |};
+    
+Non-local return is the default for a block. It is overridden by using
+{| and |} as the block delimiters. This combines well with a system
+that returns the last stack item in the block by default because most
+code will not have a return statement in it.
+
+It does mean that the introduction of a return statement will mean
+using the return site block element. Maybe a convention will arise
+over time as to when to use each type.
+
+Another issue with non-local returns is whether they go back up the
+call stack or they keep a link via the lexical scope. For example
+
+ {| button |
+   button on_click: { return 1 };
+ |}
+
+The button will likely stash away the on_click function. The non-local
+return can either return to the definition site or it can skip up the
+call chain until it hits a non-local block.
+
+It makes more logical sense to skip up the call chain until one hits a
+non-local block. Another example of that of finally blocks. Finally
+blocks should be executed in the presense of non-local returns.
+
+ File open:mode:do:: { filename mode block: |
+   file = File open: filename mode: mode;
+   try {
+     block: file;
+   }
+   finally {
+     file close;
+   }
+ }
+   
+This raises another issue. Non local returns fight one another. So for
+example if a block is passed into some code and that code is marked as
+a non-local return block, that will catch a non-local return intended
+for a higher scope level.
+
+Finally blocks are tricky to support because they need to remember
+that there is an exception being thrown and rethrow it. A finally
+block is like this
+
+  try {
+    ... some code
+  }
+  catch { ex | 
+    do: { 
+      ... finally block
+    }
+    throw: ex;
+  }
+    
+Rethrowing of an exception that has an exception trace needs not overwrite
+the throw location.
+
+So the simplest thing is to not support non-local returns because they
+interact oddly with exceptions and they can fight one another.
 
 
 -- Needed features
