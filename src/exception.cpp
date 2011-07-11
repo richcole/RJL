@@ -14,7 +14,7 @@ Object *find_catch_frame(Object *cxt, Object *frame) {
     if ( exists(cxt, get_catch_block(cxt, frame)) ) {
       return frame;
     }
-    frame = get(cxt, frame, "non_local_return");
+    frame = get(cxt, frame, "return");
   }
   return get_undefined(cxt);
 }

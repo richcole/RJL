@@ -21,6 +21,7 @@ void push_slot(Object *cxt, Object *obj, char const *s, Object *value);
 Object* get_at(Object *cxt, Object *array, Fixnum index);
 void set_at(Object *cxt, Object *array, Fixnum index, Object *val);
 Fixnum is_array(Object *cxt, Object *array);
+Fixnum is_child_array(Object *cxt, Object *array);
 
 
 #endif

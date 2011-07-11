@@ -53,6 +53,13 @@ Fixnum is_array(Object *cxt, Object *array) {
   return 0;
 }
 
+Fixnum is_child_array(Object *cxt, Object *array) {
+  if ( get_array_buffer(array) != 0 ) {
+    return 1;
+  }
+  return 0;
+}
+
 Object* get_at(Object *cxt, Object *array, Fixnum index) {
   ArrayBuffer *array_buffer = get_array_buffer_parent(cxt, array);
   if ( array_buffer != 0 ) {

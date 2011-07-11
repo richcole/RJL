@@ -285,7 +285,7 @@ void dump_dot_object(FILE *fp, Object *cxt, Object *obj)
       dump_dot_value(fp, cxt, value);
     }
   }
-  if ( is_array(cxt, obj) ) {
+  if ( is_child_array(cxt, obj) ) {
     for(i=0;i<array_length(cxt, obj);++i) {
       value = get_at(cxt, obj, i);
       fprintf(fp, "| <g%ld> %ld: ", i, i);
@@ -305,7 +305,7 @@ void dump_dot_object(FILE *fp, Object *cxt, Object *obj)
     }
   }
 
-  if ( is_array(cxt, obj) ) {
+  if ( is_child_array(cxt, obj) ) {
     for(i=0;i<array_length(cxt, obj);++i) {
       value = get_at(cxt, obj, i);
       if ( ! is_dot_value(cxt, value) ) {

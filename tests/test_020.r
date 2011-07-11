@@ -1,6 +1,6 @@
 { sys |
 
-  b:: {
+  b:: { x |
     raise: x;
   };
 
@@ -9,11 +9,11 @@
       b: x;
     }
     catch { ex |
-      if ( x > 5 ) {
-        return x;
+      if ( ex >= 5 ) {
+        1;
       }
       else {
-        return 1;
+        0;
       };
     };
   };
