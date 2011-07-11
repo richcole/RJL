@@ -5,6 +5,7 @@
 #include "frame.h"
 #include "exception.h"
 #include "abort.h"
+#include "native.h"
 
 Object* send(Object *cxt, Object *frame, Object *slot) {
   Object *stack  = get_stack(cxt, frame);

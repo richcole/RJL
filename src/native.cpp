@@ -190,6 +190,40 @@ void dump(
   }
 } 
 
+char *escape_string(char *dst, Fixnum len, char *src) {
+  Fixnum i = 0;
+  while(i+8 < len && *src) {
+    if ( *src == 0 ) {
+      dst[i++] = 0;
+      return dst;
+    }
+    else if (
+      ( *src >= '0' && *src <= '9' ) ||
+      ( *src >= 'a' && *src <= 'z' ) ||
+      ( *src >= 'A' && *src <= 'Z' ) ||
+      ( *src == ' ' ) 
+    ) {
+      dst[i++] = *src;
+    }
+    else if ( *src < 100 ) {
+      dst[i++] = '&';
+      dst[i++] = '0' + (*src / 10);
+      dst[i++] = '0' + (*src % 10);
+      dst[i++] = ';';
+    }
+    else if ( *src < 100 ) {
+      dst[i++] = '&';
+      dst[i++] = '0' + (*src / 100);
+      dst[i++] = '0' + ((*src % 100) / 10);
+      dst[i++] = '0' + (*src % 10);
+      dst[i++] = ';';
+    }
+    ++src;
+  }
+  dst[i++] = 0;
+  return dst;
+}
+
 Fixnum is_dot_value(Object *cxt, Object *value) {
   return is_char_array(cxt, value) 
     || is_func(cxt, value) 
@@ -200,8 +234,12 @@ Fixnum is_dot_value(Object *cxt, Object *value) {
 }
 
 void dump_dot_value(FILE *fp, Object *cxt, Object *value) {
+  char buf[4096]; // should be enough
+
   if ( is_char_array(cxt, value) ) {
-    fprintf(fp, "'%s' ", get_char_array_buffer(value)->data);
+    fprintf(fp, "'%s' ", 
+            escape_string(buf, sizeof(buf), 
+                          get_char_array_buffer(value)->data));
   }
   else if ( is_func(cxt, value) ) {
     fprintf(fp, "FUNC:%p ", get_func_buffer(value)->func);
@@ -224,28 +262,34 @@ void dump_dot_object(FILE *fp, Object *cxt, Object *obj)
 {
   Fixnum i;
   Object *key, *value;
-  
-  fprintf(fp, "\"obj%p\" [\n");
-  fprintf(fp, "label = \"%p ");
+  char buf[4024];
+
+  if ( is_dot_value(cxt, obj) ) {
+    return;
+  }
+
+  fprintf(fp, "\"obj%p\" [ ", obj);
+  fprintf(fp, "shape = \"record\" label = \"%p ", obj);
   for(i=0;i<obj->length;++i) {
     key = obj->table[i].key;
     if ( key != 0 && key != DirtyKey ) {
       value = obj->table[i].value;
-      fprintf(fp, "| <f%d> ", i);
+      fprintf(fp, "| <f%ld> ", i);
       if ( is_char_array(cxt, key) ) {
-        fprintf(fp, "%s: ", get_char_array_buffer(key)->data);
+        fprintf(fp, "%s: ", 
+                escape_string(buf, sizeof(buf), get_char_array_buffer(key)->data));
       }
       else {
         fprintf(fp, "%p: ", obj);
       }
-      dump_dot_value(cxt, value);
+      dump_dot_value(fp, cxt, value);
     }
   }
   if ( is_array(cxt, obj) ) {
     for(i=0;i<array_length(cxt, obj);++i) {
-      value = array_at(cxt, obj, i);
-      fprintf(fp, "| <g%d> %d: ", i, i);
-      dump_dot_value(cxt, value);
+      value = get_at(cxt, obj, i);
+      fprintf(fp, "| <g%ld> %ld: ", i, i);
+      dump_dot_value(fp, cxt, value);
     }
   }
   fprintf(fp, "\"");
@@ -256,28 +300,30 @@ void dump_dot_object(FILE *fp, Object *cxt, Object *obj)
     if ( key != 0 && key != DirtyKey ) {
       Object *value = obj->table[i].value;
       if ( ! is_dot_value(cxt, value) ) {
-        fprintf(fp, "\"obj%p\":f%d -> \"obj%p\";\n", obj, i, value);
+        fprintf(fp, "\"obj%p\":f%ld -> \"obj%p\";\n", obj, i, value);
       }
     }
   }
 
   if ( is_array(cxt, obj) ) {
     for(i=0;i<array_length(cxt, obj);++i) {
-      value = array_at(cxt, obj, i);
+      value = get_at(cxt, obj, i);
       if ( ! is_dot_value(cxt, value) ) {
-        fprintf(fp, "\"obj%p\":g%d -> \"obj%p\";\n", obj, i, value);
+        fprintf(fp, "\"obj%p\":g%ld -> \"obj%p\";\n", obj, i, value);
       }
     }
   }
 } 
 
 void dump_dot(Object *cxt) {
-  Fixnum i;
-  FILE *fp = fopen("tmp/objects.dot", "w");
+  FILE *fp = fopen("/tmp/objects.dot", "w");
   Object *objects = context_get(cxt, "objects");
   fprintf(fp, "digraph g {\ngraph [\nrankdir = \"LR\"\n];\n");
-  for(i=0;i<array_length(objects);++i) {
-    dump_dot_object(fp, cxt, get_at(cxt, objects, i));
+  for(Fixnum i=0;i<objects->length; ++i) {
+    Object *key = objects->table[i].key;
+    if ( key != 0 && key != DirtyKey && key != objects ) {
+      dump_dot_object(fp, cxt, key);
+    }
   }
   fprintf(fp, "}");
   fclose(fp);

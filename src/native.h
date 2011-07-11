@@ -16,6 +16,8 @@ Object *native_call(Object *cxt, Object *self, Object *slot, Object *arg1,
 Object *native_call(Object *cxt, Object *self, char const* slot, Object *arg1, 
                     Object *arg2, Object *arg3);
 void init_native_sys(Object *cxt);
+void dump_dot(Object *cxt);
+
 
 
 #endif
