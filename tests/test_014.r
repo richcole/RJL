@@ -3,10 +3,15 @@
   test:: { x |
     if ( x > 1 ) {
       if ( x > 2 ) {
-        return x;
+        x;
+      }
+      else {
+        0;
       };
+    }
+    else {
+      0;
     };
-    return 0;
   };
 
   println: (test: 10);

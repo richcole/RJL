@@ -54,14 +54,6 @@ Object* new_frame(Object *cxt, Object *self, Object *code, Object *ret_frame) {
     set_lexical_parent(cxt, frame, get_lexical_parent(cxt, ret_frame));
   }
 
-  Object *non_local_return = get(cxt, code, "non_local_return");
-  if ( exists(cxt, non_local_return) ) {
-    set(cxt, frame, "non_local_return", non_local_return);
-  }
-  else {
-    set(cxt, frame, "non_local_return", get(cxt, frame, "return"));
-  }
-
   return frame;
 }
 

@@ -9,11 +9,11 @@
       b: x;
     }
     catch { ex |
-      if ( ex >= 5 ) {
-        1;
+      if ( (ex reason) >= 5 ) {
+        ex reason;
       }
       else {
-        0;
+        11;
       };
     };
   };

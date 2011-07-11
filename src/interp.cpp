@@ -28,21 +28,22 @@ Object* send(Object *cxt, Object *frame, Object *slot) {
     return call_func(cxt, target, value, frame);
   }
   else if ( is_undefined(cxt, value) && is_setter_slot(cxt, slot) ) {
-    Object *field = setter_field(cxt, slot);
+    Object *field     = setter_field(cxt, slot);
+    Object *field_val = peek(cxt, stack);
     if ( is_slot_true(cxt, target, "is_local") ) {
       Object *parent = target;
       while( is_slot_true(cxt, parent, "is_local") && get_plain(parent, field) == 0) {
         parent = get(cxt, parent, "parent");
       }
       if ( is_slot_true(cxt, parent, "is_local") ) {
-        set(cxt, parent, field, pop(cxt, stack));
+        set(cxt, parent, field, field_val);
       }
       else {
-        set(cxt, target, field, pop(cxt, stack));
+        set(cxt, target, field, field_val);
       }
     }
     else {
-      set(cxt, target, field, pop(cxt, stack));
+      set(cxt, target, field, field_val);
     }
     return frame;
   }
@@ -66,7 +67,6 @@ Object* ret(Object *cxt, Object *frame, Object *ret_slot) {
 Object *new_push_block(Object* cxt, Object *frame, Object *stack, Fixnum pc) {
   Object *block = get_code(cxt, frame, pc+1);
   Object *closure = new_closure(cxt, block, get(cxt, frame, "local"), get_self(cxt, frame));
-  set(cxt, closure, "non_local_return", pop(cxt, stack));
   return closure;
 };
 
@@ -95,6 +95,12 @@ void interp(Object *cxt, Object *frame) {
     if ( instr == sym(cxt, "push") ) {
       push(cxt, get_stack(cxt, frame), get_code(cxt, frame, pc+1));
       advance_pc(cxt, frame, pc, 2);
+      continue;
+    }
+
+    if ( instr == sym(cxt, "pop") ) {
+      pop(cxt, get_stack(cxt, frame));
+      advance_pc(cxt, frame, pc, 1);
       continue;
     }
 
@@ -168,11 +174,6 @@ void interp(Object *cxt, Object *frame) {
     }
 
     if ( instr == sym(cxt, "return") ) {
-      frame = ret(cxt, frame, sym(cxt, "non_local_return"));
-      continue;
-    }
-
-    if ( instr == sym(cxt, "local_return") ) {
       frame = ret(cxt, frame, sym(cxt, "return"));
       continue;
     }

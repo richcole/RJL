@@ -8,6 +8,10 @@ void code_push(Object *cxt, Object *code, Object *val) {
   push(cxt, code, val);
 }
 
+void code_pop(Object *cxt, Object *code) {
+  push(cxt, code, "pop");
+}
+
 void code_push_frame(Object *cxt, Object *code) {
   push(cxt, code, "push_frame");
 }
@@ -42,10 +46,6 @@ void code_self(Object *cxt, Object *code) {
 
 void code_return(Object *cxt, Object *code) {
   push(cxt, code, "return");
-}
-
-void code_local_return(Object *cxt, Object *code) {
-  push(cxt, code, "local_return");
 }
 
 void code_term(Object *cxt, Object *code) {

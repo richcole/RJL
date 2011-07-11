@@ -5,6 +5,10 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Non local returns code removed
+
+The non local returns code has been removed. Tests are passing again.
+
 -- Non local returns
 
 Following the discussion included later in this file I've decided to

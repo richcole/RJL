@@ -113,7 +113,7 @@ Object *pop(Object *cxt, Object *array) {
   return 0;
 }
 
-Object *array_last(Object *cxt, Object *array) {
+Object *peek(Object *cxt, Object *array) {
   ArrayBuffer *array_buffer = get_array_buffer_parent(cxt, array);
   if ( array_buffer != 0 ) {
     if ( array_buffer->tail > 0 ) {

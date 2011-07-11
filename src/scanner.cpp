@@ -59,7 +59,7 @@ Fixnum is_arg_ident(Object *cxt, Object *tok) {
 }
 
 void detect_arg_ident(Object *cxt, Object *sc) {
-  Object *tok = array_last(cxt, get(cxt, sc, "tokens"));
+  Object *tok = peek(cxt, get(cxt, sc, "tokens"));
   if (is_arg_ident(cxt, tok)) {
     set(cxt, tok, "type", "arg_ident");
   }
@@ -70,7 +70,7 @@ Object* get_reserved_word(Object *cxt, Object *sc, Object *word) {
 }
 
 void detect_reserved_word(Object *cxt, Object *sc) {
-  Object *tok = array_last(cxt, get(cxt, sc, "tokens"));
+  Object *tok = peek(cxt, get(cxt, sc, "tokens"));
   Object *reserved_word = get_reserved_word(cxt, sc, get(cxt, tok, "value"));
   if ( exists(cxt, reserved_word) ) {
     set(cxt, tok, "type", reserved_word);
