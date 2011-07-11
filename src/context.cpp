@@ -102,7 +102,7 @@ void context_mark(Object *cxt, Object *obj, Object *mark, Object *objects)
       context_mark(cxt, obj->table[i].value, mark, objects);
     }
   }
-  if ( is_array(cxt, obj) ) {
+  if ( is_child_array(cxt, obj) ) {
     Fixnum len = array_length(cxt, obj);
     for(Fixnum i=0;i<len; ++i) {
       context_mark(cxt, get_at(cxt, obj, i), mark, objects);

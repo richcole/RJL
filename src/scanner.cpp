@@ -95,7 +95,6 @@ Object *new_scan_context(Object *cxt, Object *file) {
   set(cxt, rw, "if",     "if");
   set(cxt, rw, "else",   "else");
   set(cxt, rw, "while",  "while");
-  set(cxt, rw, "return", "return");
   set(cxt, rw, "try",    "try");
   set(cxt, rw, "catch",  "catch");
   
@@ -116,14 +115,17 @@ void scan_context_read_line(Object *cxt, Object *sc) {
               line, new_boxed_int(cxt, char_array_length(cxt, line)), 
               new_boxed_int(cxt, char_array_reserve(cxt, line) - char_array_length(cxt, line))
   );
-  set(cxt, sc, "line_number", new_boxed_int(cxt, boxed_int_to_fixnum(cxt, get(cxt, sc, "line_number"))+1));
-  set(cxt, sc, "char_number", new_boxed_int(cxt, 0));
 };
 
 Fixnum scan_context_line_is_exhausted(Object *cxt, Object *sc) {
   CharArrayBuffer *buf = get_char_array_buffer(get(cxt, sc, "line"));
-  if ( buf != 0 && buf->length > boxed_int_to_fixnum(cxt, get(cxt, sc, "index")) ) {
-    return 0;
+  if ( buf != 0 ) {
+    if ( buf->length > boxed_int_to_fixnum(cxt, get(cxt, sc, "index")) ) {
+      return 0;
+    }
+    else {
+      return 1;
+    }
   }
   else {
     return 1;
@@ -168,6 +170,13 @@ char scan_context_advance(Object *cxt, Object *sc) {
   scan_context_incr(cxt, sc, "char_number");
   scan_context_incr(cxt, sc, "token_end");
   scan_context_incr(cxt, sc, "index");
+
+  if ( scan_context_line_is_exhausted(cxt, sc) ) {
+    if ( is_false(cxt, scan_context_eof(cxt, sc)) ) {
+      scan_context_read_line(cxt, sc);
+    }
+  }
+
   char c = scan_context_curr(cxt, sc);
   if ( c == '\n' ) {
     scan_context_newline(cxt, sc);
@@ -185,8 +194,12 @@ Fixnum is_digit(char c) {
 };
 
 Fixnum is_punct(char c) {
-  return  (c == '-') || (c == '<')  || (c == '>') ||
-    (c == '+') || (c == '&')  || (c == '=') || (c == '.') || (c == '*') || (c == '/');
+  return  
+    (c == '-') || (c == '<') || (c == '>') ||
+    (c == '+') || (c == '&') || (c == '=') || 
+    (c == '.') || (c == '*') || (c == '/') || 
+    (c == '!')
+   ;
 }
 
 Fixnum is_operator_start(char c) {
@@ -207,151 +220,163 @@ Fixnum is_ident_continue(char c) {
     c == '_' || c == ':';
 };
 
-Object *tokenize(Object *cxt, Object *file) {
-  
+Object *tokenize(Object *cxt, Object *frame, Object *file) {
+
   Object *sc = new_scan_context(cxt, file);
+  Object *parent = new_object(cxt);
+
+  set(cxt, parent, "frame", frame);
+  set(cxt, parent, "sc", sc);
+
+  Fixnum loop_count = 0;
   
-  while( is_false(cxt, scan_context_eof(cxt, sc)) ) {
-    scan_context_read_line(cxt, sc);
+  scan_context_read_line(cxt, sc);
+  while(! (scan_context_line_is_exhausted(cxt, sc) && is_true(cxt, scan_context_eof(cxt, sc))) ) {
+    char ch = scan_context_curr(cxt, sc);
     
-    while(! scan_context_line_is_exhausted(cxt, sc)) {
-      char ch = scan_context_curr(cxt, sc);
-
-      if ( is_white_space(ch) ) {
+    if ( is_white_space(ch) ) {
+      scan_context_advance(cxt, sc);
+      continue;
+    }
+    
+    if ( is_line_ending(ch) ) {
+      scan_context_advance(cxt, sc);
+      continue;
+    }
+    
+    scan_context_mark(cxt, sc);
+    
+    if ( (++loop_count) % 100 == 0 ) {
+      context_mark_and_sweep(cxt, parent);
+    }
+    
+    switch(ch) {
+    case '{': 
+      scan_context_push_token(cxt, sc, "block_open");
+      scan_context_advance(cxt, sc);
+      continue;
+    case '}': 
+      scan_context_push_token(cxt, sc, "block_close");
+      scan_context_advance(cxt, sc);
+      continue;
+    case '(':
+      if ( scan_context_next(cxt, sc) == '|' ) {
         scan_context_advance(cxt, sc);
-        continue;
-      }
-      
-      if ( is_line_ending(ch) ) {
+        scan_context_push_token(cxt, sc, "object_open");
         scan_context_advance(cxt, sc);
-        continue;
       }
-
-      scan_context_mark(cxt, sc);
-
-      switch(ch) {
-          case '{': 
-            scan_context_push_token(cxt, sc, "block_open");
-            scan_context_advance(cxt, sc);
-            continue;
-          case '}': 
-            scan_context_push_token(cxt, sc, "block_close");
-            scan_context_advance(cxt, sc);
-            continue;
-          case '(':
-            if ( scan_context_next(cxt, sc) == '|' ) {
-              scan_context_advance(cxt, sc);
-              scan_context_push_token(cxt, sc, "object_open");
-              scan_context_advance(cxt, sc);
-            }
-            else {
-              scan_context_push_token(cxt, sc, "group_open");
-              scan_context_advance(cxt, sc);
-            }
-            continue;
-          case ')':
-            scan_context_push_token(cxt, sc, "group_close");
-            scan_context_advance(cxt, sc);
-            continue;
-          case '[':
-            scan_context_push_token(cxt, sc, "array_open");
-            scan_context_advance(cxt, sc);
-            continue;
-          case ']':
-            scan_context_push_token(cxt, sc, "array_close");
-            scan_context_advance(cxt, sc);
-            continue;
-          case '|':
-            if ( scan_context_next(cxt, sc) == ')' ) {
-              scan_context_advance(cxt, sc);
-              scan_context_push_token(cxt, sc, "object_close");
-              scan_context_advance(cxt, sc);
-            }
-            else {
-              scan_context_push_token(cxt, sc, "pipe");
-              scan_context_advance(cxt, sc);
-            }
-            continue;
-          case ';':
-            scan_context_push_token(cxt, sc, "semi");
-            scan_context_advance(cxt, sc);
-            continue;
+      else {
+        scan_context_push_token(cxt, sc, "group_open");
+        scan_context_advance(cxt, sc);
       }
-
-      if ( ch == '"' ) {
+      continue;
+    case ')':
+      scan_context_push_token(cxt, sc, "group_close");
+      scan_context_advance(cxt, sc);
+      continue;
+    case '[':
+      scan_context_push_token(cxt, sc, "array_open");
+      scan_context_advance(cxt, sc);
+      continue;
+    case ']':
+      scan_context_push_token(cxt, sc, "array_close");
+      scan_context_advance(cxt, sc);
+      continue;
+    case '|':
+      if ( scan_context_next(cxt, sc) == ')' ) {
+        scan_context_advance(cxt, sc);
+        scan_context_push_token(cxt, sc, "object_close");
+        scan_context_advance(cxt, sc);
+      }
+      else if ( scan_context_next(cxt, sc) == '|' ) {
+        scan_context_advance(cxt, sc);
+        scan_context_push_token(cxt, sc, "operator");
+        scan_context_advance(cxt, sc);
+      }
+      else {
+        scan_context_push_token(cxt, sc, "pipe");
+        scan_context_advance(cxt, sc);
+      }
+      continue;
+    case ';':
+      scan_context_push_token(cxt, sc, "semi");
+      scan_context_advance(cxt, sc);
+      continue;
+    }
+    
+    if ( ch == '"' ) {
+      ch = scan_context_advance(cxt, sc);
+      while ( ch != '"' && ch != 0 ) {
+        if ( ch == '\\' ) {
+          scan_context_advance(cxt, sc);
+        }
         ch = scan_context_advance(cxt, sc);
-        while ( ch != '"' && ch != 0 ) {
-          if ( ch == '\\' ) {
-            scan_context_advance(cxt, sc);
-          }
-          ch = scan_context_advance(cxt, sc);
-        }            
-        scan_context_advance(cxt, sc);
-        scan_context_push_char_array_token(cxt, sc, sym(cxt, "char_array"));
-        continue;
-      }
-
-      if  (ch == '-' && is_digit(scan_context_next(cxt, sc))) {
+      }            
+      scan_context_advance(cxt, sc);
+      scan_context_push_char_array_token(cxt, sc, sym(cxt, "char_array"));
+      continue;
+    }
+    
+    if  (ch == '-' && is_digit(scan_context_next(cxt, sc))) {
+      if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+    }        
+    
+    if ( is_digit(ch) ) {
+      while(is_digit(ch)) {
         if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-      }        
-
-      if ( is_digit(ch) ) {
+      }
+      if ( ch == '.' ) {
+        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      }
+      while(is_digit(ch)) {
+        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      }
+      if ( ch == 'e' || ch == 'E' ) {
+        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+        if ( ch == '-' && is_digit(scan_context_next(cxt, sc)) ) {
+          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+        }
         while(is_digit(ch)) {
           if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
         }
-        if ( ch == '.' ) {
-          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-        }
-        while(is_digit(ch)) {
-          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-        }
-        if ( ch == 'e' || ch == 'E' ) {
-          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-          if ( ch == '-' && is_digit(scan_context_next(cxt, sc)) ) {
-            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-          }
-          while(is_digit(ch)) {
-            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-          }
-        }
-        scan_context_push_token(cxt, sc, "number_literal");
-        continue;
       }
-      
-      if ( ch == '#' ) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-        if ( is_ident_continue(ch) ) {
-          while ( is_ident_continue(ch) ) {
-            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-          }
-          scan_context_push_token(cxt, sc, "symbol", 1);
-        }
-        else {
-          while( is_operator_continue(ch) ) {
-            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-          }
-          scan_context_push_token(cxt, sc, "operator");
-        }
-      }
-
-      if ( is_ident_start(ch) ) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-        while( is_ident_continue(ch) ) {
+      scan_context_push_token(cxt, sc, "number_literal");
+      continue;
+    }
+    
+    if ( ch == '#' ) {
+      if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      if ( is_ident_continue(ch) ) {
+        while ( is_ident_continue(ch) ) {
           if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
         }
-        scan_context_push_token(cxt, sc, "ident");
-        detect_arg_ident(cxt, sc);
-        detect_reserved_word(cxt, sc);
+        scan_context_push_token(cxt, sc, "symbol", 1);
       }
-
-      if ( is_operator_start(ch) ) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      else {
         while( is_operator_continue(ch) ) {
           if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
         }
         scan_context_push_token(cxt, sc, "operator");
-        detect_arg_ident(cxt, sc);
       }
+    }
+    
+    if ( is_ident_start(ch) ) {
+      if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      while( is_ident_continue(ch) ) {
+        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      }
+      scan_context_push_token(cxt, sc, "ident");
+      detect_arg_ident(cxt, sc);
+      detect_reserved_word(cxt, sc);
+    }
+    
+    if ( is_operator_start(ch) ) {
+      if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      while( is_operator_continue(ch) ) {
+        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      }
+      scan_context_push_token(cxt, sc, "operator");
+      detect_arg_ident(cxt, sc);
     }
   }
 
@@ -366,7 +391,7 @@ Object* native_scanner_tokenize(Object *cxt, Object *frame, Object *self) {
   if ( ! is_file(cxt, file) ) {
     return new_exception(cxt, frame, "Expected a file argument");
   }
-  push(cxt, stack, tokenize(cxt, file));
+  push(cxt, stack, tokenize(cxt, frame, file));
   return frame;
 }
 

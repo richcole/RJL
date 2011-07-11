@@ -357,7 +357,7 @@ Object *native_char_array_shift(Object *cxt, Object *frame, Object *self) {
   Fixnum offset = boxed_int_to_fixnum(cxt, pop(cxt, get_stack(cxt, frame)));
   CharArrayBuffer *buf = get_char_array_buffer(self);
   if ( buf != 0 ) {
-    if ( offset < buf->length ) {
+    if ( offset <= buf->length ) {
       rjl_memcpy(buf->data, buf->data + offset, buf->length - offset);
       char_array_truncate_buffer(cxt, self, buf->length - offset);
     }

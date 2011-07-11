@@ -146,11 +146,6 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
     push(cxt, code, new_boxed_int(cxt, offset));
     set_at(cxt, code, jmp_offset, new_boxed_int(cxt, array_length(cxt, code)));
   }
-  else if ( has_type(cxt, stmt, "return_stmt") ) {
-    Object *exprs =  get(cxt, get(cxt, stmt, "expr"), "exprs");
-    code_gen_expr_list_stmt(cxt, pc, code, block, exprs);
-    code_return(cxt, code);
-  }
   else if ( has_type(cxt, stmt, "try_stmt") ) {
     Object *try_block = get(cxt, stmt, "try_block");
     Object *catch_block = get(cxt, stmt, "catch_block");

@@ -155,12 +155,6 @@ Object* parse_stmt(Object* cxt, Object *pc) {
     set(cxt, stmt, "cond", parse_group_expr(cxt, pc));
     set(cxt, stmt, "while_block", parse_block_expr(cxt, pc));
   }
-  else if ( have(cxt, pc, "return") ) {
-    stmt = new_object(cxt, "Object");
-    set(cxt, stmt, "type", "return_stmt");
-    advance(cxt, pc);
-    set(cxt, stmt, "expr", parse_expr_list(cxt, pc));
-  }
   else if ( have(cxt, pc, "try") ) {
     mustbe(cxt, pc, "try");
     stmt = new_object(cxt, "Object");

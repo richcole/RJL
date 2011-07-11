@@ -5,9 +5,23 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Statements to be able to pop
+
+Currently each time a statement is executed it leaves behind a little
+poo on the stack. Statements should pop the poo unless there is a
+return statement following otherwise the stack will grow.
+
+A concequence of this is that an array generating construct is
+somewhat easier to create since we're already creating it the stack.
+
 -- Non local returns code removed
 
 The non local returns code has been removed. Tests are passing again.
+
+It would seem now that the return statement within the language is
+pointless since the last value on the stack is returned.
+
+Return statements have also been removed from the language. 
 
 -- Non local returns
 

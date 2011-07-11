@@ -4,7 +4,7 @@
 
   Range: (Object new: {
     self lower:upper:: { lower upper |
-      return Range new: {
+      Range new: {
         self lower: lower;
         self upper: upper;
       };
@@ -20,7 +20,7 @@
   });
 
   BoxedInt ..:: { upper |
-    return Range lower: self upper: upper;
+    Range lower: self upper: upper;
   };
 
   (1 .. 10) each: { value |
