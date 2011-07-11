@@ -5,6 +5,13 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Non local returns
+
+Following the discussion included later in this file I've decided to
+remove non-local returns because they have very complex behaviour when
+more than one of them exists on the stack and they don't play well
+with exceptions.
+
 -- Work on exceptions
 
 Currently arguments are read from the return point stack. The top
