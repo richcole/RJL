@@ -41,6 +41,14 @@ Object *join_char_arrays(Object *cxt, Object *strs) {
   return result;
 }
 
+void code_gen_object_expr(
+  Object *cxt, Object *pc, Object *code, Object *block, Object *expr
+) {
+  code_gen_push_block(cxt, pc, code, expr, get_undefined(cxt));
+  code_self_send(cxt, code, "Object");
+  code_send(cxt, code, "new:");
+};
+
 void code_gen_expr(Object *cxt, Object* pc, Object* code, Object* block, Object *expr) {
   if ( has_type(cxt, expr, "char_array_literal") ) {
     code_push(cxt, code, get(cxt, expr, "value"));
@@ -61,9 +69,7 @@ void code_gen_expr(Object *cxt, Object* pc, Object* code, Object* block, Object 
     code_self_send(cxt, code, sym(cxt, get(cxt, get(cxt, expr, "target"), "value")));
   }
   else if ( has_type(cxt, expr, "object_expr") ) {
-    code_gen_push_block(cxt, pc, code, expr, get_undefined(cxt));
-    code_self_send(cxt, code, "Object");
-    code_send(cxt, code, "new:");
+    code_gen_object_expr(cxt, pc, code, block, expr);
   }
 }
 
@@ -105,6 +111,9 @@ void code_gen_expr_list_stmt(
       }
       else if ( has_type(cxt, expr, "char_array_literal") ) {
         code_push(cxt, code, get(cxt, expr, "value"));
+      }
+      else if ( has_type(cxt, expr, "object_expr") ) {
+        code_gen_object_expr(cxt, pc, code, block, expr);
       }
       else {
         abort();

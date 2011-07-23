@@ -1,9 +1,6 @@
 { sys |
 
-  raise: "Loops forever";
-
   valid:: { board |
-    InvalidBoard: Object new;
     try {
       board rows each: { row_a |
         board rows each: { row_b |
@@ -55,7 +52,7 @@
           });
         |);
         if ( valid: board ) {
-          raise: (| is_solution: true; board: board; |)
+          raise: (| is_solution: true; board: board; |);
         };
       };
       undefined;
@@ -66,11 +63,11 @@
       }
       else {
         raise ex;
-      }
-    }
-  }
+      };
+    };
+  };
 
-  solution: n_queens 5;
+  solution: (n_queens: 5);
   if ( solution != undefined ) {
     println: ("Solution: " + ((solution rows map: { row |
       ((1 .. (solution n)) map: { x |

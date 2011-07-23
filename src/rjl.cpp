@@ -62,7 +62,7 @@ Object *top_level_frame(Object *cxt) {
   code_self_send(cxt, catch_code, "ex");
   code_send(cxt, catch_code, "reason");
   code_self_send(cxt, catch_code, sym(cxt, "println:"));
-  code_return(cxt, catch_code);
+  code_term(cxt, catch_code);
 
   return frame;
 }

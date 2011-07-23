@@ -239,10 +239,12 @@ void create_sets(Object* cxt, Object *pc) {
   set(cxt, begin_expr, "number_literal", get_true(cxt));
   set(cxt, begin_expr, "symbol_literal", get_true(cxt));
   set(cxt, begin_expr, "group_open", get_true(cxt));
+  set(cxt, begin_expr, "object_open", get_true(cxt));
 };
 
 Object *parse(Object* cxt, Object *sc) {
   Object *pc = new_object(cxt, "Object");
+  set(cxt, pc, "errors", new_array(cxt));
   set(cxt, pc, "scan_context", sc);
   set(cxt, pc, "tokens", get(cxt, sc, "tokens"));
   set(cxt, pc, "index", new_boxed_int(cxt, 0));

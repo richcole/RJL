@@ -5,6 +5,22 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Passing closures
+
+Currently when a closure is passed as a variable it cannot be then
+passed to another function because evaluation of the variable invokes
+the closure.
+
+Thus some syntax is required to distinguish the case of invoke the
+function and pass the function as a block.
+
+Using the & will serve this purpose so that one can do this:
+
+ a: { x | x * x };
+ b: &a;
+
+Using &a means do not invoke a if a is a closure.
+
 -- Statements to be able to pop
 
 Currently each time a statement is executed it leaves behind a little
