@@ -135,10 +135,12 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
     if ( exists(cxt, false_block) ) {
       code_gen_push_block(cxt, pc, code, false_block, get_undefined(cxt));
       code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
+      code_send(cxt, code, "is_true");
       code_self_send(cxt, code, sym(cxt, "if:else:"));
     }
     else {
       code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
+      code_send(cxt, code, "is_true");
       code_self_send(cxt, code, sym(cxt, "if:"));
     }
   }
@@ -146,6 +148,7 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
     code_push(cxt, code, get_undefined(cxt));
     Fixnum offset = array_length(cxt, code);
     code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
+    code_send(cxt, code, "is_true");
     Fixnum jmp_offset = array_length(cxt, code)+1;
     code_jmp_not_true(cxt, code, array_length(cxt, code));
     code_pop(cxt, code);

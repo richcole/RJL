@@ -60,8 +60,8 @@ Object *top_level_frame(Object *cxt) {
   code_push(cxt, catch_code, new_char_array(cxt, "Exception raised."));
   code_self_send(cxt, catch_code, "println:");
   code_self_send(cxt, catch_code, "ex");
-  code_send(cxt, catch_code, "reason");
-  code_self_send(cxt, catch_code, sym(cxt, "println:"));
+  code_push(cxt, catch_code, new_boxed_int(cxt, 8));
+  code_self_send(cxt, catch_code, sym(cxt, "dump:to:"));
   code_term(cxt, catch_code);
 
   return frame;

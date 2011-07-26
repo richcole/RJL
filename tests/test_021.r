@@ -1,86 +1,26 @@
 { sys |
-
-  valid:: { board |
-    try {
-      board rows each: { row_a |
-        board rows each: { row_b |
-          offset: (row_a row_index) - (row_b row_index);
-          queen_offset: (row_a queen_index) - (row_b queen_index);
-          if ( offset == queen_offset || queen_offset == 0 ) {
-            raise: (| invalid_board: true; |);
-          };
-        };
-      };
-      true;
-    }
-    catch { ex |
-      if ( (ex reason invalid_board) ) {
-        false;
-      }
-      else {
-        raise ex;
-      };
+    BoxedInt ..:: { upper |
+      Range lower: self upper: upper;
     };
-  }
   
-  permutations:with:do:: { n array block: |
-    if ((array size) == n) {
-      block: array;
-    }
-    else {
-      (1 .. n) each: { x |
-        if ( not: (array contains: x) ) {
-          array push: x;
-          permutations: n with: array do: block:;
-          array pop;
+    Range: (| 
+      self lower:upper:: { lower upper |
+        self new: {
+          self lower: lower;
+          self upper: upper;
         };
       };
+  
+      self each:: { block: |
+        i: (self lower);
+        while ( i <= (self upper) ) {
+          block: i;
+          i: (i + 1);
+        };
+      };
+    |);
+
+    (1 .. 2) each: { x |
+      println: x;
     };
-  };
-
-  permutations:do:: { n block |
-    permutations: n with: (Array new) do: block;
-  };
-
-  n_queens:: { n |
-    try {
-      permutations: n do: { array |
-        board: (| 
-          n: n;
-          rows: (array map_with_index: { index val |
-            (| row_index: index; queen_index: val; |);
-          });
-        |);
-        if ( valid: board ) {
-          raise: (| is_solution: true; board: board; |);
-        };
-      };
-      undefined;
-    }
-    catch { ex |
-      if ( ex reason is_solution ) {
-        ex reason board;
-      }
-      else {
-        raise ex;
-      };
-    };
-  };
-
-  solution: (n_queens: 5);
-  if ( solution != undefined ) {
-    println: ("Solution: " + ((solution rows map: { row |
-      ((1 .. (solution n)) map: { x |
-        if ( row queen_index == x ) {
-          "q";
-        }
-        else {
-          " ";
-        };
-      }) join: "";
-    }) join: "\n"));
-  }
-  else {
-    println: "No Solution";
-  };
-}
+};

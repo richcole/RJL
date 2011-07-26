@@ -5,6 +5,35 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Made some fixes
+
+I made a few fixes to the nqueens test. Mostly adding in more native
+functions. Particularly string functions. The test is still failing
+because there are a bunch of undefined methods like map_with_index:
+for instance.
+
+I rediscovered that inline objects require reference to self in order
+to set fields. This leads to code being a bit verbose.
+
+Exception currently are quite verbose. Also the order of expression
+evaluation seems to be wrong by default, e.g.
+
+  println: a + b
+
+should just work rather than requireing
+
+  println: (a + b)
+
+Similarly
+
+  println: Range new;
+
+Should also not require brackets, also for
+
+  dump: Range new to: 4
+
+should just work.
+
 -- Passing closures
 
 Currently when a closure is passed as a variable it cannot be then
@@ -17,9 +46,10 @@ function and pass the function as a block.
 Using the & will serve this purpose so that one can do this:
 
  a: { x | x * x };
- b: &a;
+ b: ^a;
 
-Using &a means do not invoke a if a is a closure.
+Using ^a means do not invoke a if a is a closure. Looking at the
+scanner this functionality is already in place.
 
 -- Statements to be able to pop
 

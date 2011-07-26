@@ -34,6 +34,16 @@ Fixnum is_boxed_int(Object *cxt, Object *boxed_int) {
   return 0;
 }
 
+Fixnum boxed_int_equals(Object *a, Object *b) {
+  BoxedIntBuffer *ab = get_boxed_int_buffer(a);
+  BoxedIntBuffer *bb = get_boxed_int_buffer(b);
+  if (ab == 0 || bb == 0) {
+    return 0;
+  }
+  return ab->value == bb->value;
+}
+  
+
 Object *char_array_to_boxed_int(Object *cxt, Object *str) {
   Object *boxed_int = new_boxed_int(cxt);
   BoxedIntBuffer  *int_buf = get_boxed_int_buffer(boxed_int);

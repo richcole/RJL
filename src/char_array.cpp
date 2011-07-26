@@ -57,18 +57,18 @@ Fixnum char_array_equals(Object *s1, Object *s2) {
   CharArrayBuffer *sb1 = get_char_array_buffer(s1);
   CharArrayBuffer *sb2 = get_char_array_buffer(s2);
 	
-	if ( sb1 == 0 || sb2 == 0 ) {
-		return 0;
-	}
-	if ( sb1->length != sb2->length ) {
-		return 0;
-	}
-	for(Fixnum i=0;i<sb1->length;++i) {
-		if ( sb1->data[i] != sb2->data[i] ) {
-			return 0;
-		}
-	}
-	return 1;
+  if ( sb1 == 0 || sb2 == 0 ) {
+    return 0;
+  }
+  if ( sb1->length != sb2->length ) {
+    return 0;
+  }
+  for(Fixnum i=0;i<sb1->length;++i) {
+    if ( sb1->data[i] != sb2->data[i] ) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 Fixnum char_array_equals(Object *s1, char const* s2) {

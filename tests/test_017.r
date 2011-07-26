@@ -1,3 +1,8 @@
 { sys |
-  raise: "An exception";
+  try {
+    raise: "An exception";
+  }
+  catch { ex |
+    println: (ex reason);
+  };
 }

@@ -14,7 +14,7 @@ This is a second go at a language inspired by Self, Smalltalk and Ruby.
   };
 
   sys Object merge: (|
-    merge:: { mixin |
+    self merge:: { mixin |
       obj: self new;
       mixin slots each: { slot | 
         obj at_slot: slot set: (mixin get_slot: slot);
@@ -24,13 +24,13 @@ This is a second go at a language inspired by Self, Smalltalk and Ruby.
   |);
 
   sys Sequence merge: (|
-    aggregate:by:: { agg block |
+    self aggregate:by:: { agg block |
       self each: { value |
         agg: (block invoke: agg with: value)
       };
       return agg;
     }
-    copy:: { col |
+    self copy:: { col |
       col each: { value |
         self push: value;
       };

@@ -19,6 +19,7 @@ Fixnum boxed_int_to_fixnum(Object *cxt, Object *boxed_int);
 Fixnum get_fixnum(Object *cxt, Object *obj, char const* slot);
 void set_fixnum(Object *cxt, Object *obj, char const* slot, Fixnum value);
 Object *char_array_to_boxed_int(Object *cxt, Object *str);
+Fixnum boxed_int_equals(Object *a, Object *b);
 
 
 #endif

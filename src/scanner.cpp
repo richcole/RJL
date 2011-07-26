@@ -55,7 +55,9 @@ Fixnum is_line_ending(char c) {
 }
 
 Fixnum is_arg_ident(Object *cxt, Object *tok) {
-  return is_setter_slot(cxt, get(cxt, tok, "value"));
+  Object *value = get(cxt, tok, "value");
+  return is_setter_slot(cxt, value) && 
+    ! is_nocall_slot(cxt, value);
 }
 
 void detect_arg_ident(Object *cxt, Object *sc) {
@@ -66,7 +68,13 @@ void detect_arg_ident(Object *cxt, Object *sc) {
 }
 
 Object* get_reserved_word(Object *cxt, Object *sc, Object *word) {
-  return get(cxt, get(cxt, sc, "reserved_words"), sym(cxt, word));
+  Object *result = get(cxt, get(cxt, sc, "reserved_words"), sym(cxt, word));
+  if ( is_char_array(cxt, result) ) {
+    return result;
+  }
+  else {
+    return get_undefined(cxt);
+  }
 }
 
 void detect_reserved_word(Object *cxt, Object *sc) {
@@ -109,8 +117,13 @@ Object *scan_context_eof(Object *cxt, Object *sc) {
 void scan_context_read_line(Object *cxt, Object *sc) {
   Object *file = get(cxt, sc, "file");
   Object *line = get(cxt, sc, "line");
-  native_call(cxt, line, "shift:", get(cxt, sc, "index"));
-  set(cxt, sc, "index", new_boxed_int(cxt, 0));
+  Fixnum token_start = boxed_int_to_fixnum(cxt, get(cxt, sc, "token_start"));
+  Fixnum token_end = boxed_int_to_fixnum(cxt, get(cxt, sc, "token_end"));
+  Fixnum index = boxed_int_to_fixnum(cxt, get(cxt, sc, "index"));
+  native_call(cxt, line, "shift:", new_boxed_int(cxt, token_start));
+  set(cxt, sc, "index", new_boxed_int(cxt, index - token_start));
+  set(cxt, sc, "token_start", new_boxed_int(cxt, 0));
+  set(cxt, sc, "token_end", new_boxed_int(cxt, token_end - token_start));
   native_call(cxt, file, "read:into:offset:length:", 
               line, new_boxed_int(cxt, char_array_length(cxt, line)), 
               new_boxed_int(cxt, char_array_reserve(cxt, line) - char_array_length(cxt, line))
