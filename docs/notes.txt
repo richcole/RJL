@@ -5,6 +5,21 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Made some more fixes
+
+nqueens now works. At least the solution board sort of looks
+right. The next step could be to tighen up checking of function
+arity. Function arity should probably be verified at the call site.
+
+There is also the problem that the current precedence rules means that
+any code has a lot of brackets.
+
+Another idea is to start writing an assembler again. There is also
+some thinking required with regards to modules. The current setup
+doesn't do very well with respect to modules.
+
+
+
 -- Made some fixes
 
 I made a few fixes to the nqueens test. Mostly adding in more native

@@ -28,6 +28,7 @@ char    char_array_get_at(Object *cxt, Object *str, Fixnum index);
 CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len);
 CharArrayBuffer *new_char_array_buffer(Object *cxt, char const* s);
 Object *new_char_array(char const* s);
+Object* char_array_unescape(Object *cxt, Object *str, Fixnum start, Fixnum end);
 
 decl_get_buffer(CharArray, char_array, CharArrayTypeTag);
 

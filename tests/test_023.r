@@ -2,6 +2,40 @@
 
   try {
 
+    Object ||:: { x |
+      if ( self ) {
+        self;
+      }
+      else {
+        x;
+      };
+    };
+
+    Array map:: { block: |
+      result: (Array new);
+      self each: { x |
+        result push: (block: x);
+      };
+      result;
+    };
+
+    CharArray to_s: { self; };
+
+    Array map_with_index:: { block:value: |
+      result: (Array new);
+      i: 0;
+      while( i < (self length) ) {
+        value: (block: i value: (self at: i));
+        result push: value;
+        i: (i + 1);
+      };
+      result;
+    };
+
+    Array to_s: {
+      self join: ", ";
+    };
+
     Array each:: { block: |
       i: 0;
       while( i < (self length) ) {
@@ -72,16 +106,26 @@
           i: (i + 1);
         };
       };
+
+      self map:: { block: |
+        result: (Array new);
+        self each: { x |
+          result push: (block: x);
+        };
+        result;
+      };
     |);
   
     valid:: { board |
       try {
         board rows each: { row_a |
           board rows each: { row_b |
-            offset: (row_a row_index) - (row_b row_index);
-            queen_offset: (row_a queen_index) - (row_b queen_index);
-            if ( offset == queen_offset || queen_offset == 0 ) {
-              raise: (| self invalid_board: true; |);
+            if ((row_b row_index) > (row_a row_index)) {
+              offset: ((row_a row_index) - (row_b row_index));
+              queen_offset: ((row_a queen_index) - (row_b queen_index));
+              if ( (offset == queen_offset) || (queen_offset == 0) ) {
+                raise: (| self invalid_board: true; |);
+              };
             };
           };
         };
@@ -98,13 +142,11 @@
     };
     
     permutations:with:do:: { n array block: |
-      println: ("array=" + (array join: ", "));
       if ((array length) == n) {
         block: array;
       }
       else {
         (1 .. n) each: { x |
-          println: ("x= " + (x to_s) + ", array=" + (array join: " "));
           if ( not: (array contains: x) ) {
             array push: x;
             permutations: n with: array do: ^block:;
@@ -115,12 +157,10 @@
     };
   
     permutations:do:: { n block |
-      println: "Trace 2";
       permutations: n with: (Array new) do: ^block;
     };
   
     n_queens:: { n |
-      println: "Trace 3";
       try {
         permutations: n do: { array |
           board: (| 
@@ -146,20 +186,21 @@
     };
   
     solution: (n_queens: 5);
-    if ( solution != undefined ) {
-      println: ("Solution: " + ((solution rows map: { row |
+    if ( solution == undefined ) {
+      println: "No Solution";
+    }
+    else {
+      println: "Solution:";
+      println: ((solution rows map: { row |
         ((1 .. (solution n)) map: { x |
-          if ( row queen_index == x ) {
+          if ( (row queen_index) == x ) {
             "q";
           }
           else {
-            " ";
+            ".";
           };
         }) join: "";
-      }) join: "\n"));
-    }
-    else {
-      println: "No Solution";
+      }) join: "\n");
     };
   }
   catch { ex |

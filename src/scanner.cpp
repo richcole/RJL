@@ -32,7 +32,7 @@ void scan_context_push_char_array_token(Object *cxt, Object *sc, Object *type) {
   set(cxt, token, "char_number", new_boxed_int(cxt, token_start - line_start));
   set(cxt, token, "type",        type);
   set(cxt, token, "value",       
-      char_array_subchar_array(cxt, get(cxt, sc, "line"), 
+      char_array_unescape(cxt, get(cxt, sc, "line"), 
 		       boxed_int_to_fixnum(cxt, get(cxt, sc, "token_start"))+1, 
 		       boxed_int_to_fixnum(cxt, get(cxt, sc, "token_end"))-1
     )
@@ -298,17 +298,28 @@ Object *tokenize(Object *cxt, Object *frame, Object *file) {
     case '|':
       if ( scan_context_next(cxt, sc) == ')' ) {
         scan_context_advance(cxt, sc);
-        scan_context_push_token(cxt, sc, "object_close");
         scan_context_advance(cxt, sc);
+        scan_context_push_token(cxt, sc, "object_close");
       }
       else if ( scan_context_next(cxt, sc) == '|' ) {
         scan_context_advance(cxt, sc);
-        scan_context_push_token(cxt, sc, "operator");
-        scan_context_advance(cxt, sc);
+        if ( scan_context_next(cxt, sc) == ':' ) {
+          while( scan_context_next(cxt, sc) == ':' ) {
+            scan_context_advance(cxt, sc);
+          }
+          scan_context_advance(cxt, sc);
+          scan_context_push_token(cxt, sc, "ident");
+          detect_arg_ident(cxt, sc);
+          detect_reserved_word(cxt, sc);
+        }
+        else {
+          scan_context_advance(cxt, sc);
+          scan_context_push_token(cxt, sc, "operator");
+        }
       }
       else {
-        scan_context_push_token(cxt, sc, "pipe");
         scan_context_advance(cxt, sc);
+        scan_context_push_token(cxt, sc, "pipe");
       }
       continue;
     case ';':

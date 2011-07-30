@@ -191,6 +191,40 @@ Object* char_array_concat(Object *cxt, Object *str, Object *arg) {
   return ret;
 };
 
+Object* char_array_unescape(Object *cxt, Object *str, Fixnum start, Fixnum end) {
+  Fixnum len = end - start;
+  Fixnum i = start, j = 0;
+  Object *ret = new_char_array(cxt, len);
+  CharArrayBuffer *ret_buf = get_char_array_buffer(ret);
+  CharArrayBuffer *str_buf = get_char_array_buffer(str);
+  while(i < end) {
+    if ( str_buf->data[i] == '\\' && i+1 < end) {
+      switch(str_buf->data[i+1]) {
+      case 'n':
+        ret_buf->data[j++] = '\n';
+        break;
+      case 't':
+        ret_buf->data[j++] = '\t';
+        break;
+      case 'r':
+        ret_buf->data[j++] = '\r';
+        break;
+      case '0':
+        ret_buf->data[j++] = 0;
+        break;
+      default:
+        ret_buf->data[j++] = str_buf->data[i+1];
+      }
+      i += 2;
+    }
+    else {
+      ret_buf->data[j++] = str_buf->data[i++];
+    }
+  }
+  ret_buf->data[j] = 0;
+  ret_buf->length = j;
+  return ret;
+};
 
 
 

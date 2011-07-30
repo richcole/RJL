@@ -82,12 +82,14 @@ void interp(Object *cxt, Object *frame) {
   Fixnum pc     = 0;
   Object *instr = 0;
   Object *new_frame = 0;
+  Object *code = 0;
   Fixnum instr_count = 0;
 
   while(frame != 0) {
 
     pc    = get_fixnum(cxt, frame, "pc");
     instr = get_code(cxt, frame, pc);
+    code  = get(cxt, frame, "code");
 
     ++instr_count;
     if ( instr_count > 100 ) {
