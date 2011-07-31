@@ -1,6 +1,6 @@
 { sys |
 
-  Object ||:: { x |
+  sys Object ||:: { x |
     if ( self ) {
       self;
     }
@@ -9,7 +9,7 @@
     };
   };
 
-  Array map:: { block: |
+  sys Array map:: { block: |
     result: (Array new);
     self each: { x |
       result push: (block: x);
@@ -17,9 +17,9 @@
     result;
   };
 
-  CharArray to_s: { self; };
+  sys CharArray to_s: { self; };
 
-  Array map_with_index:: { block:value: |
+  sys Array map_with_index:: { block:value: |
     result: (Array new);
     i: 0;
     while( i < (self length) ) {
@@ -30,11 +30,11 @@
     result;
   };
 
-  Array to_s: {
+  sys Array to_s: {
     self join: ", ";
   };
 
-  Array each:: { block: |
+  sys Array each:: { block: |
     i: 0;
     while( i < (self length) ) {
       block: (self at: i);
@@ -42,7 +42,7 @@
     };
   };
 
-  Array join:: { sep |
+  sys Array join:: { sep |
     result: (CharArray new);
     first: true;
     self each: { x |
@@ -57,7 +57,7 @@
     result;
   };
 
-  not:: { val |
+  sys not:: { val |
     if ( val ) {
       false;
     }
@@ -66,7 +66,7 @@
     };
   };
 
-  Array contains:: { key |
+  sys Array contains:: { key |
     try {
       self each: { x |
         if ( x == key ) {
@@ -85,11 +85,11 @@
     };
   };
 
-  BoxedInt ..:: { upper |
+  sys BoxedInt ..:: { upper |
     Range lower: self upper: upper;
   };
 
-  Range: (| 
+  sys Range: (| 
     self lower:upper:: { lower upper |
       self new: {
         self lower: lower;
@@ -114,7 +114,7 @@
     };
   |);
 
-  permutations:with:do:: { n array block: |
+  sys permutations:with:do:: { n array block: |
     if ((array length) == n) {
       block: array;
     }
@@ -129,7 +129,7 @@
     };
   };
 
-  permutations:do:: { n block |
+  sys permutations:do:: { n block |
     permutations: n with: (Array new) do: ^block;
   };
 };
