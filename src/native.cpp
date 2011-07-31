@@ -557,37 +557,6 @@ Object *native_block_call1(Object *cxt, Object *frame, Object *self) {
   }
 }
 
-Object *native_if_else(Object *cxt, Object *frame, Object *self) {
-  Object *stack = get_stack(cxt, frame);
-  Object *cond = pop(cxt, stack);
-  Object *false_block = pop(cxt, stack);
-  Object *true_block = pop(cxt, stack);
-  Object *block = true_block;
-  if ( ! is_true(cxt, cond) ) {
-    block = false_block;
-  }
-  if ( is_block(cxt, block) ) {
-    Object *ret_frame = new_frame(cxt, get_undefined(cxt), block, frame);
-    return ret_frame;
-  }
-  else {
-    return new_exception(cxt, frame, "Expected block arguments");
-  }
-};
-
-Object *native_if(Object *cxt, Object *frame, Object *self) {
-  Object *stack = get_stack(cxt, frame);
-  Object *cond = pop(cxt, stack);
-  Object *true_block = pop(cxt, stack);
-  if ( ! is_true(cxt, cond) ) {
-    pop(cxt, stack); // read the return location from the stack
-    return frame;
-  }
-  else {
-    return new_frame(cxt, get_undefined(cxt), true_block, frame);
-  }
-};
-
 Object* native_object_new1(Object *cxt) {
   Object *code = new_block(cxt);
   code_arg(cxt, code, "block");
@@ -607,8 +576,6 @@ void init_native_sys(Object *cxt) {
   context_set(cxt, "println:", new_func(cxt, native_println));
   context_set(cxt, "dump:",    new_func(cxt, native_dump));
   context_set(cxt, "dump:to:", new_func(cxt, native_dump_to));
-  context_set(cxt, "if:else:", new_func(cxt, native_if_else));
-  context_set(cxt, "if:",      new_func(cxt, native_if));
   context_set(cxt, "raise:",   new_func(cxt, native_raise));
 
   Object *object = context_get(cxt, "Object");

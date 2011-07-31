@@ -74,3 +74,11 @@ Fixnum code_jmp_true(Object *cxt, Object *code, Fixnum jmp_location) {
   push(cxt, code, new_boxed_int(cxt, jmp_location));
   return pos;
 }
+
+Fixnum code_jmp(Object *cxt, Object *code, Fixnum jmp_location) {
+  push(cxt, code, "jmp");
+  Fixnum pos = array_length(cxt, code);
+  push(cxt, code, new_boxed_int(cxt, jmp_location));
+  return pos;
+}
+

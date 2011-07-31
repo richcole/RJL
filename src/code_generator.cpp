@@ -131,18 +131,33 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
   else if ( has_type(cxt, stmt, "if_stmt") ) {
     Object *true_block = get(cxt, stmt, "true_block");
     Object *false_block = get(cxt, stmt, "false_block");
+    Fixnum else_label, end_label;
+
+    // execute the condition
+    code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
+    code_send(cxt, code, "is_true");
+
+    // jmp to else or end
+    else_label = array_length(cxt, code)+1;
+    code_jmp_not_true(cxt, code, array_length(cxt, code));
+
+    // execute true block
     code_gen_push_block(cxt, pc, code, true_block, get_undefined(cxt));
+    code_send(cxt, code, sym(cxt, "call"));
+    end_label = array_length(cxt, code)+1;
+    code_jmp(cxt, code, array_length(cxt, code));
+
+    // fixup the else label
+    set_at(cxt, code, else_label, new_boxed_int(cxt, array_length(cxt, code)));
+
+    // execute the else block
     if ( exists(cxt, false_block) ) {
       code_gen_push_block(cxt, pc, code, false_block, get_undefined(cxt));
-      code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
-      code_send(cxt, code, "is_true");
-      code_self_send(cxt, code, sym(cxt, "if:else:"));
+      code_send(cxt, code, sym(cxt, "call"));
     }
-    else {
-      code_gen_group(cxt, pc, code, block, get(cxt, stmt, "cond"));
-      code_send(cxt, code, "is_true");
-      code_self_send(cxt, code, sym(cxt, "if:"));
-    }
+
+    // fixup the end label
+    set_at(cxt, code, end_label, new_boxed_int(cxt, array_length(cxt, code)));
   }
   else if ( has_type(cxt, stmt, "while_stmt") ) {
     code_push(cxt, code, get_undefined(cxt));
