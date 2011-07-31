@@ -11,17 +11,17 @@
 
 #include "interp.h"
 
-Object *top_level_frame(Object *cxt) {
-  Object *code       = new_array(cxt);
-  Object *ret_frame  = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
-  Object *frame      = new_frame(cxt, get_undefined(cxt), code, ret_frame);
-  
-  // set the lexical parent to be sys
-  set_lexical_parent(cxt, frame, cxt);
+Object* dump_parse_error(Object *cxt, Object *code) {
+  Object *error_jmp_point = new_boxed_int(cxt, array_length(cxt, code));
+  code_self_send(cxt, code, "parse_cxt");
+  code_send(cxt, code, "errors");
+  code_self_send(cxt, code, "dump:");
 
+  return error_jmp_point;
+}
+
+Fixnum parse_file(Object *cxt, Object *code) {
   // main parent code
-  code_self_send(cxt, code, "args");
-  code_send(cxt, code, "pop");
   code_self_send(cxt, code, "File");
   code_send(cxt, code, "open:");
   code_self_send(cxt, code, "Scanner");
@@ -45,13 +45,35 @@ Object *top_level_frame(Object *cxt) {
   code_push(cxt, code, cxt);
   code_self_send(cxt, code, "context");
   code_send(cxt, code, "code:");
+
+  return errors_label;
+};
+
+Object *top_level_frame(Object *cxt) {
+  Object *code       = new_array(cxt);
+  Object *ret_frame  = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
+  Object *frame      = new_frame(cxt, get_undefined(cxt), code, ret_frame);
+  Object *jmp_point  = 0;
+  Fixnum fixup1, fixup2;
+  
+  // set the lexical parent to be sys
+  set_lexical_parent(cxt, frame, cxt);
+
+  // read the first filename in args
+  code_push(cxt, code, new_char_array(cxt, "std/core.r"));
+  fixup1 = parse_file(cxt, code);
+
+  // read the first filename in args
+  code_self_send(cxt, code, "args");
+  code_send(cxt, code, "pop");
+  fixup2 = parse_file(cxt, code);
+
+  // terminate the program
   code_term(cxt, code);
 
-  set_at(cxt, code, errors_label, new_boxed_int(cxt, array_length(cxt, code)));
-  code_self_send(cxt, code, "parse_cxt");
-  code_send(cxt, code, "errors");
-  code_self_send(cxt, code, "dump:");
-  code_term(cxt, code);
+  jmp_point = dump_parse_error(cxt, code);
+  set_at(cxt, code, fixup1, jmp_point);
+  set_at(cxt, code, fixup2, jmp_point);
 
   // catch block
   Object *catch_code = new_array(cxt);

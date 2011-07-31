@@ -25,7 +25,7 @@ Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
 }
 
 #define TO_LONG(cxt, frame, var, value)               \
-  long var;                                           \
+  long var = 0L;                                      \
   {                                                   \
     Object *ex = to_long(cxt, frame, value, &var);    \
     if ( ex != 0 ) {                                  \
