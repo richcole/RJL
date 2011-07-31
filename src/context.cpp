@@ -3,6 +3,7 @@
 #include "symbol_table.h"
 #include "file.h"
 #include "native.h"
+#include "native_sdl.h"
 #include "parser.h"
 #include "scanner.h"
 #include "code_generator.h"
@@ -50,6 +51,7 @@ Object* new_context() {
   init_exception_sys(cxt);
   init_file_sys(cxt);
   init_native_sys(cxt);
+  init_native_sdl_sys(cxt);
   init_scanner_sys(cxt);
   init_parser_sys(cxt);
   init_code_generator_sys(cxt);

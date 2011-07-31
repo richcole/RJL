@@ -21,11 +21,11 @@ cpp_source = Dir.glob("src/*.cpp").to_a
 h_source = Dir.glob("src/*.h").to_a
 
 file rjl_debug => [ debug ] + cpp_source + h_source do
-  sh "g++ -Wall -ggdb -o #{rjl_debug} #{cpp_source.join(" ")}"
+  sh "g++ -Wall -ggdb -o #{rjl_debug} #{cpp_source.join(" ")} -lSDL"
 end
 
 file rjl_release => [ release ] + cpp_source + h_source do
-  sh "g++ -Wall -O9 -o #{rjl_release} #{cpp_source.join(" ")}"
+  sh "g++ -Wall -O9 -o #{rjl_release} #{cpp_source.join(" ")} -lSDL"
 end
 
 def run_test(test_src, rjl)

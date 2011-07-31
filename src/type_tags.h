@@ -7,5 +7,5 @@
 #define FuncTypeTag        4
 #define ArrayTypeTag       5
 #define FileTypeTag        6
-
+#define SdlScreenTypeTag   7
 #endif

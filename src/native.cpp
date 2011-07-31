@@ -12,6 +12,7 @@
 #include "context.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 Object *to_long(Object *cxt, Object *frame, Object *obj, long *num) {
   BoxedIntBuffer *obj_buf  = get_boxed_int_buffer(obj);
@@ -424,6 +425,12 @@ Object* native_dump(Object *cxt, Object *frame, Object *self) {
   return return_undefined(cxt, frame);
 }
 
+Object* native_sleep(Object *cxt, Object *frame, Object *self) {
+  Object *stack = get_stack(cxt, frame);
+  sleep(boxed_int_to_fixnum(cxt, pop(cxt, stack)));
+  return return_undefined(cxt, frame);
+}
+
 Object* native_dump_to(Object *cxt, Object *frame, Object *self) {
   Object *stack = get_stack(cxt, frame);
   dump(cxt, pop(cxt, stack), boxed_int_to_fixnum(cxt, pop(cxt, stack)));
@@ -574,6 +581,7 @@ Object* native_object_new1(Object *cxt) {
 
 void init_native_sys(Object *cxt) {
   context_set(cxt, "println:", new_func(cxt, native_println));
+  context_set(cxt, "sleep:",    new_func(cxt, native_sleep));
   context_set(cxt, "dump:",    new_func(cxt, native_dump));
   context_set(cxt, "dump:to:", new_func(cxt, native_dump_to));
   context_set(cxt, "raise:",   new_func(cxt, native_raise));
