@@ -1,3 +1,8 @@
 { sys |
-  load: "std/std.r";
+  if ( context == undefined ) {
+    println: "Success";
+  }
+  else {
+    println: "Fail";
+  };
 }

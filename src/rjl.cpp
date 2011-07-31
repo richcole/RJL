@@ -54,7 +54,7 @@ Object *top_level_frame(Object *cxt) {
   Object *ret_frame  = new_frame(cxt, get_undefined(cxt), code, get_undefined(cxt));
   Object *frame      = new_frame(cxt, get_undefined(cxt), code, ret_frame);
   Object *jmp_point  = 0;
-  Fixnum fixup1, fixup2;
+  Fixnum fixup1;
   
   // set the lexical parent to be sys
   set_lexical_parent(cxt, frame, cxt);
@@ -63,17 +63,11 @@ Object *top_level_frame(Object *cxt) {
   code_push(cxt, code, new_char_array(cxt, "std/core.r"));
   fixup1 = parse_file(cxt, code);
 
-  // read the first filename in args
-  code_self_send(cxt, code, "args");
-  code_send(cxt, code, "pop");
-  fixup2 = parse_file(cxt, code);
-
   // terminate the program
   code_term(cxt, code);
 
   jmp_point = dump_parse_error(cxt, code);
   set_at(cxt, code, fixup1, jmp_point);
-  set_at(cxt, code, fixup2, jmp_point);
 
   // catch block
   Object *catch_code = new_array(cxt);
