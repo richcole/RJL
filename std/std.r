@@ -1,5 +1,7 @@
 { sys |
 
+  sys Object merge: {
+
   sys Object ||:: { x |
     if ( self ) {
       self;
@@ -9,53 +11,75 @@
     };
   };
 
-  sys Array map:: { block: |
-    result: (Array new);
-    self each: { x |
-      result push: (block: x);
+  sys Enumerable merge: (|
+    self map:: { block: |
+      result: (Array new);
+      self each: { x |
+        result push: (block: x);
+      };
+      result;
     };
-    result;
+
+    self map_with_index:: { block:value: |
+      i: 0;
+      self map: { value |
+        block: i value: value;
+        i: (i + 1);
+      };
+    };
+
+    self join:: { sep |
+      result: (CharArray new);
+      first: true;
+      self each: { x |
+        if ( first ) {
+          first: false;
+        }
+        else {
+          result << sep;
+        };
+        result << (x to_s);
+      };
+      result;
+    };
+
+    self contains:: { key |
+      try {
+        self each: { x |
+          if ( x == key ) {
+            raise: true;
+          };
+        };
+        false;
+      }
+      catch { ex |
+        if ( ex reason == true ) {
+          true;
+        }
+        else {
+          raise: ex;
+        };
+      };
+    };
   };
+
+  sys Array merge: Enumerable;
 
   sys CharArray to_s: { self; };
 
-  sys Array map_with_index:: { block:value: |
-    result: (Array new);
-    i: 0;
-    while( i < (self length) ) {
-      value: (block: i value: (self at: i));
-      result push: value;
-      i: (i + 1);
+  sys Array merge: (|
+    self to_s: {
+      self join: ", ";
     };
-    result;
-  };
 
-  sys Array to_s: {
-    self join: ", ";
-  };
-
-  sys Array each:: { block: |
-    i: 0;
-    while( i < (self length) ) {
-      block: (self at: i);
-      i: (i + 1);
-    };
-  };
-
-  sys Array join:: { sep |
-    result: (CharArray new);
-    first: true;
-    self each: { x |
-      if ( first ) {
-        first: false;
-      }
-      else {
-        result << sep;
+    self each:: { block: |
+      i: 0;
+      while( i < (self length) ) {
+        block: (self at: i);
+        i: (i + 1);
       };
-      result << (x to_s);
     };
-    result;
-  };
+  |);
 
   sys not:: { val |
     if ( val ) {
@@ -63,25 +87,6 @@
     }
     else {
       true;
-    };
-  };
-
-  sys Array contains:: { key |
-    try {
-      self each: { x |
-        if ( x == key ) {
-          raise: true;
-        };
-      };
-      false;
-    }
-    catch { ex |
-      if ( ex reason == true ) {
-        true;
-      }
-      else {
-        raise: ex;
-      };
     };
   };
 
