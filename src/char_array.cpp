@@ -71,6 +71,33 @@ Fixnum char_array_equals(Object *s1, Object *s2) {
   return 1;
 }
 
+Fixnum char_array_cmp(Object *cxt, Object *s1, Object *s2) {
+  CharArrayBuffer *sb1 = get_char_array_buffer(s1);
+  CharArrayBuffer *sb2 = get_char_array_buffer(s2);
+	
+  if ( sb1 == 0 || sb2 == 0 ) {
+    return 0;
+  }
+
+  Fixnum len1 = sb1->length;
+  Fixnum len2 = sb2->length;
+  Fixnum min_len = len1;
+  if ( min_len > len2 ) {
+    min_len = len2;
+  }
+
+  for(Fixnum i=0;i<min_len;++i) {
+    if ( sb1->data[i] > sb2->data[i] ) {
+      return 1;
+    }
+    else if (sb1->data[i] < sb2->data[i]) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
 Fixnum char_array_equals(Object *s1, char const* s2) {
   CharArrayBuffer *sb1 = get_char_array_buffer(s1);
 
@@ -91,6 +118,14 @@ Fixnum char_array_equals(Object *s1, char const* s2) {
     return 0;
   }
 }
+
+Fixnum is_digit(char c) {
+  return c >= '0' && c <= '9';
+};
+
+Fixnum is_hexdigit(char c) {
+  return is_digit(c) || ( c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+};
 
 void char_array_truncate_buffer(Object *cxt, Object *str, Fixnum len) {
   CharArrayBuffer *buf = get_char_array_buffer(str);
@@ -210,7 +245,16 @@ Object* char_array_unescape(Object *cxt, Object *str, Fixnum start, Fixnum end) 
         ret_buf->data[j++] = '\r';
         break;
       case '0':
-        ret_buf->data[j++] = 0;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        ret_buf->data[j++] = str_buf->data[i+1] - '0';
         break;
       default:
         ret_buf->data[j++] = str_buf->data[i+1];

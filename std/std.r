@@ -1,6 +1,30 @@
 { sys |
 
-  sys Object merge: {
+  sys not:: { val |
+    if ( val ) {
+      false;
+    }
+    else {
+      true;
+    };
+  };
+
+  sys Array each:: { block: |
+    i: 0;
+    while( i < (self length) ) {
+      block: (self at: i);
+      i: (i + 1);
+    };
+  };
+
+  sys Object merge:: { other |
+    dest_obj: self;
+    other slots each: { other_slot |
+      if ( not: (other_slot == #parent )) {
+        dest_obj set_slot: other_slot value: (other get_slot: other_slot);
+      };
+    };
+  };
 
   sys Object ||:: { x |
     if ( self ) {
@@ -11,7 +35,8 @@
     };
   };
 
-  sys Enumerable merge: (|
+
+  sys Enumerable: (|
     self map:: { block: |
       result: (Array new);
       self each: { x |
@@ -23,8 +48,9 @@
     self map_with_index:: { block:value: |
       i: 0;
       self map: { value |
-        block: i value: value;
+        result: (block: i value: value);
         i: (i + 1);
+        result;
       };
     };
 
@@ -61,34 +87,15 @@
         };
       };
     };
-  };
 
-  sys Array merge: Enumerable;
-
-  sys CharArray to_s: { self; };
-
-  sys Array merge: (|
     self to_s: {
       self join: ", ";
     };
-
-    self each:: { block: |
-      i: 0;
-      while( i < (self length) ) {
-        block: (self at: i);
-        i: (i + 1);
-      };
-    };
   |);
 
-  sys not:: { val |
-    if ( val ) {
-      false;
-    }
-    else {
-      true;
-    };
-  };
+  sys Array merge: (sys Enumerable);
+
+  sys CharArray to_s: { self; };
 
   sys BoxedInt ..:: { upper |
     Range lower: self upper: upper;
@@ -111,7 +118,7 @@
     };
 
     self map:: { block: |
-      result: (Array new);
+      result: (sys Array new);
       self each: { x |
         result push: (block: x);
       };
@@ -135,6 +142,7 @@
   };
 
   sys permutations:do:: { n block |
-    permutations: n with: (Array new) do: ^block;
+    permutations: n with: (sys Array new) do: ^block;
   };
+
 };

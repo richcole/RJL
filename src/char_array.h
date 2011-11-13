@@ -29,6 +29,9 @@ CharArrayBuffer *new_char_array_buffer(Object *cxt, Fixnum len);
 CharArrayBuffer *new_char_array_buffer(Object *cxt, char const* s);
 Object *new_char_array(char const* s);
 Object* char_array_unescape(Object *cxt, Object *str, Fixnum start, Fixnum end);
+Fixnum is_digit(char c);
+Fixnum is_hexdigit(char c);
+Fixnum char_array_cmp(Object *cxt, Object *s1, Object *s2);
 
 decl_get_buffer(CharArray, char_array, CharArrayTypeTag);
 

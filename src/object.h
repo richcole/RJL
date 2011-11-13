@@ -37,6 +37,7 @@ Object *get_plain(Object *target, Object *slot);
 
 Object* get_parent(Object *cxt, Object *obj);
 Fixnum  exists(Object *cxt, Object *obj);
+Object *object_slots(Object *cxt, Object *obj);
 
 void object_dispose(Object *cxt, Object *obj);
 

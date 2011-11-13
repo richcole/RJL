@@ -58,12 +58,31 @@ Object *char_array_to_boxed_int(Object *cxt, Object *str) {
     sign = -1;
     ++i;
   }
-  while( str_buf->data[i] >= '0' && str_buf->data[i] <= '9' ) {
-    int_buf->value *= 10;
-    int_buf->value += (str_buf->data[i] - '0');
-    ++i;
+  if ( str_buf->data[i] == '0' && str_buf->data[i+1] == 'x' ) {
+    i+=2;
+    while( is_hexdigit(str_buf->data[i]) ) {
+      int_buf->value *= 16;
+      if ( is_digit(str_buf->data[i]) ) {
+        int_buf->value += (str_buf->data[i] - '0');
+      }
+      else if ( str_buf->data[i] >= 'a' || str_buf->data[i] <= 'f' ) {
+        int_buf->value += (str_buf->data[i] - 'a');
+      }
+      else if ( str_buf->data[i] >= 'A' || str_buf->data[i] <= 'F' ) {
+        int_buf->value += (str_buf->data[i] - 'A');
+      }
+      ++i;
+    }
+    int_buf->value *= sign;
   }
-  int_buf->value *= sign;
+  else {
+    while( is_digit(str_buf->data[i]) ) {
+      int_buf->value *= 10;
+      int_buf->value += (str_buf->data[i] - '0');
+      ++i;
+    }
+    int_buf->value *= sign;
+  }
 
   return boxed_int;
 }

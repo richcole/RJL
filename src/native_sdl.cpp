@@ -99,8 +99,8 @@ Object* native_sdl_screen_fill(Object *cxt, Object *frame, Object *self) {
   Fixnum len = buf->surface->w * buf->surface->h * 3;
   for(int i=0; i<len; i+=3) {
     pixels[i]   = (char) (color & 0xff);
-    pixels[i+1] = (char) (color & 0xff00);
-    pixels[i+2] = (char) (color & 0xff0000);
+    pixels[i+1] = (char) ((color & 0xff00) >> 8);
+    pixels[i+2] = (char) ((color & 0xff0000) >> 16);
   }
   
   return return_undefined(cxt, frame);

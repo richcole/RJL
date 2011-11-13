@@ -3,6 +3,7 @@
 #include "mem.h"
 #include "context.h"
 #include "abort.h"
+#include "array.h"
 
 Object *const DirtyKey = (Object *)0x1;
 
@@ -77,6 +78,16 @@ Object *get_plain(Object *obj, Object *key) {
   else {
     return obj->table[cand].value;
   }
+}
+
+Object *object_slots(Object *cxt, Object *obj) {
+  Object *array = new_array(cxt);
+  for(Fixnum i=0;i<obj->length; ++i) {
+    if ( obj->table[i].key != 0 && obj->table[i].key != DirtyKey ) {
+      push(cxt, array, obj->table[i].key);
+    }
+  }
+  return array;
 }
 
 void grow(Object *cxt, Object *obj) {

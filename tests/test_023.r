@@ -26,7 +26,7 @@
       };
     };
   };
-    
+
   n_queens:: { n |
     try {
       permutations: n do: { array |

@@ -9,8 +9,8 @@
       context code: sys;
     }
     else {
-      println: "Error parsing file";
-      dump: (pc errors) to: 6;
+      println: ("Error parsing file " + filename);
+      dump: (pc errors) to: 8;
     };
   };
 

@@ -202,10 +202,6 @@ void scan_context_mark(Object *cxt, Object *sc) {
   set(cxt, sc, "token_end",   get(cxt, sc, "index"));
 }
 
-Fixnum is_digit(char c) {
-  return c >= '0' && c <= '9';
-};
-
 Fixnum is_punct(char c) {
   return  
     (c == '-') || (c == '<') || (c == '>') ||
@@ -346,26 +342,37 @@ Object *tokenize(Object *cxt, Object *frame, Object *file) {
     }        
     
     if ( is_digit(ch) ) {
-      while(is_digit(ch)) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+      if ( scan_context_next(cxt, sc) == 'x' ) {
+        ch = scan_context_advance(cxt, sc);
+        ch = scan_context_advance(cxt, sc);
+        while(is_hexdigit(ch)) {
+          ch = scan_context_advance(cxt, sc);
+        }
+        scan_context_push_token(cxt, sc, "number_literal");
+        continue;
       }
-      if ( ch == '.' ) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-      }
-      while(is_digit(ch)) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-      }
-      if ( ch == 'e' || ch == 'E' ) {
-        if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
-        if ( ch == '-' && is_digit(scan_context_next(cxt, sc)) ) {
+      else {
+        while(is_digit(ch)) {
+          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+        }
+        if ( ch == '.' ) {
           if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
         }
         while(is_digit(ch)) {
           if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
         }
+        if ( ch == 'e' || ch == 'E' ) {
+          if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+          if ( ch == '-' && is_digit(scan_context_next(cxt, sc)) ) {
+            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+          }
+          while(is_digit(ch)) {
+            if ( ! (ch = scan_context_advance(cxt, sc)) ) break;
+          }
+        }
+        scan_context_push_token(cxt, sc, "number_literal");
+        continue;
       }
-      scan_context_push_token(cxt, sc, "number_literal");
-      continue;
     }
     
     if ( ch == '#' ) {

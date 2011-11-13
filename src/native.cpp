@@ -139,6 +139,18 @@ Object* native_char_array_append(Object *cxt, Object *frame, Object *self) {
   return frame;
 }
 
+Object* native_char_array_cmp(Object *cxt, Object *frame, Object *self) {
+  Object *stack = get_stack(cxt, frame);
+  Object *arg   = pop(cxt, stack);
+  if ( is_char_array(cxt, self) && is_char_array(cxt, arg)) {
+    push(cxt, stack, new_boxed_int(cxt, char_array_cmp(cxt, self, arg)));
+  }
+  else {
+    push(cxt, stack, get_undefined(cxt));
+  }
+  return frame;
+};
+
 Object* native_char_array_concat(Object *cxt, Object *frame, Object *self) {
   Object *stack = get_stack(cxt, frame);
   Object *arg   = pop(cxt, stack);
@@ -540,6 +552,27 @@ Object *native_block_call(Object *cxt, Object *frame, Object *self) {
   }
 }
 
+Object *native_get_slot(Object *cxt, Object *frame, Object *self) {
+  Object *stack = get(cxt, frame, "stack");
+  Object *slot_name = pop(cxt, stack);
+  push(cxt, stack, get(cxt, self, slot_name));
+  return frame;
+}
+
+Object *native_set_slot_value(Object *cxt, Object *frame, Object *self) {
+  Object *stack = get(cxt, frame, "stack");
+  Object *slot_value = pop(cxt, stack);
+  Object *slot_name = pop(cxt, stack);
+  set(cxt, self, slot_name, slot_value);
+  push(cxt, stack, get_undefined(cxt));
+  return frame;
+}
+
+Object *native_slots(Object *cxt, Object *frame, Object *self) {
+  push(cxt, get(cxt, frame, "stack"), object_slots(cxt, self));
+  return frame;
+}
+
 Object *native_block_invoke(Object *cxt, Object *frame, Object *block) {
   Object *stack = get(cxt, frame, "stack");
   Object *self = pop(cxt, stack);
@@ -593,6 +626,9 @@ void init_native_sys(Object *cxt) {
   set(cxt, object, "dispose", new_func(cxt, native_object_dispose));
   set(cxt, object, "==:",     new_func(cxt, native_object_equals));
   set(cxt, object, "is_true", new_func(cxt, native_true));
+  set(cxt, object, "slots",   new_func(cxt, native_slots));
+  set(cxt, object, "get_slot:",   new_func(cxt, native_get_slot));
+  set(cxt, object, "set_slot:value:",   new_func(cxt, native_set_slot_value));
 
   Object *array = context_get(cxt, "Array");
   set(cxt, array, "pop",      new_func(cxt, native_array_pop));
@@ -614,6 +650,7 @@ void init_native_sys(Object *cxt) {
   set(cxt, char_array, "==:",      new_func(cxt, native_char_array_equals));
   set(cxt, char_array, "<<:",      new_func(cxt, native_char_array_append));
   set(cxt, char_array, "+:",       new_func(cxt, native_char_array_concat));
+  set(cxt, char_array, "<=>:",     new_func(cxt, native_char_array_cmp));
 
   Object *boxed_int = context_get(cxt, "BoxedInt");
   set(cxt, boxed_int, "<=:",  new_func(cxt, native_boxed_int_leq));
