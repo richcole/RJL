@@ -5,6 +5,69 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Lack on non-local returns
+
+is a pain. Non-local returns needs to be revisited.
+
+-- Permutations
+
+The n-queens can be simplified using the swap algorithm for permutations.
+
+-- Lists, Streams, Delegate, Merge vs Parent
+
+A construct is needed for inline lists
+
+   [1; 2; 3;]
+
+Currently there is a function called merge which copies slots from
+another object. Or more use is add_parent which add a parent to the
+parent slot.
+
+One would then like to have the parent slot be an array rather than a
+single value. Thus supporting multiple inheritance.
+
+One would also like that every quantity is a list of quantities, zero
+being similar to null, and 1 being similar to a value, but also
+admitting multiple values.
+
+That leads to a variety of assignments, mostly an append operation and
+a replace operation. It also means that path expressions return an
+array as well. One needs in this case a good set of functions over
+lists in order to make programming work well.
+
+Another idea is that an object should be able to delegate some calls
+to a member.
+
+  delegate:to:: { method obj |
+    target: self;
+    self set_slot: method value: { target send: method; };
+  };
+
+This requires a seperate function for each arity.
+
+  delegate1:to:: { method obj |
+    target: self;
+    self set_slot: method value: { arg | target send: method arg: arg; };
+  };
+
+To do otherwise requires being able to inspect the arity of the method
+to be delegated to.
+
+  delegate:to:: { method obj |
+    target: self;
+    arity: (target get_slot: method) arity;
+    self set_slot: method value: (
+      block_with_arity: arity func: { args | 
+        target send: method args: args; 
+      }
+    );
+  };
+
+where block_with_arity:func returns a block of given arity that
+combines the arguments into an array passed func that takes a single
+argument.
+
+
 -- Made some more fixes
 
 nqueens now works. At least the solution board sort of looks

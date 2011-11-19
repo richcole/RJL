@@ -2,31 +2,26 @@
 
   sys Stream: (|
     read_int_lsb: {|
-      result: 0;
-      ( 0 .. 3 ) each: { |index|
-        result: (result << 8) | (self read);
+      ( 0 .. 3 ) inject: 0 func: { result index |
+        (result << 8) | (self read);
       };
     |};
     read_int_msb: {|
-      result: 0;
-      ( 0 .. 3 ) each: { |index|
-        result: (result | ((self read) << (8 * ;
+      ( 0 .. 3 ) inject: 0 func: { result index |
+        (result | ((self read) << (8 * index)));
       };
     |};
   |);
 
   sys FileStream: (|
+    add_parent: (sys Stream);
 
-    open:: { filename |
+    self open:: { filename |
       self new: { 
         self file: (sys File open: filename);
       };
     };
 
-    read: { 
-      self file read;
-    };
-
-    file: (File open: filename);
+    self delegate: [#read; #eof] to: #file;
   |);
-}
+};

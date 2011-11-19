@@ -1,5 +1,11 @@
 { sys |
 
+  native_println:: (sys get_slot: #println:);
+
+  sys println:: { s |
+    native_println: (s to_s);
+  };
+
   sys not:: { val |
     if ( val ) {
       false;
@@ -41,6 +47,14 @@
       result: (Array new);
       self each: { x |
         result push: (block: x);
+      };
+      result;
+    };
+
+    self inject:func:: { zero func:value: |
+      result: zero;
+      self each: { x |
+        result: (func: result value: x);
       };
       result;
     };
