@@ -59,7 +59,7 @@ Object *top_level_frame(Object *cxt) {
   // set the lexical parent to be sys
   set_lexical_parent(cxt, frame, cxt);
 
-  // read the first filename in args
+  // parse std/core.r
   code_push(cxt, code, new_char_array(cxt, "std/core.r"));
   fixup1 = parse_file(cxt, code);
 
@@ -76,9 +76,11 @@ Object *top_level_frame(Object *cxt) {
   code_push(cxt, catch_code, new_char_array(cxt, "Exception raised."));
   code_self_send(cxt, catch_code, "println:");
   code_self_send(cxt, catch_code, "ex");
-  code_push(cxt, catch_code, new_boxed_int(cxt, 8));
+  code_push(cxt, catch_code, new_boxed_int(cxt, 6));
   code_self_send(cxt, catch_code, sym(cxt, "dump:to:"));
   code_term(cxt, catch_code);
+
+  set(cxt, code, "catch", catch_code);
 
   return frame;
 }

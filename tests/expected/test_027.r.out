@@ -1,0 +1,63 @@
+Exception raised.
+{ 0x977cbc0 
+  parent: { 0x97519b8 
+    parent: { 0x974d308 
+      new:: { 0x974e088 
+        parent:         is_block:         [
+          000:           001:           002:           003:           004:           005:           006:           007:           008:           009:           010:           011:           012:           013:           014:           015:           016:           017:           018:           019:           020:           021:         ]
+      }
+      is_true: FUNC: 0x804f260
+      get:: FUNC: 0x804ff00
+      new: FUNC: 0x80504e0
+      dispose: FUNC: 0x8050540
+      ==:: FUNC: 0x804f2b0
+    }
+  }
+  reason: "Unable to open file"
+  frame: { 0x977c750 
+    code: { 0x977c198 
+      parent: { 0x977b440 
+        parent:         is_block:         [
+          000:           001:           002:           003:           004:           005:           006:           007:           008:           009:           010:           011:           012:           013:           014:           015:           016:           017:           018:           019:           020:           021:           022:           023:           024:           025:           026:           027:           028:           029:           030:           031:           032:           033:           034:           035:           036:           037:           038:           039:           040:           041:           042:           043:           044:           045:           046:           047:           048:           049:           050:           051:           052:           053:           054:           055:           056:           057:           058:           059:           060:         ]
+      }
+      self: { 0x9760818 
+        end_object:         errors:         begin_expr:         scan_context:         block:         parent:         index:         end_block:         tokens:         code::       }
+      lexical_parent: { 0x977c118 
+        parent:         is_local:         self:         sys:       }
+      [
+        000:         001:         002:         003:         004:         005:         006:         007:         008:         009:         010:         011:         012:         013:         014:         015:         016:         017:         018:         019:         020:         021:         022:         023:         024:         025:         026:         027:         028:         029:         030:         031:         032:         033:         034:         035:         036:         037:         038:         039:         040:         041:         042:         043:         044:         045:         046:         047:         048:         049:         050:         051:         052:         053:         054:         055:         056:         057:         058:         059:         060:       ]
+    }
+    stack: { 0x977c7d0 
+      parent: { 0x974d420 
+        parent:         length:         pop:         push::         new:         at::       }
+      []
+    }
+    parent: { 0x9750a60 
+      parent: ^0x974d308
+    }
+    return: { 0x977c0d8 
+      code: { 0x977b3c8 
+        parent:         is_block:         [
+          000:           001:           002:           003:           004:           005:           006:           007:           008:           009:           010:           011:           012:           013:           014:           015:           016:           017:           018:           019:         ]
+      }
+      stack: { 0x977c158 
+        parent:         [
+          000:         ]
+      }
+      parent: ^0x9750a60
+      return: { 0x9750e70 
+        code:         stack:         parent:         return:         local:         pc:       }
+      local: ^0x977c118
+      pc: BOXED_INT: 19
+    }
+    local: { 0x977c790 
+      parent: ^0x977c118
+      is_local: { 0x974e158 
+        parent:       }
+      self: { 0x974d008 
+        true:         sleep::         CodeGenerator:         Frame:         false:         load::         Object:         args:         Parser:         println::         raise::         File:         Exception:         undefined:         CharArray:         Func:         dump::         Screen:         dump:to::         BoxedInt:         Scanner:         parent:         objects:         Array:         Block:       }
+      filename: "tests/test_027.r"
+    }
+    pc: BOXED_INT: 8
+  }
+}

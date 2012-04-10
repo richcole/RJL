@@ -10,7 +10,7 @@
     }
     else {
       println: "Error parsing file";
-      dump: (pc errors) to: 6;
+      dump: (pc errors) to: 8;
     };
   };
 

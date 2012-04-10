@@ -1,5 +1,23 @@
 { sys |
 
+  sys Object catch_throw:: { block |
+    result: undefined;
+    try {
+      result: block;
+    }
+    catch { ex |
+      result: (ex reason result);
+      if ( result == undefined ) {
+        raise ex;
+      };
+    };
+    return: result;
+  };
+
+  sys Object throw:: { result |
+    raise: (| self result: result; |);
+  };
+
   sys Object ||:: { x |
     if ( self ) {
       self;
@@ -67,21 +85,14 @@
   };
 
   sys Array contains:: { key |
-    try {
-      self each: { x |
+    array: self;
+    catch_throw: {
+      array each: { x |
         if ( x == key ) {
-          raise: true;
+          throw: true;
         };
       };
       false;
-    }
-    catch { ex |
-      if ( ex reason == true ) {
-        true;
-      }
-      else {
-        raise: ex;
-      };
     };
   };
 
@@ -132,4 +143,5 @@
   sys permutations:do:: { n block |
     permutations: n with: (Array new) do: ^block;
   };
+
 };

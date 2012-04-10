@@ -1,7 +1,6 @@
 { sys |
   sys load: "std/std.r";
 
-  println: "init";
   Screen init;
   screen: (Screen new);
   screen size: (| self width: 640; self height: 480; |);

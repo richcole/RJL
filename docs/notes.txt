@@ -5,6 +5,30 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Added functions for catch_throw and throw
+
+To solve the problem of non-local returns I added two functions,
+catch_throw and throw. The latter returns a thrown value or the result
+of the invoked function.
+
+One slippery notion is that if one accesses a method throught the self
+object, e.g.
+
+  sys catch_throw: { 
+    self;
+  }
+
+then self will be sys and not the self of the outer scope. I think
+that is actually a bug.
+
+The block should execute in the outer scope rather than in the inner
+scope.
+
+It arises because there is no distinction between a method setter and
+a function call. This bug likely also exists for each.
+
+  
+
 -- Made some more fixes
 
 nqueens now works. At least the solution board sort of looks
@@ -17,8 +41,6 @@ any code has a lot of brackets.
 Another idea is to start writing an assembler again. There is also
 some thinking required with regards to modules. The current setup
 doesn't do very well with respect to modules.
-
-
 
 -- Made some fixes
 
@@ -43,7 +65,7 @@ Similarly
 
   println: Range new;
 
-Should also not require brackets, also for
+Should also not require brackets, also
 
   dump: Range new to: 4
 

@@ -36,10 +36,16 @@ Object* native_file_open_mode(Object *cxt, Object *frame, Object *self) {
   if ( file_mode_buf == 0 ) {
     return new_exception(cxt, frame, "Expected a char_array as second argument");
   }
-  Object *file_object = new_file(cxt, fopen(file_name_buf->data, file_mode_buf->data));
-  set(cxt, file_object, "parent", self);
-  push(cxt, stack, file_object);
-  return frame;
+  FILE *fp = fopen(file_name_buf->data, file_mode_buf->data);
+  if ( fp == 0 ) {
+    return new_exception(cxt, frame, "Unable to open file");
+  }
+  else {
+    Object *file_object = new_file(cxt, fp);
+    set(cxt, file_object, "parent", self);
+    push(cxt, stack, file_object);
+    return frame;
+  }
 }
 
 Object* native_file_open(Object *cxt, Object *frame, Object *self) {

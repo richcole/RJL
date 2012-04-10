@@ -74,6 +74,15 @@ Object* native_println(Object *cxt, Object *frame, Object *self) {
       return new_exception(cxt, frame, "Couldn't interpret char_array in println");
     }
   }
+  else if ( is_true(cxt, arg) ) {
+      fprintf(stdout, "#true\n");
+  }
+  else if ( is_false(cxt, arg) ) {
+      fprintf(stdout, "#false\n");
+  }
+  else if ( is_undefined(cxt, arg) ) {
+      fprintf(stdout, "#undefined\n");
+  }
   else if ( is_boxed_int(cxt, arg) ) {
     BoxedIntBuffer *buf = get_boxed_int_buffer(arg);
     if ( buf != 0 ) {
