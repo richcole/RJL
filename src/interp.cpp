@@ -7,6 +7,16 @@
 #include "abort.h"
 #include "native.h"
 
+Object* get_self_from_target(Object *cxt, Object *target) {
+  Object *self = get(cxt, target, "self");
+  if ( exists(cxt, self) ) {
+    return self;
+  }
+  else {
+    return target;
+  }
+};
+
 Object* send(Object *cxt, Object *frame, Object *slot) {
   Object *stack  = get_stack(cxt, frame);
   Object *target = pop(cxt, stack);
@@ -22,7 +32,7 @@ Object* send(Object *cxt, Object *frame, Object *slot) {
   };
 
   if ( is_block(cxt, value) ) {
-    return new_frame(cxt, target, value, frame);
+    return new_frame(cxt, get_self_from_target(cxt, target), value, frame);
   }
   else if ( is_func(cxt, value) ) {
     return call_func(cxt, target, value, frame);

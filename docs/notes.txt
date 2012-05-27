@@ -5,6 +5,25 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Rules for Self
+
+self should be modified if there is a named target. If the target is
+implicit then the current self should be maintained.
+
+so for example:
+
+  {
+    call_func: a;
+  }
+
+should retain self, but
+
+  {
+    myslot call_func: a;
+  }
+
+should modify self.
+
 -- Added functions for catch_throw and throw
 
 To solve the problem of non-local returns I added two functions,
