@@ -1,3 +1,0 @@
-.one
-  push "two"
-  term
