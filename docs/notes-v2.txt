@@ -1,0 +1,26 @@
+
+Start with a much simpler machine model. Write in asm in that model
+to get off the ground.
+
+Two tagged types:
+
+  - int:     
+  - objref: 
+
+is_obj(val & 0x1 == 0)
+is_int(val & 0x1 == 1)
+
+Instructions:
+
+  - new(): obj
+  - poke_frame(obj)
+  - peek_frame(): obj
+  - set(obj, int, value): void
+  - get(obj, int, value): void
+  - set_size(obj: obj, len: int): void
+  - poke(obj: obj, pos: int, val: int)
+  - peek(obj: obj, pos: int): int
+  - blt(src: obj, src_pos: int, dst: obj, dst_pos: int, len: int)
+  - term()
+
+The 

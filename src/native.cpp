@@ -588,12 +588,46 @@ Object* native_object_new1(Object *cxt) {
   return code;
 };
 
+Object *if_then_else_func() {
+  Object *code = new_block(cxt);
+  code_arg(cxt, code, "cond");
+  code_arg(cxt, code, "true_block");
+  code_arg(cxt, code, "false_block");
+  code_self_send(cxt, code, "cond");
+  Fixnum fixup1 = code_jmp_not_true(cxt, code, 0);
+  code_self_send(cxt, code, "true_block");
+  Fixnum fixup2 = code_jmp(cxt, code, 0);
+  set_at(cxt, code, fixup1, array_length(cxt, code));
+  code_self_send(cxt, code, "false_block");
+  set_at(cxt, code, fixup2, array_length(cxt, code));
+  code_return(cxt, code);
+}
+
+Object *try_catch_func() {
+  Object *code = new_block(cxt);
+  code_arg(cxt, code, "try_block");
+  code_arg(cxt, code, "catch_block");
+  code_self_send(cxt, code, "catch_block");
+  code_self_send(cxt, code, "*frame");
+  code_send(cxt, code, "catch:");
+
+  Fixnum fixup1 = code_jmp_not_true(cxt, code, 0);
+  code_self_send(cxt, code, "true_block");
+  Fixnum fixup2 = code_jmp(cxt, code, 0);
+  set_at(cxt, code, fixup1, array_length(cxt, code));
+  code_self_send(cxt, code, "false_block");
+  set_at(cxt, code, fixup2, array_length(cxt, code));
+  code_return(cxt, code);
+}
+
 void init_native_sys(Object *cxt) {
-  context_set(cxt, "println:", new_func(cxt, native_println));
-  context_set(cxt, "sleep:",    new_func(cxt, native_sleep));
-  context_set(cxt, "dump:",    new_func(cxt, native_dump));
-  context_set(cxt, "dump:to:", new_func(cxt, native_dump_to));
-  context_set(cxt, "raise:",   new_func(cxt, native_raise));
+  context_set(cxt, "println:",       new_func(cxt, native_println));
+  context_set(cxt, "sleep:",         new_func(cxt, native_sleep));
+  context_set(cxt, "dump:",          new_func(cxt, native_dump));
+  context_set(cxt, "dump:to:",       new_func(cxt, native_dump_to));
+  context_set(cxt, "raise:",         new_func(cxt, native_raise));
+  context_set(cxt, "if:then:else:",  if_then_else_func());
+  context_set(cxt, "try:catch:",     try_catch_func());
 
   Object *object = context_get(cxt, "Object");
   set(cxt, object, "get:",    new_func(cxt, native_object_get));

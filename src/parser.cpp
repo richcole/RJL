@@ -164,6 +164,10 @@ Object* parse_stmt(Object* cxt, Object *pc) {
       mustbe(cxt, pc, "catch");
       set(cxt, stmt, "catch_block", parse_block_expr(cxt, pc));
     }
+    if ( have(cxt, pc, "finally") ) {
+      mustbe(cxt, pc, "finally");
+      set(cxt, stmt, "finally_block", parse_block_expr(cxt, pc));
+    }
   }
   mustbe(cxt, pc, "semi");
   return stmt;

@@ -104,6 +104,7 @@ Object *new_scan_context(Object *cxt, Object *file) {
   set(cxt, rw, "else",   "else");
   set(cxt, rw, "while",  "while");
   set(cxt, rw, "try",    "try");
+  set(cxt, rw, "finally","finally");
   set(cxt, rw, "catch",  "catch");
   
   return sc;

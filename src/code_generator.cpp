@@ -44,7 +44,8 @@ Object *join_char_arrays(Object *cxt, Object *strs) {
 void code_gen_object_expr(
   Object *cxt, Object *pc, Object *code, Object *block, Object *expr
 ) {
-  code_gen_push_block(cxt, pc, code, expr, get_undefined(cxt));
+  Object *undef = get_undefined(cxt);
+  code_gen_push_block(cxt, pc, code, expr, undef, undef);
   code_self_send(cxt, code, "Object");
   code_send(cxt, code, "new:");
 };
@@ -54,7 +55,7 @@ void code_gen_expr(Object *cxt, Object* pc, Object* code, Object* block, Object 
     code_push(cxt, code, get(cxt, expr, "value"));
   }
   else if ( has_type(cxt, expr, "block_expr") ) {
-    code_gen_push_block(cxt, pc, code, expr, get_undefined(cxt));
+    code_gen_push_block(cxt, pc, code, expr, get_undefined(cxt), get_undefined(cxt));
   }
   else if ( has_type(cxt, expr, "group") ) {
     code_gen_group(cxt, pc, code, block, expr);
@@ -142,7 +143,7 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
     code_jmp_not_true(cxt, code, array_length(cxt, code));
 
     // execute true block
-    code_gen_push_block(cxt, pc, code, true_block, get_undefined(cxt));
+    code_gen_push_block(cxt, pc, code, true_block, get_undefined(cxt), get_undefined(cxt));
     code_send(cxt, code, sym(cxt, "call"));
     end_label = array_length(cxt, code)+1;
     code_jmp(cxt, code, array_length(cxt, code));
@@ -152,7 +153,7 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
 
     // execute the else block
     if ( exists(cxt, false_block) ) {
-      code_gen_push_block(cxt, pc, code, false_block, get_undefined(cxt));
+      code_gen_push_block(cxt, pc, code, false_block, get_undefined(cxt), get_undefined(cxt));
       code_send(cxt, code, sym(cxt, "call"));
     }
 
@@ -167,7 +168,7 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
     Fixnum jmp_offset = array_length(cxt, code)+1;
     code_jmp_not_true(cxt, code, array_length(cxt, code));
     code_pop(cxt, code);
-    code_gen_push_block(cxt, pc, code, get(cxt, stmt, "while_block"), get_undefined(cxt));
+    code_gen_push_block(cxt, pc, code, get(cxt, stmt, "while_block"), get_undefined(cxt), get_undefined(cxt));
     code_send(cxt, code, sym(cxt, "call"));
     push(cxt, code, "jmp");
     push(cxt, code, new_boxed_int(cxt, offset));
@@ -176,7 +177,8 @@ void code_gen_stmt(Object *cxt, Object* pc, Object* code, Object* block, Object 
   else if ( has_type(cxt, stmt, "try_stmt") ) {
     Object *try_block = get(cxt, stmt, "try_block");
     Object *catch_block = get(cxt, stmt, "catch_block");
-    code_gen_push_block(cxt, pc, code, try_block, catch_block);
+    Object *finally_block = get(cxt, stmt, "finally_block");
+    code_gen_push_block(cxt, pc, code, try_block, catch_block, finally_block);
     code_send(cxt, code, sym(cxt, "call"));
   }
   else {
@@ -191,7 +193,11 @@ void code_gen_stmts(Object *cxt, Object *pc, Object *code, Object *block) {
   }
 }
 
-Object* code_gen_block(Object *cxt, Object *pc, Object *block, Object *catch_stmt) 
+void code_gen_catch(Object *cxt, Object *pc, Object *code, Object *catch_stmt)
+{
+}
+
+Object* code_gen_block(Object *cxt, Object *pc, Object *block, Object *catch_stmt, Object *finally_stmt) 
 {
   Object *code = new_block(cxt);
   code_gen_args(cxt, pc, code, block);
@@ -205,12 +211,19 @@ Object* code_gen_block(Object *cxt, Object *pc, Object *block, Object *catch_stm
     code_gen_stmts(cxt, pc, catch_code, catch_stmt);
     code_return(cxt, catch_code);
   }
+  if ( exists(cxt, finally_stmt) ) {
+    Object *finally_code = new_block(cxt);
+    set(cxt, code, "finally", finally_code);
+    code_gen_args(cxt, pc, finally_code, finally_stmt);
+    code_gen_stmts(cxt, pc, finally_code, finally_stmt);
+    code_return(cxt, finally_code);
+  }
   return code;
 }
 
-void code_gen_push_block(Object *cxt, Object *pc, Object *code, Object *block_stmt, Object *catch_stmt)
+void code_gen_push_block(Object *cxt, Object *pc, Object *code, Object *block_stmt, Object *catch_stmt, Object *finally_stmt)
 {
-  Object *block = code_gen_block(cxt, pc, block_stmt, catch_stmt);
+  Object *block = code_gen_block(cxt, pc, block_stmt, catch_stmt, finally_stmt);
   code_push_block(cxt, code, block);
 }
 
@@ -221,7 +234,7 @@ void code_gen_group(Object *cxt, Object *pc, Object *code, Object *block, Object
 
 Object* code_generator_generate(Object *cxt, Object *pc) {
   Object *block = get(cxt, pc, sym(cxt, "block"));
-  set(cxt, pc, "code:", code_gen_block(cxt, pc, block, get_undefined(cxt)));
+  set(cxt, pc, "code:", code_gen_block(cxt, pc, block, get_undefined(cxt), get_undefined(cxt)));
   return pc;
 }
 

@@ -92,14 +92,12 @@ void interp(Object *cxt, Object *frame) {
   Fixnum pc     = 0;
   Object *instr = 0;
   Object *new_frame = 0;
-  Object *code = 0;
   Fixnum instr_count = 0;
 
   while(frame != 0) {
 
     pc    = get_fixnum(cxt, frame, "pc");
     instr = get_code(cxt, frame, pc);
-    code  = get(cxt, frame, "code");
 
     ++instr_count;
     if ( instr_count > 100 ) {
@@ -115,12 +113,6 @@ void interp(Object *cxt, Object *frame) {
 
     if ( instr == sym(cxt, "pop") ) {
       pop(cxt, get_stack(cxt, frame));
-      advance_pc(cxt, frame, pc, 1);
-      continue;
-    }
-
-    if ( instr == sym(cxt, "push_frame") ) {
-      push(cxt, get_stack(cxt, frame), frame);
       advance_pc(cxt, frame, pc, 1);
       continue;
     }

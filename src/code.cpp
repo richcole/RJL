@@ -12,10 +12,6 @@ void code_pop(Object *cxt, Object *code) {
   push(cxt, code, "pop");
 }
 
-void code_push_frame(Object *cxt, Object *code) {
-  push(cxt, code, "push_frame");
-}
-
 void code_push_block(Object *cxt, Object *code, Object *block) {
   push(cxt, code, "push_block");
   push(cxt, code, block);

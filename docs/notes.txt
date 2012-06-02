@@ -5,6 +5,86 @@ This file is organized as a set of notes. I generally add notes at the
 top of file. I also revise and prune older notes when they're no
 longer valid.
 
+-- Control flow functions
+
+Control flow should be implemented via function rather than being
+inline.
+
+  if: { a < b; } then: { println: "Yes"; } else: { println: "No"; };
+  while: { a < b; } do: { println: "Yes"; };
+
+A jump is required in order to support these functions. So they have to 
+be written using virtual machine instructions.
+
+  arg condBlock;
+  arg doBlock;
+  loop:
+    ssend condBlock
+    send call
+    send is_true
+    jmpf end:
+    ssend doBlock
+    send call
+    jmp loop;
+  
+Perhaps try catch can be written in a similar way. First try finally is'
+reduced to catch blocks.
+
+  try:finally:: { tryBlock finallyBlock |
+    res: (try: tryBlock catch: { ex | finallyBlock call; raise: ex; });
+    finallyBlock call;
+    res;
+  };
+
+And try catch finally using both functions.
+
+  try:catch:finally:: { tryBlock catchBlock finallyBlock |
+    try: { try: tryBlock catch: catchBlock; } finally: finallyBlock;
+  }
+
+So finally we are left with implementing try:catch
+
+  try:catch:: { tryBlock catchBlock |
+    *frame catch: catchBlock;
+    tryBlock call;
+  }
+  
+This interacts with the raise function
+
+  raise:: { ex |
+    frame: *frame;
+    while: { isundef (frame catch); } do: {
+      frame: (frame parent);
+    };
+    frame catch call: (Exception frame: *frame reason: ex) return: frame;
+  }
+
+The raise function used a special variety of the call function that
+set the return to be other than the current stack frame.
+
+-- Finally Block
+
+The finally block is executed after the try block after the exception
+block has been executed even if the exception block throws an
+exception.
+
+Smalltalk has a cute way of doing this. It implements catch and
+finally indepdently and then composes them. So a block will either
+have an exception handler, or it will have a finally block, but not
+both.
+
+Also try catch and finally are implemented as functions. So they
+should be in RJL.
+
+  try:catch:finally:: { tryBlock catchBlock finallyBlock |
+    try: { try: tryBlock catch: catchBlock; } finally: finallyBlock;
+  }
+
+This simplifies the problem, but still begs of the question of how the try
+function is implemented in smalltalk. Return should be a function. 
+
+The current code has finally included but it isn't actioned from anywhere.
+
 -- Rules for Self
 
 self should be modified if there is a named target. If the target is
