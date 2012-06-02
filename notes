@@ -1,0 +1,13 @@
+The purpose of this branch is to start with a much simpler model of
+the VM with more basic instructions. This idea is then to code
+control structure, exception handling, even the send instruction
+as functions.
+
+So far there are some tests and simple programs written in the VM
+itself.
+
+The next step is to work out how a code generator will access functions
+such as the generic send. 
+
+The new model requires an explicit call instruction. The earlier model
+auto-invoked methods. However that turns out to be rather problematic.
