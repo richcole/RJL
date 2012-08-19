@@ -1,3 +1,13 @@
+===
+
+Working on the scanner. Treetop turned out to be too hard to debug the gammar
+so I'm back to doing a recursive decent parse because they are dead easy
+to reason about.
+
+ { a | a <=> b };
+
+====
+
 The purpose of this branch is to start with a much simpler model of
 the VM with more basic instructions. This idea is then to code
 control structure, exception handling, even the send instruction
