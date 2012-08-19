@@ -57,7 +57,7 @@ fixnum new_obj(cxt_t *cxt) {
   fixnum obj_id   = cxt->objs_tail++;
   obj_t *obj      = to_obj(cxt, obj_id);
   obj->slots_len  = 10;
-  obj->slots      = (slot_t *)calloc(obj->slots_len, sizeof(slot_t));
+  obj->slots      = (slot_t *)cxt_alloc(cxt, obj->slots_len * sizeof(slot_t));
   obj->buf        = 0;
   obj->buf_len    = 0;
   obj->buf_tail   = 0;
@@ -86,26 +86,48 @@ fixnum get(cxt_t *cxt, fixnum obj_id, fixnum slot_id) {
   return table[slot_index].value;
 }
 
-fixnum set(cxt_t *cxt, fixnum obj_id, fixnum slot_id, fixnum value) {
-  obj_t *obj = to_obj(cxt, obj_id);
-  if ( obj->num_slots * 4 > obj->slots_len * 3 ) {
-    abort(); // FIXME: resize
-  }
-  slot_t *table = obj->slots;
-  fixnum slot_index = slot_id % obj->slots_len;
+fixnum table_insert(slot_t *table, fixnum slots_len, fixnum slot_id, fixnum value) {
+  fixnum slot_index = slot_id % slots_len;
   fixnum curr_slot = table[slot_index].slot;
+  fixnum added_slots = 0;
   while( curr_slot != 0 && curr_slot != slot_id ) {
-    slot_index = ( slot_index + 1 ) % obj->slots_len;
+    slot_index = ( slot_index + 1 ) % slots_len;
     curr_slot = table[slot_index].slot;
   }
   if ( table[slot_index].slot == 0 ) {
-    obj->num_slots++;
+    added_slots = 1;
   }
   table[slot_index].slot = slot_id;
   table[slot_index].value = value;
+  return added_slots;
+};
+
+void reserve(cxt_t *cxt, fixnum obj_id, fixnum new_len) {
+  obj_t *obj = to_obj(cxt, obj_id);
+  slot_t *new_slots = (slot_t *)cxt_alloc(cxt, new_len * sizeof(slot_t));
+  fixnum new_num_slots = 0;
+  for(fixnum i=0; i<obj->slots_len; i++) {
+    if ( obj->slots[i].slot != 0 && obj->slots[i].value != 0 ) {
+      new_num_slots += table_insert(
+        new_slots, new_len, obj->slots[i].slot, obj->slots[i].value
+      );
+    }
+  }
+  cxt_free(cxt, (char *)obj->slots);
+  obj->slots = new_slots;
+  obj->slots_len = new_len;
+  obj->num_slots = new_num_slots;
+}
+
+fixnum set(cxt_t *cxt, fixnum obj_id, fixnum slot_id, fixnum value) {
+  obj_t *obj = to_obj(cxt, obj_id);
+  if ( obj->num_slots * 4 > obj->slots_len * 3 ) {
+    reserve(cxt, obj_id, obj->slots_len*2);
+  }
+  slot_t *table = obj->slots;
+  obj->num_slots += table_insert(table, obj->slots_len, slot_id, value);
   return obj_id;
 }
-    
 
 void incr(cxt_t* cxt, fixnum obj, fixnum slot) {
   set(cxt, obj, slot, get(cxt, obj, slot)+1);

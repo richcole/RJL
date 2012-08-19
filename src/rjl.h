@@ -20,5 +20,6 @@ char* get_buf(cxt_t *cxt, fixnum obj);
 fixnum get_buf_tail(cxt_t *cxt, fixnum obj);
 fixnum get_buf_len(cxt_t *cxt, fixnum obj);
 void buf_reserve(cxt_t *cxt, fixnum obj, fixnum len);
+void dump(cxt_t *cxt, fixnum obj_id);
 
 #endif

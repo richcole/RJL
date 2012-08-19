@@ -27,14 +27,16 @@ fixnum char_array_get_at(cxt_t *cxt, fixnum string, fixnum index) {
 void char_array_put_char(cxt_t *cxt, fixnum string, fixnum c) {
   fixnum len = get_buf_len(cxt, string);
   fixnum tail = get_buf_tail(cxt, string);
-  if ( tail == len ) {
+  if ( tail+1 >= len ) {
     buf_reserve(cxt, string, tail*2);
   }
-  get_buf(cxt, string)[tail] = c;
-  set_buf_tail(cxt, string, tail+1);
+  char *buf = get_buf(cxt, string);
+  buf[tail] = c;
+  buf[++tail] = 0;
+  set_buf_tail(cxt, string, tail);
 }
 
-char* char_array_get_string(cxt_t *cxt, fixnum string) {
+char* char_array_get_buf(cxt_t *cxt, fixnum string) {
   return get_buf(cxt, string);
 }
 

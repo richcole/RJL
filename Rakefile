@@ -7,7 +7,7 @@ class String
 end
 
 class Builder 
-  include Rake::DSL
+  # include Rake::DSL
 
   def initialize
     @build_dir = "build"
@@ -68,6 +68,14 @@ class Builder
     rule "clean" do
       run "rm -rf build"
     end
+
+    rule "scan" => [debug_binary] do 
+      run "#{debug_binary} scan input.rjl"
+    end   
+
+    rule "test" => [debug_binary] do 
+      run "#{debug_binary} test"
+    end   
   end
 
 end

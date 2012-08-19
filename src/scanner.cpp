@@ -7,8 +7,8 @@
 
 fixnum new_file(cxt_t *cxt, fixnum filename) {
   fixnum file = new_obj(cxt);
-  set(cxt, file, SYM_FILENAME, file);
-  FILE *fp = fopen(char_array_get_string(cxt, filename), "r");
+  set(cxt, file, SYM_FILENAME, filename);
+  FILE *fp = fopen(char_array_get_buf(cxt, filename), "r");
   set_buf(cxt, file, (char *)&fp, sizeof(fp));
   return file;
 }
@@ -27,7 +27,7 @@ void file_close(cxt_t *cxt, fixnum file) {
 
 fixnum new_scanner(cxt_t *cxt, fixnum file) {
   fixnum scanner = new_obj(cxt);
-  set(cxt, file, SYM_FILE, file);
+  set(cxt, scanner, SYM_FILE, file);
   return scanner;
 }
 
@@ -109,6 +109,7 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
 
   set(cxt, token, SYM_LINE_NUM, get(cxt, scanner, SYM_LINE_NUM));
   set(cxt, token, SYM_CHAR_NUM, get(cxt, scanner, SYM_CHAR_NUM));
+  set(cxt, token, SYM_IDENT, ident);
 
   char_array_put_char(cxt, ident, curr_char);
 
@@ -132,7 +133,7 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
     return set(cxt, token, SYM_TYPE, SYM_PIPE);
   }
 
-  if ( curr_char == '|' ) {
+  if ( curr_char == '=' ) {
     return set(cxt, token, SYM_TYPE, SYM_EQUALS);
   }
 
@@ -141,20 +142,24 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
   }
 
   if ( curr_char == '"' ) {
+    set_buf_tail(cxt, ident, 0);
     set(cxt, token, SYM_TYPE,  SYM_STRING);
-    while( scanner_next_char(cxt, scanner) != '"' ) {
-      char_array_put_char(cxt, ident, scanner_curr_char(cxt, scanner));
+    while( 
+      scanner_next_char(cxt, scanner) != '"' && 
+      scanner_next_char(cxt, scanner) != -1 
+    ) {
       scanner_advance(cxt, scanner);
+      char_array_put_char(cxt, ident, scanner_curr_char(cxt, scanner));
     }
+    scanner_advance(cxt, scanner); // skip the quote
+    return token;
   }
 
   set(cxt, token, SYM_TYPE,  SYM_IDENT);
-  set(cxt, token, SYM_IDENT, ident);
   while ( char_is_ident(cxt, scanner_next_char(cxt, scanner)) ) {
-    char_array_put_char(cxt, ident, scanner_curr_char(cxt, scanner));
     scanner_advance(cxt, scanner);
+    char_array_put_char(cxt, ident, scanner_curr_char(cxt, scanner));
   }
-  char_array_put_char(cxt, ident, scanner_curr_char(cxt, scanner));
 
   if ( char_is_digit(cxt, char_array_get_at(cxt, ident, 0)) ) {
     set(cxt, token, SYM_TYPE, SYM_NUMBER);
@@ -163,4 +168,22 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
   return token;
 }
   
-  
+void scanner_scan(cxt_t *cxt, char const* filename) {
+  fixnum file    = new_file(cxt, new_char_array(cxt, filename));
+  fixnum scanner = new_scanner(cxt, file);
+  fixnum token   = 0;
+  fixnum ident   = 0;
+  char const* type_buf;
+  char const* ident_buf;
+
+  while(1) {
+    token = scanner_next_token(cxt, scanner);
+    ident = get(cxt, token, SYM_IDENT);
+    type_buf = get_sym_buf(get(cxt, token, SYM_TYPE));
+    ident_buf = ident ? char_array_get_buf(cxt, ident) : "(null)";
+    fprintf(stdout, "type=%s ident=%s\n", type_buf, ident_buf);
+    if ( get(cxt, token, SYM_TYPE) == SYM_EOF ) {
+      break;
+    }
+  }
+}

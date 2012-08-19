@@ -1,66 +1,76 @@
 #ifndef SYMBOLS_H
 #define SYMBOLS_H
 
+#include "rjl.h"
+#include "char_array.h"
+
 // SSYM symbols are system symbols used in the frame
 // object. They shouldn't collide with normal symbols
 //
 // SYM symbols are normal symbols.
 
-#define SSYM_DIRTY       1
-#define SSYM_PC          2
-#define SYM_NEW         3
-#define SYM_SET_FRAME   4
-#define SYM_GET_FRAME   5
-#define SYM_SET         6
-#define SYM_GET         7
-#define SYM_FSET        8
-#define SYM_FGET        9
-#define SYM_SGET        10
-#define SSYM_CODE       11
-#define SSYM_STACK      12
-#define SYM_SET_PC      13
-#define SYM_TERM        14
-#define SYM_PUSH        15
-#define SYM_SPUSH       16
-#define SYM_POP         17
-#define SYM_ABORT       18
-#define SYM_CALL        19
-#define SYM_NATIVE_CALL 20
-#define SSYM_RET        21
-#define SYM_JMP         22
-#define SSYM_PARENT     23
-#define SYM_EXAMPLE     24
-#define SYM_RETZ        25
-#define SYM_RETNZ       26
-#define SYM_TARGET      27
-#define SYM_SLOT        28
-#define SYM_ARG         29
-#define SYM_JMPZ        30 
-#define SYM_JMPNZ       31 
-#define SYM_RET         32
 
-#define SYM_COND        33 
-#define SYM_TRUE_BLOCK  34 
-#define SYM_FALSE_BLOCK 35
-#define SYM_BLOCK       36
+fixnum next_sym(char const* s);
+char const* get_sym_buf(fixnum sym);    
 
-#define SYM_FILENAME    37
-#define SYM_FILE        38
-#define SYM_NEXT_CHAR   39
-#define SYM_CURR_CHAR   40
-#define SYM_LINE_NUM    41
-#define SYM_CHAR_NUM    42
+#define decl_sym(x) extern const fixnum x
+#define defn_sym(x) const fixnum x = next_sym(#x)
 
-#define SYM_BRACE_LEFT   43
-#define SYM_BRACE_RIGHT  44
-#define SYM_COMMA        45
-#define SYM_EQUALS       46
-#define SYM_NUMBER       47
-#define SYM_PIPE         48
-#define SYM_SEMI         49
-#define SYM_TYPE         50
-#define SYM_EOF          51
-#define SYM_STRING       52
-#define SYM_IDENT        53
+decl_sym(SSYM_DIRTY);
+decl_sym(SSYM_PC);
+decl_sym(SYM_NEW);
+decl_sym(SYM_SET_FRAME);
+decl_sym(SYM_GET_FRAME);
+decl_sym(SYM_SET);
+decl_sym(SYM_GET);
+decl_sym(SYM_FSET);
+decl_sym(SYM_FGET);
+decl_sym(SYM_SGET);
+decl_sym(SSYM_CODE);
+decl_sym(SSYM_STACK);
+decl_sym(SYM_SET_PC);
+decl_sym(SYM_TERM);
+decl_sym(SYM_PUSH);
+decl_sym(SYM_SPUSH);
+decl_sym(SYM_POP);
+decl_sym(SYM_ABORT);
+decl_sym(SYM_CALL);
+decl_sym(SYM_NATIVE_CALL);
+decl_sym(SSYM_RET);
+decl_sym(SYM_JMP);
+decl_sym(SSYM_PARENT);
+decl_sym(SYM_EXAMPLE);
+decl_sym(SYM_RETZ);
+decl_sym(SYM_RETNZ);
+decl_sym(SYM_TARGET);
+decl_sym(SYM_SLOT);
+decl_sym(SYM_ARG);
+decl_sym(SYM_JMPZ);
+decl_sym(SYM_JMPNZ);
+decl_sym(SYM_RET);
+
+decl_sym(SYM_COND);
+decl_sym(SYM_TRUE_BLOCK);
+decl_sym(SYM_FALSE_BLOCK);
+decl_sym(SYM_BLOCK);
+
+decl_sym(SYM_FILENAME);
+decl_sym(SYM_FILE);
+decl_sym(SYM_NEXT_CHAR);
+decl_sym(SYM_CURR_CHAR);
+decl_sym(SYM_LINE_NUM);
+decl_sym(SYM_CHAR_NUM);
+
+decl_sym(SYM_BRACE_LEFT);
+decl_sym(SYM_BRACE_RIGHT);
+decl_sym(SYM_COMMA);
+decl_sym(SYM_EQUALS);
+decl_sym(SYM_NUMBER);
+decl_sym(SYM_PIPE);
+decl_sym(SYM_SEMI);
+decl_sym(SYM_TYPE);
+decl_sym(SYM_EOF);
+decl_sym(SYM_STRING);
+decl_sym(SYM_IDENT);
 
 #endif
