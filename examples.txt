@@ -1,0 +1,20 @@
+{ a | a = 0.6 }
+===
+{ a | a = "Hello World" }
+===
+{ a | a = 6 }
+===
+{ a | a = 66 }
+===
+{ a | a: 1 }
+===
+{ a | a print: 1 }
+===
+{ a | a print: "Hello World" }
+===
+{ sys xs | xs each: { x | sys println: x } } 
+===
+{ xs | xs foldr: 0 with: { x y | x + y } }
+===
+{ xs | sum = 0 ; xs each: { x | sum = sum + x } } 
+===

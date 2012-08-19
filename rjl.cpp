@@ -355,7 +355,7 @@ void interp(cxt_t *cxt, fixnum frame) {
     case SYM_SET_PC:
       trace("SYM_SET_PC");
       pc = pop(cxt, stack);
-      set(cxt, frame, SSYM_PC, value_id);
+      set(cxt, frame, SSYM_PC, pc);
       break;
     case SYM_JMP:
       trace("SYM_JMP");
