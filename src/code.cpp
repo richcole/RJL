@@ -42,21 +42,21 @@ void code_retz(cxt_t *cxt, fixnum code) {
 
 fixnum code_jmp(cxt_t *cxt, fixnum code, fixnum pos) {
   array_push(cxt, code, SYM_JMP);
-  fixnum label = array_length(cxt, code);
+  fixnum label = array_len(cxt, code);
   array_push(cxt, code, pos);
   return label;
 }
 
 fixnum code_jmpz(cxt_t *cxt, fixnum code, fixnum pos) {
   array_push(cxt, code, SYM_JMPZ);
-  fixnum label = array_length(cxt, code);
+  fixnum label = array_len(cxt, code);
   array_push(cxt, code, pos);
   return label;
 }
 
 fixnum code_jmpnz(cxt_t *cxt, fixnum code, fixnum pos) {
   array_push(cxt, code, SYM_JMPNZ);
-  fixnum label = array_length(cxt, code);
+  fixnum label = array_len(cxt, code);
   array_push(cxt, code, pos);
   return label;
 }
@@ -83,7 +83,7 @@ fixnum code_send(cxt_t *cxt) {
   fixnum code = new_array(cxt);
   code_arg(cxt, code, SYM_SLOT);
   code_arg(cxt, code, SYM_TARGET);
-  fixnum loop = array_length(cxt, code);
+  fixnum loop = array_len(cxt, code);
   code_fget(cxt, code, SYM_TARGET);
   code_fget(cxt, code, SYM_SLOT);
   code_get(cxt, code);
@@ -97,7 +97,7 @@ fixnum code_send(cxt_t *cxt) {
 }
 
 void set_label(cxt_t *cxt, fixnum code, fixnum else_jmp) {
-  array_set_at(cxt, code, else_jmp, array_length(cxt, code));
+  array_set_at(cxt, code, else_jmp, array_len(cxt, code));
 }
 
 fixnum code_if_else(cxt_t *cxt) {
@@ -122,7 +122,7 @@ fixnum code_while(cxt_t *cxt) {
   fixnum code = new_array(cxt);
   code_arg(cxt, code, SYM_COND);
   code_arg(cxt, code, SYM_BLOCK);
-  fixnum loop = array_length(cxt, code);
+  fixnum loop = array_len(cxt, code);
   code_fget(cxt, code, SYM_COND);
   code_call(cxt, code);
   code_retz(cxt, code);

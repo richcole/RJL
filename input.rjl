@@ -1,8 +1,8 @@
 { sys |
-  print: "Hello World";
+  print: "Hello World" to: stderr;
   a = 2;
   b = 3;
   if: { a < b } then: { print: "true" };
-  try: { raise "Help"; } catch: { e | print: (e message) };
-  while: { a < b } { print: (a to_s); a = a + 1; };
+  try: { raise: "Help"; } catch: { e | print: (e message) };
+  while: { a < b } do: { print: (a to_s); a = a + 1; };
 };

@@ -61,6 +61,25 @@ defn_sym(SYM_EOF);
 defn_sym(SYM_STRING);
 defn_sym(SYM_IDENT);
 
+defn_sym(SYM_CURR_TOKEN);
+defn_sym(SYM_NEXT_TOKEN);
+defn_sym(SYM_SCANNER);
+defn_sym(SYM_ERROR);
+defn_sym(SYM_ERRORS);
+defn_sym(SYM_TEXT);
+defn_sym(SYM_TOKEN);
+
+defn_sym(SYM_ARGS);
+defn_sym(SYM_STMTS);
+defn_sym(SYM_CALL_CHAIN);
+defn_sym(SYM_PAREN_LEFT);
+defn_sym(SYM_PAREN_RIGHT);
+
+defn_sym(SYM_PERIOD);
+defn_sym(SYM_LHS);
+defn_sym(SYM_RHS);
+defn_sym(SYM_NEXT);
+
 fixnum next_sym(char const* s) {
   if ( global_cxt == 0 ) {
     global_cxt = new_cxt();

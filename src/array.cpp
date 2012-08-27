@@ -71,7 +71,7 @@ fixnum array_peek(cxt_t *cxt, fixnum obj) {
   }
 }
 
-fixnum array_length(cxt_t *cxt, fixnum obj) {
+fixnum array_len(cxt_t *cxt, fixnum obj) {
   fixnum *buf = array_get_buf(cxt, obj);
   fixnum  buf_tail = array_get_buf_tail(cxt, obj);
   if ( buf == 0 ) {

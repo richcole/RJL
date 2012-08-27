@@ -14,6 +14,7 @@ class Builder
     @release_build_dir = "build" / "release"
     @debug_build_dir = "build" / "debug"
     @cpp_flags = "-Isrc"
+    @h_depends_cache = Hash.new
   end
 
   def obj(src, args, dst_dir)
@@ -38,11 +39,15 @@ class Builder
   end
 
   def h_depends(src)
+    if @h_depends_cache.key?(src) then
+      return @h_depends_cache[src]
+    end
     content = File.read(src)
     hs = Dir.glob("src/*.h").to_a.select do |h|
       content.match(/"#{File.basename(h)}"/)
     end
     hs = hs + Set.new(hs.map { |h| h_depends(h) }.flatten).to_a
+    @h_depends_cache[src] = hs
     hs
   end
 
@@ -71,6 +76,10 @@ class Builder
 
     rule "scan" => [debug_binary] do 
       run "#{debug_binary} scan input.rjl"
+    end   
+
+    rule "parse" => [debug_binary] do 
+      run "#{debug_binary} parse input.rjl"
     end   
 
     rule "test" => [debug_binary] do 

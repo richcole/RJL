@@ -4,6 +4,7 @@
 #include "code_test.h"
 #include "rjl.h"
 #include "scanner.h"
+#include "parser.h"
 
 int main(int argc, char **argv) {
   if ( argc < 2 ) {
@@ -18,5 +19,12 @@ int main(int argc, char **argv) {
     }
     cxt_t *cxt = new_cxt();
     scanner_scan(cxt, argv[2]);
+  }
+  if ( strcmp(argv[1], "parse") == 0 ) {
+    if ( argc < 3 ) {
+      fprintf(stderr, "Expected arguments\n");
+    }
+    cxt_t *cxt = new_cxt();
+    parser_parse(cxt, argv[2]);
   }
 }

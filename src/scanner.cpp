@@ -28,6 +28,8 @@ void file_close(cxt_t *cxt, fixnum file) {
 fixnum new_scanner(cxt_t *cxt, fixnum file) {
   fixnum scanner = new_obj(cxt);
   set(cxt, scanner, SYM_FILE, file);
+  set(cxt, scanner, SYM_LINE_NUM, 1);
+  set(cxt, scanner, SYM_CHAR_NUM, 0);
   return scanner;
 }
 
@@ -52,7 +54,7 @@ fixnum char_is_space(cxt_t *cxt, fixnum c) {
 }
 
 fixnum char_is_special_punct(cxt_t *cxt, fixnum c) {
-  return c == '{' || c == '}' || c == ',' || c == ';';
+  return c == '{' || c == '}' || c == ',' || c == ';' || c == '(' || c == ')';
 }
 
 fixnum char_is_ident(cxt_t *cxt, fixnum c) {
@@ -62,27 +64,21 @@ fixnum char_is_ident(cxt_t *cxt, fixnum c) {
 fixnum scanner_advance(cxt_t *cxt, fixnum scanner) {
   fixnum next_char = get(cxt, scanner, SYM_NEXT_CHAR);
   fixnum file = get(cxt, scanner, SYM_FILE);
-  fixnum curr_char = 0;
+  fixnum curr_char = next_char;
 
-  if ( next_char != 0 ) {
-    curr_char = next_char;
-    set(cxt, scanner, SYM_CURR_CHAR, curr_char);
-    set(cxt, scanner, SYM_LINE_NUM, 1);
-    set(cxt, scanner, SYM_CHAR_NUM, 1);
-  }
-  else {
+  if ( curr_char == 0 ) {
     curr_char = file_next_char(cxt, file);
-    set(cxt, scanner, SYM_CURR_CHAR, curr_char);
-    if ( char_is_eol(cxt, curr_char) ) {
-      incr(cxt, scanner, SYM_LINE_NUM);
-      set(cxt, scanner, SYM_CHAR_NUM, 0);
-    }
-    else {
-      incr(cxt, scanner, SYM_CHAR_NUM);
-    }
   }
   next_char = file_next_char(cxt, file);
+  set(cxt, scanner, SYM_CURR_CHAR, curr_char);
   set(cxt, scanner, SYM_NEXT_CHAR, next_char);
+  if ( char_is_eol(cxt, curr_char) ) {
+    incr(cxt, scanner, SYM_LINE_NUM);
+    set(cxt, scanner, SYM_CHAR_NUM, 0);
+  }
+  else {
+    incr(cxt, scanner, SYM_CHAR_NUM);
+  }
   return curr_char;
 };
 
@@ -117,6 +113,10 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
     return set(cxt, token, SYM_TYPE, SYM_COMMA);
   }
 
+  if ( curr_char == '.' ) {
+    return set(cxt, token, SYM_TYPE, SYM_PERIOD);
+  }
+
   if ( curr_char == ';' ) {
     return set(cxt, token, SYM_TYPE, SYM_SEMI);
   }
@@ -127,6 +127,14 @@ fixnum scanner_next_token(cxt_t *cxt, fixnum scanner) {
 
   if ( curr_char == '}' ) {
     return set(cxt, token, SYM_TYPE, SYM_BRACE_RIGHT);
+  }
+
+  if ( curr_char == '(' ) {
+    return set(cxt, token, SYM_TYPE, SYM_PAREN_LEFT);
+  }
+
+  if ( curr_char == ')' ) {
+    return set(cxt, token, SYM_TYPE, SYM_PAREN_RIGHT);
   }
 
   if ( curr_char == '|' ) {
@@ -175,13 +183,16 @@ void scanner_scan(cxt_t *cxt, char const* filename) {
   fixnum ident   = 0;
   char const* type_buf;
   char const* ident_buf;
+  fixnum line_num, char_num;
 
   while(1) {
     token = scanner_next_token(cxt, scanner);
     ident = get(cxt, token, SYM_IDENT);
     type_buf = get_sym_buf(get(cxt, token, SYM_TYPE));
     ident_buf = ident ? char_array_get_buf(cxt, ident) : "(null)";
-    fprintf(stdout, "type=%s ident=%s\n", type_buf, ident_buf);
+    line_num = get(cxt, token, SYM_LINE_NUM);
+    char_num = get(cxt, token, SYM_CHAR_NUM);
+    fprintf(stdout, "(%d,%d) type=%s ident=%s \n", line_num, char_num, type_buf, ident_buf);
     if ( get(cxt, token, SYM_TYPE) == SYM_EOF ) {
       break;
     }

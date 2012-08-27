@@ -73,4 +73,22 @@ decl_sym(SYM_EOF);
 decl_sym(SYM_STRING);
 decl_sym(SYM_IDENT);
 
+decl_sym(SYM_CURR_TOKEN);
+decl_sym(SYM_NEXT_TOKEN);
+decl_sym(SYM_SCANNER);
+decl_sym(SYM_ERROR);
+decl_sym(SYM_ERRORS);
+decl_sym(SYM_TEXT);
+decl_sym(SYM_TOKEN);
+
+decl_sym(SYM_ARGS);
+decl_sym(SYM_STMTS);
+decl_sym(SYM_CALL_CHAIN);
+decl_sym(SYM_PAREN_LEFT);
+decl_sym(SYM_PAREN_RIGHT);
+
+decl_sym(SYM_PERIOD);
+decl_sym(SYM_LHS);
+decl_sym(SYM_RHS);
+decl_sym(SYM_NEXT);
 #endif
