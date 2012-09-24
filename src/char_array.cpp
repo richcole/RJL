@@ -1,11 +1,14 @@
-#include "char_array.h"
 #include <string.h>
+
+#include "char_array.h"
+#include "symbols.h"
 
 fixnum new_char_array(cxt_t *cxt, char const* s) {
   fixnum obj = new_obj(cxt);
   fixnum len = strlen(s)+1;
   set_buf(cxt, obj, s, len);
   set_buf_tail(cxt, obj, len-1);
+  set(cxt, obj, SYM_TYPE, SYM_STRING);
   return obj;
 }
 

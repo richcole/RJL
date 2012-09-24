@@ -80,6 +80,8 @@ defn_sym(SYM_LHS);
 defn_sym(SYM_RHS);
 defn_sym(SYM_NEXT);
 
+defn_sym(SYM_ARRAY);
+
 fixnum next_sym(char const* s) {
   if ( global_cxt == 0 ) {
     global_cxt = new_cxt();

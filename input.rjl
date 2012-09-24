@@ -1,8 +1,9 @@
-{ sys |
+{ sys stdout |
   print: "Hello World" to: stderr;
   a = 2;
   b = 3;
   if: { a < b } then: { print: "true" };
+  if: { a < b } then: { print: "true" } else: { print: "false" };
   try: { raise: "Help"; } catch: { e | print: (e message) };
   while: { a < b } do: { print: (a to_s); a = a + 1; };
 };

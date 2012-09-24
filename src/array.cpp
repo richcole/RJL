@@ -1,8 +1,10 @@
 #include "array.h"
+#include "symbols.h"
 
 fixnum new_array(cxt_t *cxt) {
   fixnum obj = new_obj(cxt);
   array_reserve(cxt, obj, 10);
+  set(cxt, obj, SYM_TYPE, SYM_ARRAY);
   return obj;
 }
 

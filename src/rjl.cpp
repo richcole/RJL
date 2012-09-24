@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "rjl.h"
+#include "symbols.h"
 
 struct slot_t {
   fixnum slot;
@@ -23,6 +24,7 @@ struct cxt_t {
   obj_t   *objs;
   fixnum  objs_len;
   fixnum  objs_tail;
+  fixnum  obj;
 };
 
 char* cxt_alloc(cxt_t *cxt, fixnum len) {
@@ -40,6 +42,7 @@ cxt_t* new_cxt() {
   cxt->objs_len  = 1000;
   cxt->objs      = (obj_t *)calloc(cxt->objs_len, sizeof(obj_t));
   cxt->objs_tail = 1;
+  cxt->obj       = new_obj(cxt);
   return cxt;
 }
 
@@ -180,7 +183,9 @@ void dump(cxt_t *cxt, fixnum obj_id) {
   fixnum i;
   for(i=0;i<obj->slots_len;++i) {
     slot_t *slot = obj->slots + i;
-    fprintf(stdout, "  %u %u\n", slot->slot, slot->value);
+    if ( slot->slot != 0 ) {
+      fprintf(stdout, "  %s %u\n", get_sym_buf(slot->slot), slot->value);
+    }
   }
   if (obj->buf != 0) {
     fprintf(stdout, "  buf=%p\n", obj->buf);

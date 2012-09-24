@@ -165,22 +165,41 @@ fixnum parser_parse_expr(cxt_t *cxt, fixnum parser, fixnum head) {
   }
 }
 
-void parser_print_ast(cxt_t *cxt, fixnum ast) {
+void print_indent(cxt_t *cxt, fixnum indent) {
+  for(fixnum i = 0; i<indent; ++i) {
+    fprintf(stdout, " ");
+  }
+}
+
+void parser_print_ast(cxt_t *cxt, fixnum ast, fixnum indent) {
   if ( ast != 0 ) {
     fixnum type = get(cxt, ast, SYM_TYPE);
-    fprintf(stdout, "%s\n", get_sym_buf(type));
+    if ( type == SYM_BLOCK ) {
+      print_indent(cxt, indent);
+      fprintf(stdout, "type: %s\n", get_sym_buf(type));
+
+      print_indent(cxt, indent);
+      fprintf(stdout, "args: \n");
+      parser_print_ast(cxt, get(cxt, ast, SYM_ARGS), indent+1);
+
+      print_indent(cxt, indent);
+      fprintf(stdout, "stmts: \n");
+      parser_print_ast(cxt, get(cxt, ast, SYM_STMTS), indent+1);
+    }
+    else {
+      print_indent(cxt, indent);
+      if ( type != 0 ) {
+        fprintf(stdout, "type: %s\n", get_sym_buf(type));
+        dump(cxt, ast);
+      }
+    }
   }
   else {
     fprintf(stdout, "null\n");
   };
 };
 
-void parser_parse(cxt_t *cxt, char const* filename) {
-  fixnum file    = new_file(cxt, new_char_array(cxt, filename));
-  fixnum scanner = new_scanner(cxt, file);
-  fixnum parser  = new_parser(cxt, scanner);
-  fixnum ast = parser_parse(cxt, parser);
-  fixnum errors = get(cxt, parser, SYM_ERRORS);
+void parser_print_errors(cxt_t *cxt, fixnum errors) {
   if ( array_len(cxt, errors) > 0 ) {
     fixnum err = array_pop(cxt, errors);
     fixnum err_string = get(cxt, err, SYM_TEXT);
@@ -188,8 +207,23 @@ void parser_parse(cxt_t *cxt, char const* filename) {
     fixnum line_num = get(cxt, token, SYM_LINE_NUM);
     fixnum char_num = get(cxt, token, SYM_CHAR_NUM);
     fprintf(stderr, "%s:%d:%d: error %s\n", filename, line_num, char_num, get_buf(cxt, err_string));
+    return 0;
+  }
+};
+
+void parser_parse(cxt_t *cxt, char const* filename) {
+  fixnum file    = new_file(cxt, new_char_array(cxt, filename));
+  fixnum scanner = new_scanner(cxt, file);
+  fixnum parser  = new_parser(cxt, scanner);
+  fixnum result  = new_obj(cxt);
+  set(cxt, result, SYM_AST, ast);
+  fixnum ast     = parser_parse(cxt, parser);
+  fixnum errors  = get(cxt, parser, SYM_ERRORS);
+  if ( array_len(cxt, errors) > 0 ) {
+    parser_print_errors(cxt, errors);
+    return 0;
   }
   else {
-    parser_print_ast(cxt, ast);
+    return ast;
   }
 }

@@ -91,4 +91,6 @@ decl_sym(SYM_PERIOD);
 decl_sym(SYM_LHS);
 decl_sym(SYM_RHS);
 decl_sym(SYM_NEXT);
+
+decl_sym(SYM_ARRAY);
 #endif
